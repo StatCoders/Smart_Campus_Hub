@@ -1,15 +1,46 @@
+version: "3.9"
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: smartcampus-postgres
+    environment:
+      POSTGRES_DB: smartcampus
+      POSTGRES_USER: smartcampus
+      POSTGRES_PASSWORD: smartcampus123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartcampus -d smartcampus"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - smartcampus-network
+
   backend:
     build: ./backend
     ports:
       - "8080:8080"
-    env_file:
-      - .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smartcampus
+      SPRING_DATASOURCE_USERNAME: smartcampus
+      SPRING_DATASOURCE_PASSWORD: smartcampus123
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_OPEN_IN_VIEW: "false"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: on-failure
     networks:
       - smartcampus-network
+
   frontend:
     build: ./frontend
     ports:
@@ -23,3 +54,6 @@ services:
 networks:
   smartcampus-network:
     driver: bridge
+
+volumes:
+  postgres_data:
