@@ -1,5 +1,10 @@
 package com.smartcampus.backend.model.maintenance;
 
-public class TicketCategory {
-    
+public enum TicketCategory {
+    ELECTRICAL,
+    PLUMBING,
+    IT,
+    FURNITURE,
+    HVAC,
+    OTHER
 }

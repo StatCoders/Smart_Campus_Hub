@@ -1,5 +1,9 @@
 package com.smartcampus.backend.model.maintenance;
 
-public class TicketStatus {
-    
+public enum TicketStatus {
+    OPEN,
+    IN_PROGRESS,
+    RESOLVED,
+    CLOSED,
+    REJECTED
 }
