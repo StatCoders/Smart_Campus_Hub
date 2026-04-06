@@ -20,6 +20,12 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<?> handleUnauthorizedException(UnauthorizedException ex, WebRequest request) {
+        ApiResponse<?> response = new ApiResponse<>(false, HttpStatus.UNAUTHORIZED.value(), ex.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<?> handleIllegalArgumentException(IllegalArgumentException ex, WebRequest request) {
         ApiResponse<?> response = new ApiResponse<>(false, HttpStatus.BAD_REQUEST.value(), ex.getMessage());

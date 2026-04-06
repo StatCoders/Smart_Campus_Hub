@@ -2,6 +2,7 @@ package com.smartcampus.backend.service.auth;
 
 import com.smartcampus.backend.dto.auth.*;
 import com.smartcampus.backend.exception.ConflictException;
+import com.smartcampus.backend.exception.UnauthorizedException;
 import com.smartcampus.backend.model.auth.Role;
 import com.smartcampus.backend.model.auth.User;
 import com.smartcampus.backend.repository.auth.UserRepository;
@@ -69,16 +70,16 @@ public class UserService {
 
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
+                .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
 
         // Verify password
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Invalid email or password");
+            throw new UnauthorizedException("Invalid email or password");
         }
 
         // Check if user is active
         if (!user.getIsActive()) {
-            throw new IllegalArgumentException("User account is disabled");
+            throw new UnauthorizedException("User account is disabled");
         }
 
         // Generate tokens
