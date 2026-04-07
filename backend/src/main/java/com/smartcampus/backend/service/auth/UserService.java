@@ -127,4 +127,47 @@ public class UserService {
     public void deleteUser(Long userId) {
         userRepository.deleteById(userId);
     }
+
+    public AuthResponse googleOAuthLogin(GoogleTokenInfo tokenInfo) {
+        // Try to find existing user by email
+        User user = userRepository.findByEmail(tokenInfo.getEmail()).orElse(null);
+
+        // If user doesn't exist, create new user from Google info
+        if (user == null) {
+            String fullName = tokenInfo.getName() != null ? tokenInfo.getName() : 
+                             (tokenInfo.getGivenName() + " " + tokenInfo.getFamilyName());
+            
+            user = User.builder()
+                    .email(tokenInfo.getEmail())
+                    .firstName(tokenInfo.getGivenName() != null ? tokenInfo.getGivenName() : "")
+                    .lastName(tokenInfo.getFamilyName() != null ? tokenInfo.getFamilyName() : "")
+                    .fullName(fullName)
+                    .phoneNumber("")
+                    .password("") // No password for OAuth users
+                    .role(Role.USER)
+                    .emailVerified(tokenInfo.getEmailVerified() != null ? tokenInfo.getEmailVerified() : false)
+                    .isActive(true)
+                    .build();
+            
+            user = userRepository.save(user);
+        }
+
+        // Generate JWT tokens
+        String token = jwtUtil.generateToken(user);
+        String refreshToken = jwtUtil.generateRefreshToken(user);
+
+        return AuthResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .fullName(user.getFullName())
+                .phoneNumber(user.getPhoneNumber())
+                .role(user.getRole())
+                .token(token)
+                .refreshToken(refreshToken)
+                .emailVerified(user.getEmailVerified())
+                .message("Google login successful")
+                .build();
+    }
 }

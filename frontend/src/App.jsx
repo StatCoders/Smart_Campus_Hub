@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
+import GoogleAuthSuccess from './pages/GoogleAuthSuccess';
 import 'tailwindcss';
 
 function App() {
@@ -20,6 +21,10 @@ function App() {
                 <Dashboard />
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/google-success"
+            element={<GoogleAuthSuccess />}
           />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
