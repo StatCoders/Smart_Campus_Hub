@@ -45,9 +45,11 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Role role;
 
+    @Builder.Default
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified = false;
 
+    @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 

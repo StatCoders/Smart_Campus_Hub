@@ -3,7 +3,6 @@ package com.smartcampus.backend.controller.auth;
 import com.smartcampus.backend.dto.auth.AuthResponse;
 import com.smartcampus.backend.dto.auth.LoginRequest;
 import com.smartcampus.backend.dto.auth.SignupRequest;
-import com.smartcampus.backend.exception.ConflictException;
 import com.smartcampus.backend.service.auth.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

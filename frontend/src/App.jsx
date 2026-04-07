@@ -4,7 +4,10 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
-import 'tailwindcss';
+import Tickets from './pages/Tickets';
+import TicketCreatePage from './pages/TicketCreatePage';
+import TicketDetailPage from './pages/TicketDetailPage';
+import EditTicketPage from './pages/EditTicketPage';
 
 function App() {
   return (
@@ -18,6 +21,38 @@ function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tickets"
+            element={
+              <ProtectedRoute>
+                <Tickets />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tickets/create"
+            element={
+              <ProtectedRoute>
+                <TicketCreatePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tickets/:id/edit"
+            element={
+              <ProtectedRoute>
+                <EditTicketPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tickets/:id"
+            element={
+              <ProtectedRoute>
+                <TicketDetailPage />
               </ProtectedRoute>
             }
           />
