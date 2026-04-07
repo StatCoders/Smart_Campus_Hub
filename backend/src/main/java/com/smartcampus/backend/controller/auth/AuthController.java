@@ -21,24 +21,14 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest signupRequest) {
-        try {
-            AuthResponse response = userService.signup(signupRequest);
-            return new ResponseEntity<>(response, HttpStatus.CREATED);
-        } catch (ConflictException e) {
-            return new ResponseEntity<>(new AuthResponse(e.getMessage()), HttpStatus.CONFLICT);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(new AuthResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
-        }
+        AuthResponse response = userService.signup(signupRequest);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
-        try {
-            AuthResponse response = userService.login(loginRequest);
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(new AuthResponse(e.getMessage()), HttpStatus.UNAUTHORIZED);
-        }
+        AuthResponse response = userService.login(loginRequest);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @PostMapping("/logout")
