@@ -72,6 +72,11 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const setAuthenticatedUser = (authUser) => {
+    setUser(authUser || null);
+    setError(null);
+  };
+
   const value = {
     user,
     loading,
@@ -79,6 +84,7 @@ export function AuthProvider({ children }) {
     signup,
     login,
     logout,
+    setAuthenticatedUser,
     isAuthenticated: !!user,
   };
 

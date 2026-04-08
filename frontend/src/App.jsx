@@ -8,6 +8,8 @@ import Tickets from './pages/Tickets';
 import TicketCreatePage from './pages/TicketCreatePage';
 import TicketDetailPage from './pages/TicketDetailPage';
 import EditTicketPage from './pages/EditTicketPage';
+import GoogleAuthSuccess from './pages/GoogleAuthSuccess';
+import 'tailwindcss';
 
 function App() {
   return (
@@ -55,6 +57,8 @@ function App() {
                 <TicketDetailPage />
               </ProtectedRoute>
             }
+            path="/google-success"
+            element={<GoogleAuthSuccess />}
           />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
