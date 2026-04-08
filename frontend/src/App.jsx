@@ -57,6 +57,8 @@ function App() {
                 <TicketDetailPage />
               </ProtectedRoute>
             }
+          />
+          <Route
             path="/google-success"
             element={<GoogleAuthSuccess />}
           />
