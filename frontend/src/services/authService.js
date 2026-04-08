@@ -11,6 +11,11 @@ const authService = {
     return response.data;
   },
 
+  googleLogin: async (token) => {
+    const response = await apiClient.post('/auth/google', { token });
+    return response.data;
+  },
+
   logout: async () => {
     try {
       await apiClient.post('/auth/logout');
