@@ -39,8 +39,15 @@ export default function FacilityCard({ facility, onClick, onEdit, onRefresh }) {
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-4 cursor-pointer"
+      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-4 cursor-pointer relative"
     >
+      {/* Status Badge - Top Left */}
+      <div className="absolute top-2 left-2 z-10">
+        <span className={`${getStatusColor(facility.status)} px-3 py-1 rounded-full text-xs font-semibold`}>
+          {facility.status === 'ACTIVE' ? '🟢 ACTIVE' : '🔴 OUT OF SERVICE'}
+        </span>
+      </div>
+
       {/* Image */}
       <div className="mb-4 h-40 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
         {facility.imagePath ? (
@@ -74,9 +81,17 @@ export default function FacilityCard({ facility, onClick, onEdit, onRefresh }) {
           </div>
         </div>
 
-        <div className="bg-gray-50 p-2 rounded text-sm">
-          <p className="text-gray-600">Floor</p>
-          <p className="font-semibold text-gray-900">{facility.floor}</p>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="bg-gray-50 p-2 rounded">
+            <p className="text-gray-600">Floor</p>
+            <p className="font-semibold text-gray-900">{facility.floor}</p>
+          </div>
+          {facility.availabilityWindows && (
+            <div className="bg-gray-50 p-2 rounded">
+              <p className="text-gray-600">Availability</p>
+              <p className="font-semibold text-gray-900 text-xs">{facility.availabilityWindows}</p>
+            </div>
+          )}
         </div>
 
         {/* Features */}
@@ -100,13 +115,6 @@ export default function FacilityCard({ facility, onClick, onEdit, onRefresh }) {
 
         {/* Occupancy Chart */}
         <OccupancyChart facility={facility} />
-
-        {/* Status Badge */}
-        <div className="flex items-center justify-between pt-2">
-          <span className={`${getStatusColor(facility.status)} px-3 py-1 rounded-full text-xs font-semibold`}>
-            {facility.status === 'ACTIVE' ? '🟢 ACTIVE' : '🔴 OUT OF SERVICE'}
-          </span>
-        </div>
 
         {/* View Details Button */}
         <button
