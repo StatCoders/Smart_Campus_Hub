@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/useAuth';
 import { deleteFacility } from '../services/facilityService';
+import OccupancyChart from './OccupancyChart';
 
 export default function FacilityCard({ facility, onClick, onEdit, onRefresh }) {
   const { user } = useAuth();
@@ -96,6 +97,9 @@ export default function FacilityCard({ facility, onClick, onEdit, onRefresh }) {
             </div>
           </div>
         )}
+
+        {/* Occupancy Chart */}
+        <OccupancyChart facility={facility} />
 
         {/* Status Badge */}
         <div className="flex items-center justify-between pt-2">
