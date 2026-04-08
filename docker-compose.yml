@@ -9,6 +9,8 @@ services:
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+      - uploads_volume:/uploads
     networks:
       - smartcampus-network
 
@@ -28,3 +30,7 @@ services:
 networks:
   smartcampus-network:
     driver: bridge
+
+volumes:
+  uploads_volume:
+    driver: local

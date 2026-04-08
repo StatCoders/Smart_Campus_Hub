@@ -29,7 +29,7 @@ public class Facility {
     private FacilityType type;
 
     @Column(nullable = false)
-    private Integer capacity;
+    private Integer capacity = 0;
 
     @Column(nullable = false)
     private String building;
@@ -51,6 +51,9 @@ public class Facility {
 
     @Column(length = 1000)
     private String imageUrl;
+
+    @Column(length = 500)
+    private String imagePath;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

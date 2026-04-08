@@ -21,8 +21,7 @@ public class FacilityCreateRequest {
     @NotNull(message = "Type is required")
     private FacilityType type;
 
-    @NotNull(message = "Capacity is required")
-    @Positive(message = "Capacity must be positive")
+    @PositiveOrZero(message = "Capacity must be positive or null")
     private Integer capacity;
 
     @NotBlank(message = "Building is required")
@@ -40,4 +39,6 @@ public class FacilityCreateRequest {
     private List<String> features;
 
     private String imageUrl;
+
+    private String imagePath;
 }

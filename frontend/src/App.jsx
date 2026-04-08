@@ -9,6 +9,8 @@ import TicketCreatePage from './pages/TicketCreatePage';
 import TicketDetailPage from './pages/TicketDetailPage';
 import EditTicketPage from './pages/EditTicketPage';
 import GoogleAuthSuccess from './pages/GoogleAuthSuccess';
+import FacilitiesPage from './pages/FacilitiesPage';
+import FacilityDetailPage from './pages/FacilityDetailPage';
 import 'tailwindcss';
 
 function App() {
@@ -55,6 +57,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <TicketDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/facilities"
+            element={
+              <ProtectedRoute>
+                <FacilitiesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/facilities/:id"
+            element={
+              <ProtectedRoute>
+                <FacilityDetailPage />
               </ProtectedRoute>
             }
           />

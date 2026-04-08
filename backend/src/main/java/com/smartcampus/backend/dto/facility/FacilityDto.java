@@ -24,6 +24,7 @@ public class FacilityDto {
     private String availabilityWindows;
     private List<String> features;
     private String imageUrl;
+    private String imagePath;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
