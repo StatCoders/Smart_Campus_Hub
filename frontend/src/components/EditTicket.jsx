@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getTicketById, updateTicket } from '../services/ticketService';
 
@@ -56,11 +56,7 @@ export default function EditTicket() {
   const [searchResource, setSearchResource] = useState('');
   const [showResourceDropdown, setShowResourceDropdown] = useState(false);
 
-  useEffect(() => {
-    fetchTicketData();
-  }, [id]);
-
-  const fetchTicketData = async () => {
+  const fetchTicketData = useCallback(async () => {
     try {
       const ticket = await getTicketById(id);
       setFormData({
@@ -75,11 +71,15 @@ export default function EditTicket() {
       });
       setSearchResource(ticket.resourceId || '');
       setLoading(false);
-    } catch (err) {
+    } catch {
       setError('Failed to load ticket');
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchTicketData();
+  }, [fetchTicketData]);
 
   const filteredResources = RESOURCE_OPTIONS.filter(r =>
     r.id.toLowerCase().includes(searchResource.toLowerCase()) ||

@@ -11,21 +11,21 @@ export default function TicketDetail() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
+    const fetchTicket = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const data = await getTicketById(id);
+        setTicket(data);
+      } catch (err) {
+        setError(err.message || 'Failed to fetch ticket');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchTicket();
   }, [id]);
-
-  const fetchTicket = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const data = await getTicketById(id);
-      setTicket(data);
-    } catch (err) {
-      setError(err.message || 'Failed to fetch ticket');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this ticket?')) {

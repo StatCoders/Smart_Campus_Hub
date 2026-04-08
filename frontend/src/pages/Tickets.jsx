@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
@@ -17,14 +17,6 @@ export default function Tickets() {
   const [priorityFilter, setPriorityFilter] = useState('All Priorities');
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    fetchTickets();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [tickets, statusFilter, priorityFilter, searchTerm]);
-
   const fetchTickets = async () => {
     setLoading(true);
     setError('');
@@ -38,7 +30,11 @@ export default function Tickets() {
     }
   };
 
-  const applyFilters = () => {
+  useEffect(() => {
+    fetchTickets();
+  }, []);
+
+  const applyFilters = useCallback(() => {
     let filtered = [...tickets];
 
     // Apply status filter
@@ -61,7 +57,11 @@ export default function Tickets() {
     }
 
     setFilteredTickets(filtered);
-  };
+  }, [tickets, statusFilter, priorityFilter, searchTerm]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   const getPriorityColor = (priority) => {
     const colors = {

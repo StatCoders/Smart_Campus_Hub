@@ -4,21 +4,21 @@ import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import { useAuth } from '../context/useAuth';
 
+const QuickAccessCard = ({ icon, title, description, onClick }) => (
+  <button
+    onClick={onClick}
+    className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 text-left"
+  >
+    <div className="text-4xl mb-3">{icon}</div>
+    <h3 className="text-lg font-bold text-gray-900 mb-1">{title}</h3>
+    <p className="text-sm text-gray-600">{description}</p>
+  </button>
+);
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
-
-  const QuickAccessCard = ({ icon, title, description, onClick }) => (
-    <button
-      onClick={onClick}
-      className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 text-left"
-    >
-      <div className="text-4xl mb-3">{icon}</div>
-      <h3 className="text-lg font-bold text-gray-900 mb-1">{title}</h3>
-      <p className="text-sm text-gray-600">{description}</p>
-    </button>
-  );
 
   return (
     <div className="flex bg-gray-50 min-h-screen">
