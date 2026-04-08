@@ -4,6 +4,9 @@ import { useAuth } from '../context/useAuth';
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const displayName = user?.fullName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'User';
+  const displayRole = user?.role || 'N/A';
+  const displayEmailVerified = typeof user?.emailVerified === 'boolean' ? (user.emailVerified ? 'Yes' : 'Pending') : 'N/A';
 
   const handleLogout = async () => {
     await logout();
@@ -23,7 +26,7 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-gray-700">
-                {user?.firstName} {user?.lastName}
+                {displayName}
               </span>
               <button
                 onClick={handleLogout}
@@ -41,7 +44,7 @@ export default function Dashboard() {
         <div className="px-4 py-6 sm:px-0">
           <div className="border-4 border-dashed border-gray-200 rounded-lg p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Welcome, {user?.firstName}!
+              Welcome, {displayName}!
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
@@ -52,30 +55,32 @@ export default function Dashboard() {
                 </h3>
                 <div className="space-y-2 text-gray-600">
                   <p>
-                    <strong>Name:</strong> {user?.fullName}
+                    <strong>Name:</strong> {displayName}
                   </p>
                   <p>
-                    <strong>Email:</strong> {user?.email}
+                    <strong>Email:</strong> {user?.email || 'N/A'}
                   </p>
                   <p>
-                    <strong>Phone:</strong> {user?.phoneNumber}
+                    <strong>Phone:</strong> {user?.phoneNumber || 'N/A'}
                   </p>
                   <p>
                     <strong>Role:</strong>{' '}
                     <span className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                      {user?.role}
+                      {displayRole}
                     </span>
                   </p>
                   <p>
                     <strong>Email Verified:</strong>{' '}
                     <span
                       className={`inline-block px-2 py-1 rounded text-sm ${
-                        user?.emailVerified
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
+                        displayEmailVerified === 'Yes'
+                            ? 'bg-green-100 text-green-800'
+                            : displayEmailVerified === 'Pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-700'
                       }`}
                     >
-                      {user?.emailVerified ? 'Yes' : 'Pending'}
+                      {displayEmailVerified}
                     </span>
                   </p>
                 </div>

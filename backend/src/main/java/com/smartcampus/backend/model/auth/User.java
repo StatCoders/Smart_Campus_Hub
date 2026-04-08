@@ -45,6 +45,11 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Role role;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private AuthProvider provider = AuthProvider.LOCAL;
+
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified = false;
 
@@ -59,6 +64,9 @@ public class User implements UserDetails {
 
     @PrePersist
     protected void onCreate() {
+        if (provider == null) {
+            provider = AuthProvider.LOCAL;
+        }
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }

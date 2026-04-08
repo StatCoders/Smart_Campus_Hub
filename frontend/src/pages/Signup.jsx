@@ -38,6 +38,10 @@ export default function Signup() {
       setError('Phone number is required');
       return false;
     }
+    if (!/^\d{10,}$/.test(formData.phoneNumber.trim())) {
+      setError('Phone number must be at least 10 digits');
+      return false;
+    }
     if (!formData.password) {
       setError('Password is required');
       return false;
@@ -81,6 +85,13 @@ export default function Signup() {
       
       if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
+        const validationErrors = err.response?.data?.data;
+        if (validationErrors && typeof validationErrors === 'object') {
+          const firstFieldError = Object.values(validationErrors)[0];
+          if (firstFieldError) {
+            errorMessage = String(firstFieldError);
+          }
+        }
       } else if (err.response?.status === 409) {
         errorMessage = 'This email is already registered. Please use a different email or try logging in.';
       } else if (err.response?.status === 400) {

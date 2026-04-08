@@ -52,14 +52,20 @@ public class AuthController {
             
             // Log in or register the user
             AuthResponse response = userService.googleOAuthLogin(tokenInfo);
-            System.out.println("Google OAuth login successful for: " + response.getEmail());
+            System.out.println("Google OAuth login successful for: " + response.getData().getEmail());
             
             return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (Exception e) {
             System.err.println("Google OAuth error: " + e.getMessage());
             e.printStackTrace();
             return new ResponseEntity<>(
-                new AuthResponse(e.getMessage()), 
+                AuthResponse.builder()
+                        .success(false)
+                        .message(e.getMessage())
+                        .data(null)
+                        .token(null)
+                        .refreshToken(null)
+                        .build(),
                 HttpStatus.UNAUTHORIZED
             );
         }
@@ -70,19 +76,31 @@ public class AuthController {
         try {
             var user = userService.getCurrentUser();
             AuthResponse response = AuthResponse.builder()
+                .success(true)
+                    .message("User retrieved successfully")
+                .data(AuthResponse.AuthData.builder()
                     .id(user.getId())
                     .email(user.getEmail())
+                    .role(user.getRole())
                     .firstName(user.getFirstName())
                     .lastName(user.getLastName())
                     .fullName(user.getFullName())
                     .phoneNumber(user.getPhoneNumber())
-                    .role(user.getRole())
                     .emailVerified(user.getEmailVerified())
-                    .message("User retrieved successfully")
+                    .build())
+                .token(null)
+                .refreshToken(null)
                     .build();
             return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(new AuthResponse(e.getMessage()), HttpStatus.UNAUTHORIZED);
+            AuthResponse response = AuthResponse.builder()
+                .success(false)
+                .message(e.getMessage())
+                .data(null)
+                .token(null)
+                .refreshToken(null)
+                .build();
+            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
         }
     }
 

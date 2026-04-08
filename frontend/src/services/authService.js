@@ -1,19 +1,35 @@
 import apiClient from './apiClient';
 
+const normalizeAuthResponse = (payload) => {
+  // New backend format: { success, message, data, token, refreshToken }
+  if (payload && payload.data && typeof payload.data === 'object') {
+    return {
+      ...payload.data,
+      token: payload.token ?? null,
+      refreshToken: payload.refreshToken ?? null,
+      message: payload.message,
+      success: payload.success,
+    };
+  }
+
+  // Backward-compatible fallback for older flat payloads
+  return payload;
+};
+
 const authService = {
   signup: async (formData) => {
     const response = await apiClient.post('/auth/signup', formData);
-    return response.data;
+    return normalizeAuthResponse(response.data);
   },
 
   login: async (email, password) => {
     const response = await apiClient.post('/auth/login', { email, password });
-    return response.data;
+    return normalizeAuthResponse(response.data);
   },
 
   googleLogin: async (token) => {
     const response = await apiClient.post('/auth/google', { token });
-    return response.data;
+    return normalizeAuthResponse(response.data);
   },
 
   logout: async () => {
@@ -26,7 +42,7 @@ const authService = {
 
   getCurrentUser: async () => {
     const response = await apiClient.get('/auth/me');
-    return response.data;
+    return normalizeAuthResponse(response.data);
   },
 
   checkEmailExists: async (email) => {
