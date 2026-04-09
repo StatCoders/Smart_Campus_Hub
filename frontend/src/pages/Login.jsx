@@ -4,14 +4,39 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/useAuth';
 import authService from '../services/authService';
 
+const roleOptions = [
+  {
+    id: 'student-staff',
+    role: 'USER',
+    title: 'Student / Staff',
+    description: 'Book resources and report issues',
+    accent: 'from-cyan-500 to-teal-500',
+  },
+  {
+    id: 'administrator',
+    role: 'ADMIN',
+    title: 'Administrator',
+    description: 'Manage campus operations',
+    accent: 'from-rose-500 to-orange-500',
+  },
+  {
+    id: 'technician',
+    role: 'TECHNICIAN',
+    title: 'Technician',
+    description: 'Handle maintenance tickets',
+    accent: 'from-indigo-500 to-blue-500',
+  },
+];
+
 export default function Login() {
   const navigate = useNavigate();
   const { login, error: authError, isAuthenticated, setAuthenticatedUser } = useAuth();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null);
+  const selectedRoleMeta = roleOptions.find((option) => option.role === selectedRole);
 
-  // Redirect after auth state settles; do not navigate during render.
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -19,9 +44,10 @@ export default function Login() {
     if (postLoginRedirect === 'google-success') {
       sessionStorage.removeItem('postLoginRedirect');
       navigate('/google-success', { replace: true });
-    } else {
-      navigate('/dashboard', { replace: true });
+      return;
     }
+
+    navigate('/dashboard', { replace: true });
   }, [isAuthenticated, navigate]);
 
   const handleChange = (e) => {
@@ -40,20 +66,11 @@ export default function Login() {
 
     try {
       setLoading(true);
-      const loginData = {
-        email: formData.email.trim().toLowerCase(),
-        password: formData.password,
-      };
-      
-      console.log('Logging in with email:', loginData.email);
-      await login(loginData.email, loginData.password);
+      await login(formData.email.trim().toLowerCase(), formData.password);
       navigate('/dashboard');
     } catch (err) {
-      console.error('Login error:', err);
-      
-      // Extract error message from different possible sources
       let errorMessage = 'Login failed. Please try again.';
-      
+
       if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
       } else if (err.response?.status === 401) {
@@ -63,7 +80,7 @@ export default function Login() {
       } else if (authError) {
         errorMessage = authError;
       }
-      
+
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -76,22 +93,16 @@ export default function Login() {
       try {
         setLoading(true);
         setError('');
-        console.log('Google token received, processing...');
 
-        // Send Google access token to backend
         const response = await authService.googleLogin(tokenResponse.access_token);
-        console.log('Google OAuth response:', response);
 
-        // Store tokens from backend response
         localStorage.setItem('accessToken', response.token);
         localStorage.setItem('refreshToken', response.refreshToken);
         setAuthenticatedUser(response);
-        console.log('Tokens stored successfully');
 
         sessionStorage.setItem('postLoginRedirect', 'google-success');
         navigate('/google-success', { replace: true });
       } catch (err) {
-        console.error('Google login error:', err);
         let errorMessage = 'Google login failed. Please try again.';
 
         if (err.response?.data?.message) {
@@ -113,95 +124,149 @@ export default function Login() {
   });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            Login to Smart Campus Hub
-          </h2>
-        </div>
+    <div className="relative min-h-screen overflow-hidden bg-slate-100 px-4 py-10 sm:px-6 lg:px-8">
+      <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-cyan-200/50 blur-3xl" />
+      <div className="pointer-events-none absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-amber-200/40 blur-3xl" />
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          )}
-
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                disabled={loading}
-              />
+      <div className="relative mx-auto w-full max-w-3xl">
+        {!selectedRole ? (
+          <div className="space-y-6 rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-xl shadow-slate-200/60 backdrop-blur sm:p-8">
+            <div className="space-y-2">
+              <p className="text-sm font-medium uppercase tracking-widest text-slate-500">Smart Campus Hub</p>
+              <h2 className="text-4xl font-semibold tracking-tight text-slate-900">Welcome back</h2>
+              <p className="text-lg text-slate-600">Sign in to manage your campus operations</p>
             </div>
 
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                disabled={loading}
-              />
-            </div>
-          </div>
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400"
-          >
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 text-gray-500">Or continue with</span>
-            </div>
-          </div>
-
-          <div className="flex justify-center">
             <button
               type="button"
               onClick={() => googleSignIn()}
               disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-100"
+              className="group flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-4 text-lg font-semibold text-slate-900 transition hover:bg-white hover:shadow-sm disabled:bg-slate-100"
             >
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white text-sm font-bold text-slate-700 shadow-sm">G</span>
               Continue with Google
             </button>
-          </div>
 
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link
-                to="/signup"
-                className="font-medium text-blue-600 hover:text-blue-500"
-              >
+            <div className="flex items-center gap-4 text-slate-500">
+              <div className="h-px flex-1 bg-slate-300" />
+              <span className="text-sm">Or sign in as a role</span>
+              <div className="h-px flex-1 bg-slate-300" />
+            </div>
+
+            <div className="grid gap-3">
+              {roleOptions.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedRole(option.role);
+                    setError('');
+                  }}
+                  className="group w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-left transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-start gap-3">
+                      <span className={`mt-1 h-8 w-1.5 rounded-full bg-gradient-to-b ${option.accent}`} />
+                      <div>
+                        <p className="text-xl font-semibold text-slate-900">{option.title}</p>
+                        <p className="mt-0.5 text-sm text-slate-600">{option.description}</p>
+                      </div>
+                    </div>
+                    <span className="text-xl text-slate-400 transition group-hover:translate-x-1 group-hover:text-slate-600">&gt;</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <p className="text-center text-sm text-slate-600 pt-1">
+              Do not have an account?{' '}
+              <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
                 Sign up
               </Link>
             </p>
           </div>
-        </form>
+        ) : (
+          <form className="space-y-6 rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60" onSubmit={handleSubmit}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-semibold text-slate-900">
+                Sign in as {selectedRoleMeta?.title || selectedRole}
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedRole(null);
+                  setError('');
+                }}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              >
+                Back
+              </button>
+            </div>
+
+            <p className="text-sm text-slate-600">Enter your credentials to continue.</p>
+
+            {error && (
+              <div className="rounded-md bg-red-50 p-4">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+
+            <div className="rounded-md shadow-sm -space-y-px">
+              <div>
+                <label htmlFor="email" className="sr-only">
+                  Email address
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="Email address"
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="sr-only">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="Password"
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative flex w-full justify-center rounded-xl border border-transparent bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 disabled:bg-slate-400"
+            >
+              {loading ? 'Logging in...' : 'Login'}
+            </button>
+
+            <p className="text-center text-sm text-gray-600">
+              Do not have an account?{' '}
+              <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+                Sign up
+              </Link>
+            </p>
+          </form>
+        )}
       </div>
     </div>
   );
