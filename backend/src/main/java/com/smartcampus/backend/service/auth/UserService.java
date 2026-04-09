@@ -2,7 +2,10 @@ package com.smartcampus.backend.service.auth;
 
 import com.smartcampus.backend.dto.auth.*;
 import com.smartcampus.backend.exception.ConflictException;
+import com.smartcampus.backend.exception.GoogleAccountLoginException;
+import com.smartcampus.backend.exception.MissingPasswordException;
 import com.smartcampus.backend.exception.UnauthorizedException;
+import com.smartcampus.backend.model.auth.AuthProvider;
 import com.smartcampus.backend.model.auth.Role;
 import com.smartcampus.backend.model.auth.User;
 import com.smartcampus.backend.repository.auth.UserRepository;
@@ -12,6 +15,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -42,10 +47,16 @@ public class UserService {
                 .fullName(fullName)
                 .phoneNumber(request.getPhoneNumber())
                 .password(passwordEncoder.encode(request.getPassword()))
+                .provider(AuthProvider.LOCAL)
                 .role(Role.USER)
                 .emailVerified(false)
                 .isActive(true)
                 .build();
+
+        // Defensive check: prevent null provider before persisting
+        if (user.getProvider() == null) {
+            user.setProvider(AuthProvider.LOCAL);
+        }
 
         user = userRepository.save(user);
 
@@ -54,17 +65,20 @@ public class UserService {
         String refreshToken = jwtUtil.generateRefreshToken(user);
 
         return AuthResponse.builder()
+            .success(true)
+            .message("Signup successful")
+            .data(AuthResponse.AuthData.builder()
                 .id(user.getId())
                 .email(user.getEmail())
+                .role(user.getRole())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .fullName(user.getFullName())
                 .phoneNumber(user.getPhoneNumber())
-                .role(user.getRole())
+                .emailVerified(user.getEmailVerified())
+                .build())
                 .token(token)
                 .refreshToken(refreshToken)
-                .emailVerified(user.getEmailVerified())
-                .message("Signup successful")
                 .build();
     }
 
@@ -72,8 +86,23 @@ public class UserService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
 
-        // Verify password
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        if (user.getProvider() == com.smartcampus.backend.model.auth.AuthProvider.GOOGLE) {
+            throw new GoogleAccountLoginException("This account uses Google login. Please sign in with Google.");
+        }
+
+        String rawPassword = request.getPassword();
+        String encodedPassword = user.getPassword();
+
+        if (rawPassword == null || rawPassword.isBlank()) {
+            throw new MissingPasswordException("Password is required");
+        }
+
+        if (encodedPassword == null || encodedPassword.isBlank()) {
+            throw new MissingPasswordException("Password login is not available for this account");
+        }
+
+        // Verify password (null-safe)
+        if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
             throw new UnauthorizedException("Invalid email or password");
         }
 
@@ -87,17 +116,20 @@ public class UserService {
         String refreshToken = jwtUtil.generateRefreshToken(user);
 
         return AuthResponse.builder()
+            .success(true)
+            .message("Login successful")
+            .data(AuthResponse.AuthData.builder()
                 .id(user.getId())
                 .email(user.getEmail())
+                .role(user.getRole())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .fullName(user.getFullName())
                 .phoneNumber(user.getPhoneNumber())
-                .role(user.getRole())
+                .emailVerified(user.getEmailVerified())
+                .build())
                 .token(token)
                 .refreshToken(refreshToken)
-                .emailVerified(user.getEmailVerified())
-                .message("Login successful")
                 .build();
     }
 
@@ -112,7 +144,13 @@ public class UserService {
     }
 
     public AuthResponse logout() {
-        return new AuthResponse("Logout successful");
+        return AuthResponse.builder()
+                .success(true)
+                .message("Logout successful")
+                .data(null)
+                .token(null)
+                .refreshToken(null)
+                .build();
     }
 
     @Transactional(readOnly = true)
@@ -129,26 +167,32 @@ public class UserService {
     }
 
     public AuthResponse googleOAuthLogin(GoogleTokenInfo tokenInfo) {
-        // Try to find existing user by email
-        User user = userRepository.findByEmail(tokenInfo.getEmail()).orElse(null);
+        String email = tokenInfo.getEmail();
+        String fullName = tokenInfo.getName() != null
+            ? tokenInfo.getName()
+            : ((tokenInfo.getGivenName() != null ? tokenInfo.getGivenName() : "")
+            + " "
+            + (tokenInfo.getFamilyName() != null ? tokenInfo.getFamilyName() : "")).trim();
 
-        // If user doesn't exist, create new user from Google info
+        // Return existing user if present
+        User user = userRepository.findByEmail(email).orElse(null);
+
+        // Otherwise create a Google-authenticated user
         if (user == null) {
-            String fullName = tokenInfo.getName() != null ? tokenInfo.getName() : 
-                             (tokenInfo.getGivenName() + " " + tokenInfo.getFamilyName());
-            
             user = User.builder()
-                    .email(tokenInfo.getEmail())
-                    .firstName(tokenInfo.getGivenName() != null ? tokenInfo.getGivenName() : "")
-                    .lastName(tokenInfo.getFamilyName() != null ? tokenInfo.getFamilyName() : "")
-                    .fullName(fullName)
-                    .phoneNumber("")
-                    .password("") // No password for OAuth users
-                    .role(Role.USER)
-                    .emailVerified(tokenInfo.getEmailVerified() != null ? tokenInfo.getEmailVerified() : false)
-                    .isActive(true)
-                    .build();
-            
+                .email(email)
+                .firstName(tokenInfo.getGivenName() != null ? tokenInfo.getGivenName() : "")
+                .lastName(tokenInfo.getFamilyName() != null ? tokenInfo.getFamilyName() : "")
+                .fullName(fullName)
+                .phoneNumber("")
+                // Keep DB NOT NULL constraint satisfied; GOOGLE users are still blocked from password login.
+                .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                .provider(com.smartcampus.backend.model.auth.AuthProvider.GOOGLE)
+                .role(Role.USER)
+                .emailVerified(true)
+                .isActive(true)
+                .build();
+
             user = userRepository.save(user);
         }
 
@@ -157,17 +201,20 @@ public class UserService {
         String refreshToken = jwtUtil.generateRefreshToken(user);
 
         return AuthResponse.builder()
+            .success(true)
+            .message("Google login successful")
+            .data(AuthResponse.AuthData.builder()
                 .id(user.getId())
                 .email(user.getEmail())
+                .role(user.getRole())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .fullName(user.getFullName())
                 .phoneNumber(user.getPhoneNumber())
-                .role(user.getRole())
+                .emailVerified(user.getEmailVerified())
+                .build())
                 .token(token)
                 .refreshToken(refreshToken)
-                .emailVerified(user.getEmailVerified())
-                .message("Google login successful")
                 .build();
     }
 }
