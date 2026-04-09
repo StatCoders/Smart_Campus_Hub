@@ -57,20 +57,6 @@ export default function Dashboard() {
                   <div className="text-4xl">🎫</div>
                 </div>
               </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-700">
-                {displayName}
-              </span>
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
 
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between">
@@ -82,16 +68,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="border-4 border-dashed border-gray-200 rounded-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Welcome, {displayName}!
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              {/* User Info Card */}
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -99,6 +75,24 @@ export default function Dashboard() {
                     <p className="text-3xl font-bold text-yellow-600 mt-2">2</p>
                   </div>
                   <div className="text-4xl">🟡</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">Resolved</p>
+                    <p className="text-3xl font-bold text-green-600 mt-2">1</p>
+                  </div>
+                  <div className="text-4xl">✓</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Profile and Role Based Access */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              {/* User Info Card */}
+              <div className="bg-white rounded-lg shadow p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Your Profile
                 </h3>
@@ -123,10 +117,10 @@ export default function Dashboard() {
                     <span
                       className={`inline-block px-2 py-1 rounded text-sm ${
                         displayEmailVerified === 'Yes'
-                            ? 'bg-green-100 text-green-800'
-                            : displayEmailVerified === 'Pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-gray-100 text-gray-700'
+                          ? 'bg-green-100 text-green-800'
+                          : displayEmailVerified === 'Pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-700'
                       }`}
                     >
                       {displayEmailVerified}
@@ -135,13 +129,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
+              {/* Role Based Access Card */}
               <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm font-medium">Resolved</p>
-                    <p className="text-3xl font-bold text-green-600 mt-2">1</p>
-                  </div>
-                  <div className="text-4xl">✓</div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Role Based Access
                 </h3>
