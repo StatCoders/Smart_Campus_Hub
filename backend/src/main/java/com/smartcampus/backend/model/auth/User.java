@@ -50,9 +50,11 @@ public class User implements UserDetails {
     @Builder.Default
     private AuthProvider provider = AuthProvider.LOCAL;
 
+    @Builder.Default
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified = false;
 
+    @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 

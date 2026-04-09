@@ -1,29 +1,62 @@
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Sidebar from '../components/Sidebar';
+import TopBar from '../components/TopBar';
 import { useAuth } from '../context/useAuth';
+
+const QuickAccessCard = ({ icon, title, description, onClick }) => (
+  <button
+    onClick={onClick}
+    className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6 text-left"
+  >
+    <div className="text-4xl mb-3">{icon}</div>
+    <h3 className="text-lg font-bold text-gray-900 mb-1">{title}</h3>
+    <p className="text-sm text-gray-600">{description}</p>
+  </button>
+);
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const displayName = user?.fullName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'User';
   const displayRole = user?.role || 'N/A';
   const displayEmailVerified = typeof user?.emailVerified === 'boolean' ? (user.emailVerified ? 'Yes' : 'Pending') : 'N/A';
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">
-                Smart Campus Hub
+    <div className="flex bg-gray-50 min-h-screen">
+      {/* Sidebar */}
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+
+      {/* Main Content */}
+      <div className="flex-1 ml-64">
+        {/* Top Bar */}
+        <TopBar user={user} />
+
+        {/* Content Area */}
+        <main className="p-8">
+          <div className="max-w-7xl">
+            {/* Welcome Section */}
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                Welcome back, {user?.firstName}! 👋
               </h1>
+              <p className="text-gray-600">
+                Manage your campus resources and requests in one place
+              </p>
             </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">Total Tickets</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-2">5</p>
+                  </div>
+                  <div className="text-4xl">🎫</div>
+                </div>
+              </div>
             <div className="flex items-center space-x-4">
               <span className="text-gray-700">
                 {displayName}
@@ -39,6 +72,16 @@ export default function Dashboard() {
         </div>
       </nav>
 
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">Open Tickets</p>
+                    <p className="text-3xl font-bold text-red-600 mt-2">2</p>
+                  </div>
+                  <div className="text-4xl">🔴</div>
+                </div>
+              </div>
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
@@ -50,6 +93,12 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               {/* User Info Card */}
               <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">In Progress</p>
+                    <p className="text-3xl font-bold text-yellow-600 mt-2">2</p>
+                  </div>
+                  <div className="text-4xl">🟡</div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Your Profile
                 </h3>
@@ -86,8 +135,13 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Quick Links */}
               <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">Resolved</p>
+                    <p className="text-3xl font-bold text-green-600 mt-2">1</p>
+                  </div>
+                  <div className="text-4xl">✓</div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Role Based Access
                 </h3>
@@ -115,9 +169,40 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Quick Access Section */}
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Access</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <QuickAccessCard
+                  icon="🎫"
+                  title="Tickets"
+                  description="Create and manage maintenance tickets"
+                  onClick={() => navigate('/tickets')}
+                />
+                <QuickAccessCard
+                  icon="📦"
+                  title="Resources"
+                  description="Browse available facilities"
+                  onClick={() => {}}
+                />
+                <QuickAccessCard
+                  icon="📅"
+                  title="Bookings"
+                  description="View your bookings"
+                  onClick={() => {}}
+                />
+                <QuickAccessCard
+                  icon="🔔"
+                  title="Notifications"
+                  description="Check latest updates"
+                  onClick={() => {}}
+                />
+              </div>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
