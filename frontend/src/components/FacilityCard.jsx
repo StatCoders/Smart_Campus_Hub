@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/useAuth';
 import { deleteFacility } from '../services/facilityService';
+import { formatRelativeTime } from '../utils/dateFormatter';
 import OccupancyChart from './OccupancyChart';
 
 export default function FacilityCard({ facility, onClick, onEdit, onRefresh }) {
@@ -48,8 +49,13 @@ export default function FacilityCard({ facility, onClick, onEdit, onRefresh }) {
         </span>
       </div>
 
-      {/* Image */}
-      <div className="mb-4 h-40 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
+      {/* Date Info - Top Right - Relative Time */}
+      <div className="absolute top-2 right-2 z-10 text-right text-xs text-gray-500 bg-white bg-opacity-90 px-2 py-1 rounded">
+        <p>{formatRelativeTime(facility.createdAt)}</p>
+      </div>
+
+      {/* Image - Reduced Size */}
+      <div className="mb-4 mt-6 h-32 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
         {facility.imagePath ? (
           <img src={`/uploads/${facility.imagePath}`} alt={facility.name} className="w-full h-full object-cover" />
         ) : facility.imageUrl ? (
@@ -69,13 +75,14 @@ export default function FacilityCard({ facility, onClick, onEdit, onRefresh }) {
 
         {/* Details Grid */}
         <div className="grid grid-cols-2 gap-2 text-sm">
-          {facility.type !== 'EQUIPMENT' && (
-            <div className="bg-gray-50 p-2 rounded">
-              <p className="text-gray-600">Capacity</p>
-              <p className="font-semibold text-gray-900">{facility.capacity} people</p>
-            </div>
-          )}
-          <div className={`${facility.type !== 'EQUIPMENT' ? '' : 'col-span-2'} bg-gray-50 p-2 rounded`}>
+          <div className="bg-gray-50 p-2 rounded">
+            <p className="text-gray-600">Capacity</p>
+            <p className="font-semibold text-gray-900">
+              {facility.capacity}
+              {facility.type !== 'EQUIPMENT' && ' people'}
+            </p>
+          </div>
+          <div className="bg-gray-50 p-2 rounded">
             <p className="text-gray-600">Location</p>
             <p className="font-semibold text-gray-900">{facility.building}</p>
           </div>
@@ -115,14 +122,6 @@ export default function FacilityCard({ facility, onClick, onEdit, onRefresh }) {
 
         {/* Occupancy Chart */}
         <OccupancyChart facility={facility} />
-
-        {/* View Details Button */}
-        <button
-          onClick={onClick}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded transition-colors text-sm mt-3"
-        >
-          View Details →
-        </button>
       </div>
     </div>
   );

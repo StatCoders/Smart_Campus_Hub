@@ -144,7 +144,7 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
 
   const validateForm = () => {
     if (!formData.name.trim()) return 'Facility name is required';
-    if (!isEquipment && (!formData.capacity || formData.capacity <= 0)) return 'Capacity must be greater than 0';
+    if (!formData.capacity || formData.capacity <= 0) return 'Capacity must be greater than 0';
     if (!formData.building.trim()) return 'Building is required';
     if (!formData.floor.trim()) return 'Floor is required';
     return '';
@@ -171,7 +171,7 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
       const submissionData = {
         name: formData.name.trim(),
         type: formData.type,
-        capacity: isEquipment ? 0 : (formData.capacity ? parseInt(formData.capacity) : 0),
+        capacity: formData.capacity ? parseInt(formData.capacity) : 0,
         building: formData.building.trim(),
         floor: formData.floor.trim(),
         status: formData.status,
@@ -275,24 +275,22 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
             </div>
           </div>
 
-          {/* Row 2: Capacity & Building - Capacity hidden for Equipment */}
+          {/* Row 2: Capacity & Building */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {!isEquipment && (
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
-                  Capacity *
-                </label>
-                <input
-                  type="number"
-                  name="capacity"
-                  value={formData.capacity}
-                  onChange={handleChange}
-                  placeholder="e.g., 50"
-                  min="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
-                />
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                Capacity *
+              </label>
+              <input
+                type="number"
+                name="capacity"
+                value={formData.capacity}
+                onChange={handleChange}
+                placeholder="e.g., 50"
+                min="1"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
                 Building *
@@ -338,15 +336,6 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
               </select>
             </div>
           </div>
-
-          {/* Info for Equipment Type */}
-          {isEquipment && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-sm text-blue-800">
-                💡 For equipment, Capacity field is optional. Building and Floor are still required.
-              </p>
-            </div>
-          )}
 
           {/* Features */}
           <div>

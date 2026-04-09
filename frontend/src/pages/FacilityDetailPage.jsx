@@ -114,7 +114,7 @@ export default function FacilityDetailPage() {
             ← Back to Facilities
           </button>
 
-          {/* Header */}
+          {/* Header with Action Icons */}
           <div className="flex justify-between items-start mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">{facility.name}</h1>
@@ -123,9 +123,27 @@ export default function FacilityDetailPage() {
               </p>
             </div>
 
-            <span className={`${getStatusColor(facility.status)} px-4 py-2 rounded-full font-semibold`}>
-              {facility.status === 'ACTIVE' ? '🟢 ACTIVE' : '🔴 OUT OF SERVICE'}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className={`${getStatusColor(facility.status)} px-4 py-2 rounded-full font-semibold`}>
+                {facility.status === 'ACTIVE' ? '🟢 ACTIVE' : '🔴 OUT OF SERVICE'}
+              </span>
+              {/* Edit Icon Button */}
+              <button
+                onClick={() => setShowEditModal(true)}
+                title="Edit Facility"
+                className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-xl font-bold"
+              >
+                ✏️
+              </button>
+              {/* Delete Icon Button */}
+              <button
+                onClick={handleDelete}
+                title="Delete Facility"
+                className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-xl font-bold"
+              >
+                🗑️
+              </button>
+            </div>
           </div>
 
           {/* Main Content */}
@@ -133,7 +151,7 @@ export default function FacilityDetailPage() {
             {/* Image */}
             <div className="lg:col-span-2">
               <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="h-96 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
+                <div className="h-64 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
                   {facility.imagePath ? (
                     <img src={`/uploads/${facility.imagePath}`} alt={facility.name} className="w-full h-full object-cover" />
                   ) : facility.imageUrl ? (
@@ -166,25 +184,6 @@ export default function FacilityDetailPage() {
                   </div>
                 </div>
               </div>
-
-              {/* Admin Actions */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="font-bold text-lg mb-4">Actions</h2>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => setShowEditModal(true)}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded"
-                  >
-                    ✏️ Edit Facility
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded"
-                  >
-                    🗑️ Delete Facility
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -211,9 +210,12 @@ export default function FacilityDetailPage() {
           )}
 
           {/* Metadata */}
-          <div className="bg-white rounded-lg shadow-md p-6 mt-6 text-sm text-gray-500">
-            <p>Created: {new Date(facility.createdAt).toLocaleDateString()}</p>
-            <p>Updated: {new Date(facility.updatedAt).toLocaleDateString()}</p>
+          <div className="bg-white rounded-lg shadow-md p-6 mt-6 text-sm text-gray-600">
+            <h2 className="font-bold text-lg mb-4 text-gray-900">Resource Information</h2>
+            <div className="space-y-2">
+              <p><span className="font-semibold">Resource Added On:</span> {new Date(facility.createdAt).toLocaleString()}</p>
+              <p><span className="font-semibold">Resource Updated On:</span> {new Date(facility.updatedAt).toLocaleString()}</p>
+            </div>
           </div>
         </div>
       </div>
