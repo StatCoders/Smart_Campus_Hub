@@ -17,15 +17,6 @@ export default function FacilityFilters({
   const statuses = ['All Statuses', 'ACTIVE', 'OUT_OF_SERVICE'];
   const capacities = ['All Capacities', '20+', '50+', '100+'];
 
-  const getCapacityValue = (cap) => {
-    const map = {
-      '20+': '20',
-      '50+': '50',
-      '100+': '100',
-    };
-    return map[cap] || null;
-  };
-
   return (
     <div className="bg-white rounded-lg shadow p-6 mb-6">
       {/* Search */}

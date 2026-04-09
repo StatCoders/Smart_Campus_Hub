@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import { getFacilityById, deleteFacility } from '../services/facilityService';
 import { useAuth } from '../context/useAuth';
 import AddFacilityModal from '../components/AddFacilityModal';
+import OccupancyChart from '../components/OccupancyChart';
 
 export default function FacilityDetailPage() {
   const { id } = useParams();
@@ -18,13 +19,7 @@ export default function FacilityDetailPage() {
   const [error, setError] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
 
-  useEffect(() => {
-    if (!facility) {
-      fetchFacility();
-    }
-  }, [id, facility]);
-
-  const fetchFacility = async () => {
+  const fetchFacility = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -35,7 +30,13 @@ export default function FacilityDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (!facility) {
+      fetchFacility();
+    }
+  }, [id, facility, fetchFacility]);
 
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this facility?')) {
@@ -62,12 +63,90 @@ export default function FacilityDetailPage() {
     return status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
   };
 
+  // Check if current time and day are within availability windows
+  const isAvailableForBooking = () => {
+    if (!facility || facility.status === 'OUT_OF_SERVICE') return null;
+    if (!facility.availabilityWindows) return true;
+
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTime = currentHour * 60 + currentMinute;
+    const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
+    const dayAbbrev = now.toLocaleDateString('en-US', { weekday: 'short' });
+
+    const windowStr = facility.availabilityWindows.toLowerCase();
+
+    // Check day range if specified
+    const dayRegex = /(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s*-?\s*(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)?/i;
+    const dayMatch = windowStr.match(dayRegex);
+    const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayIndex = daysOfWeek.indexOf(dayOfWeek.toLowerCase());
+
+    let dayIsValid = true;
+    if (dayMatch) {
+      const startDay = dayMatch[1].substring(0, 3).toLowerCase();
+      const endDay = dayMatch[2]?.substring(0, 3).toLowerCase();
+      const dayAbbrevLower = dayAbbrev.toLowerCase();
+
+      if (endDay) {
+        const startIdx = daysOfWeek.findIndex(d => d.substring(0, 3) === startDay);
+        const endIdx = daysOfWeek.findIndex(d => d.substring(0, 3) === endDay);
+        if (startIdx <= endIdx) {
+          dayIsValid = dayIndex >= startIdx && dayIndex <= endIdx;
+        } else {
+          dayIsValid = dayIndex >= startIdx || dayIndex <= endIdx;
+        }
+      } else {
+        dayIsValid = dayAbbrevLower === startDay;
+      }
+    }
+
+    // Parse time windows
+    const timeRegex = /(\d{1,2}):?(\d{2})?(am|pm)?\s*-\s*(\d{1,2}):?(\d{2})?(am|pm)?/i;
+    const timeMatch = windowStr.match(timeRegex);
+
+    let timeIsValid = true;
+    if (timeMatch) {
+      let startHour = parseInt(timeMatch[1]);
+      const startMinute = parseInt(timeMatch[2]) || 0;
+      let endHour = parseInt(timeMatch[4]);
+      const endMinute = parseInt(timeMatch[5]) || 0;
+      const startPeriod = timeMatch[3]?.toLowerCase() || 'am';
+      const endPeriod = timeMatch[6]?.toLowerCase() || 'pm';
+
+      if (startPeriod === 'pm' && startHour !== 12) startHour += 12;
+      if (startPeriod === 'am' && startHour === 12) startHour = 0;
+      if (endPeriod === 'pm' && endHour !== 12) endHour += 12;
+      if (endPeriod === 'am' && endHour === 12) endHour = 0;
+
+      const startTimeInMinutes = startHour * 60 + startMinute;
+      const endTimeInMinutes = endHour * 60 + endMinute;
+
+      timeIsValid = currentTime >= startTimeInMinutes && currentTime <= endTimeInMinutes;
+    }
+
+    return dayIsValid && timeIsValid;
+  };
+
+  const getBookingStatusBadge = () => {
+    const available = isAvailableForBooking();
+    if (available === null) return null;
+    return available ? '✅ Available for Booking' : '⏰ Not Available for Booking';
+  };
+
+  const getBookingStatusColor = () => {
+    const available = isAvailableForBooking();
+    if (available === null) return null;
+    return available ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-100">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         <div className="flex-1 overflow-auto ml-64">
-          <TopBar />
+          <TopBar user={user} />
           <div className="p-8 flex justify-center items-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
           </div>
@@ -81,7 +160,7 @@ export default function FacilityDetailPage() {
       <div className="flex h-screen bg-gray-100">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         <div className="flex-1 overflow-auto ml-64">
-          <TopBar />
+          <TopBar user={user} />
           <div className="p-8">
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
               {error || 'Facility not found'}
@@ -103,7 +182,7 @@ export default function FacilityDetailPage() {
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div className="flex-1 overflow-auto ml-64">
-        <TopBar />
+        <TopBar user={user} />
 
         <div className="p-8">
           {/* Back Button */}
@@ -124,25 +203,34 @@ export default function FacilityDetailPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              {getBookingStatusBadge() && (
+                <span className={`${getBookingStatusColor()} px-4 py-2 rounded-full font-semibold`}>
+                  {getBookingStatusBadge()}
+                </span>
+              )}
               <span className={`${getStatusColor(facility.status)} px-4 py-2 rounded-full font-semibold`}>
                 {facility.status === 'ACTIVE' ? '🟢 ACTIVE' : '🔴 OUT OF SERVICE'}
               </span>
-              {/* Edit Icon Button */}
-              <button
-                onClick={() => setShowEditModal(true)}
-                title="Edit Facility"
-                className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-xl font-bold"
-              >
-                ✏️
-              </button>
-              {/* Delete Icon Button */}
-              <button
-                onClick={handleDelete}
-                title="Delete Facility"
-                className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-xl font-bold"
-              >
-                🗑️
-              </button>
+              {user?.role === 'ADMIN' && (
+                <>
+                  {/* Edit Icon Button */}
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    title="Edit Facility"
+                    className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-xl font-bold"
+                  >
+                    ✏️
+                  </button>
+                  {/* Delete Icon Button */}
+                  <button
+                    onClick={handleDelete}
+                    title="Delete Facility"
+                    className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-xl font-bold"
+                  >
+                    🗑️
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -182,23 +270,30 @@ export default function FacilityDetailPage() {
                     <p className="text-sm text-gray-600">Floor</p>
                     <p className="font-semibold text-gray-900">{facility.floor}</p>
                   </div>
+                  {facility.availabilityWindows && (
+                    <>
+                      <hr />
+                      <div>
+                        <p className="text-sm text-gray-600">Hours</p>
+                        <p className="font-semibold text-gray-900">{facility.availabilityWindows}</p>
+                      </div>
+                    </>
+                  )}
                 </div>
+              </div>
+
+              {/* Occupancy Chart */}
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <OccupancyChart facility={facility} />
               </div>
             </div>
           </div>
 
-          {/* Availability */}
-          {facility.availabilityWindows && (
-            <div className="bg-white rounded-lg shadow-md p-6 mt-6">
-              <h2 className="font-bold text-lg mb-3">Availability</h2>
-              <p className="text-gray-700">{facility.availabilityWindows}</p>
-            </div>
-          )}
 
-          {/* Features */}
+          {/* This resource includes */}
           {facility.features && facility.features.length > 0 && (
             <div className="bg-white rounded-lg shadow-md p-6 mt-6">
-              <h2 className="font-bold text-lg mb-4">Features & Equipment</h2>
+              <h2 className="font-bold text-lg mb-4">This resource includes</h2>
               <div className="flex flex-wrap gap-2">
                 {facility.features.map((feature, idx) => (
                   <span key={idx} className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full">

@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { createFacility, updateFacility, uploadImage } from '../services/facilityService';
 
 export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSuccess }) {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     type: 'LECTURE_HALL',
@@ -11,7 +9,7 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
     building: '',
     floor: '',
     status: 'ACTIVE',
-    features: '',
+    features: [],
     imageUrl: '',
     availabilityWindows: '',
     imagePath: ''
@@ -23,6 +21,7 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [resourceNameInput, setResourceNameInput] = useState('');
 
   useEffect(() => {
     if (facilityToEdit) {
@@ -33,7 +32,7 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
         building: facilityToEdit.building || '',
         floor: facilityToEdit.floor || '',
         status: facilityToEdit.status || 'ACTIVE',
-        features: Array.isArray(facilityToEdit.features) ? facilityToEdit.features.join(', ') : '',
+        features: Array.isArray(facilityToEdit.features) ? facilityToEdit.features : [],
         imageUrl: facilityToEdit.imageUrl || '',
         availabilityWindows: facilityToEdit.availabilityWindows || '',
         imagePath: facilityToEdit.imagePath || ''
@@ -46,9 +45,23 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
       }
     } else {
       // Reset for new facility
+      setFormData({
+        name: '',
+        type: 'LECTURE_HALL',
+        capacity: '',
+        building: '',
+        floor: '',
+        status: 'ACTIVE',
+        features: [],
+        imageUrl: '',
+        availabilityWindows: '',
+        imagePath: ''
+      });
       setImagePreview('');
       setSelectedFile(null);
     }
+    setResourceNameInput('');
+    setError('');
   }, [facilityToEdit, isOpen]);
 
   const handleChange = (e) => {
@@ -140,7 +153,34 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
     setFormData(prev => ({ ...prev, imagePath: '', imageUrl: '' }));
   };
 
-  const isEquipment = formData.type === 'EQUIPMENT';
+  const addFeature = () => {
+    const featureName = resourceNameInput.trim();
+    if (!featureName) {
+      setError('Please enter a feature name');
+      return;
+    }
+
+    // Check for duplicates
+    if (formData.features.some(f => f.toLowerCase() === featureName.toLowerCase())) {
+      setError(`Feature "${featureName}" already exists`);
+      return;
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      features: [...prev.features, featureName]
+    }));
+
+    setResourceNameInput('');
+    setError('');
+  };
+
+  const removeFeature = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      features: prev.features.filter((_, i) => i !== index)
+    }));
+  };
 
   const validateForm = () => {
     if (!formData.name.trim()) return 'Facility name is required';
@@ -175,9 +215,7 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
         building: formData.building.trim(),
         floor: formData.floor.trim(),
         status: formData.status,
-        features: formData.features
-          ? formData.features.split(',').map(f => f.trim()).filter(f => f)
-          : [],
+        features: formData.features || [],
         imageUrl: formData.imageUrl.trim() || null,
         availabilityWindows: formData.availabilityWindows.trim() || null,
         imagePath: formData.imagePath || null
@@ -196,7 +234,7 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
           building: '',
           floor: '',
           status: 'ACTIVE',
-          features: '',
+          features: [],
           imageUrl: '',
           availabilityWindows: '',
           imagePath: ''
@@ -217,8 +255,8 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-white bg-opacity-40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-8 py-6 sticky top-0 z-10">
           <div className="flex justify-between items-center">
@@ -337,20 +375,54 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
             </div>
           </div>
 
-          {/* Features */}
+          {/* Features Management */}
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">
-              Features (comma-separated)
+              Features/Equipment
             </label>
-            <input
-              type="text"
-              name="features"
-              value={formData.features}
-              onChange={handleChange}
-              placeholder="e.g., Projector, Whiteboard, Wi-Fi"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
-            />
-            <p className="text-sm text-gray-500 mt-1">Enter features separated by commas</p>
+            <div className="space-y-3">
+              {/* Feature Input */}
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={resourceNameInput}
+                  onChange={(e) => setResourceNameInput(e.target.value)}
+                  placeholder="e.g., Projector, Whiteboard, Microphone"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={addFeature}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors"
+                >
+                  + Add
+                </button>
+              </div>
+
+              {/* Features List */}
+              {formData.features.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm font-medium text-gray-700">Added Features:</p>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {formData.features.map((feature, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between bg-indigo-50 p-3 rounded-lg border border-indigo-200"
+                      >
+                        <p className="font-semibold text-gray-900">{feature}</p>
+                        <button
+                          type="button"
+                          onClick={() => removeFeature(index)}
+                          className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Availability Windows */}

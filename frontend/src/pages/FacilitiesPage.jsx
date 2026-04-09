@@ -37,7 +37,7 @@ export default function FacilitiesPage() {
   const [toast, setToast] = useState(null);
 
   // Fetch facilities
-  const fetchFacilities = async () => {
+  const fetchFacilities = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -66,11 +66,11 @@ export default function FacilitiesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [typeFilter, statusFilter, capacityFilter, locationFilter, currentPage, pageSize]);
 
   useEffect(() => {
     fetchFacilities();
-  }, [typeFilter, statusFilter, capacityFilter, locationFilter, currentPage]);
+  }, [fetchFacilities]);
 
   // Apply search filter
   const applySearchFilter = useCallback(() => {
@@ -132,7 +132,7 @@ export default function FacilitiesPage() {
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <div className="flex-1 overflow-auto ml-64">
-        <TopBar />
+        <TopBar user={user} />
         
         {/* Toast Notification */}
         {toast && (
@@ -151,15 +151,17 @@ export default function FacilitiesPage() {
               <p className="text-gray-500 mt-1">Browse and manage campus facilities</p>
             </div>
             
-            <button
-              onClick={() => {
-                setEditingFacility(null);
-                setShowAddModal(true);
-              }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
-            >
-              + Add Facility
-            </button>
+            {user?.role === 'ADMIN' && (
+              <button
+                onClick={() => {
+                  setEditingFacility(null);
+                  setShowAddModal(true);
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+              >
+                + Add Facility
+              </button>
+            )}
           </div>
 
           {/* Error Message */}
