@@ -89,21 +89,29 @@ export default function Dashboard() {
               {/* Quick Links */}
               <div className="bg-white rounded-lg shadow p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Quick Links
+                  Role Based Access
                 </h3>
                 <div className="space-y-2">
-                  <button className="block w-full text-left px-4 py-2 text-blue-600 hover:bg-blue-50 rounded">
-                    📚 Browse Facilities
-                  </button>
-                  <button className="block w-full text-left px-4 py-2 text-blue-600 hover:bg-blue-50 rounded">
-                    📅 My Bookings
-                  </button>
-                  <button className="block w-full text-left px-4 py-2 text-blue-600 hover:bg-blue-50 rounded">
-                    🔧 Maintenance Requests
-                  </button>
-                  <button className="block w-full text-left px-4 py-2 text-blue-600 hover:bg-blue-50 rounded">
-                    ⚙️ Settings
-                  </button>
+                  <p className="px-4 py-2 rounded bg-blue-50 text-blue-800">
+                    USER features: facility booking, personal bookings, maintenance requests.
+                  </p>
+                  {user?.role === 'ADMIN' ? (
+                    <>
+                      <p className="px-4 py-2 rounded bg-red-50 text-red-800">
+                        ADMIN features: user management, approval flows, system controls.
+                      </p>
+                      <button className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded">
+                        Manage Users
+                      </button>
+                      <button className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded">
+                        Approve Requests
+                      </button>
+                    </>
+                  ) : (
+                    <p className="px-4 py-2 rounded bg-gray-100 text-gray-700">
+                      Admin-only actions are hidden for non-admin accounts.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
