@@ -1,5 +1,8 @@
 package com.smartcampus.backend.model.facility;
 
-public class FacilityType {
-    
+public enum FacilityType {
+    LECTURE_HALL,
+    LAB,
+    MEETING_ROOM,
+    EQUIPMENT
 }

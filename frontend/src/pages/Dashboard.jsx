@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import { useAuth } from '../context/useAuth';
+import { getAllFacilities } from '../services/facilityService';
 
 const QuickAccessCard = ({ icon, title, description, onClick }) => (
   <button
@@ -22,6 +23,24 @@ export default function Dashboard() {
   const displayRole = user?.role || 'N/A';
   const displayEmailVerified = typeof user?.emailVerified === 'boolean' ? (user.emailVerified ? 'Yes' : 'Pending') : 'N/A';
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [facilitiesCount, setFacilitiesCount] = useState(0);
+  const [activeFacilities, setActiveFacilities] = useState(0);
+
+  // Fetch facilities on mount
+  useEffect(() => {
+    const fetchFacilityStats = async () => {
+      try {
+        const data = await getAllFacilities({ page: 0, size: 100 });
+        const facilities = data.content || (Array.isArray(data) ? data : []);
+        setFacilitiesCount(facilities.length);
+        setActiveFacilities(facilities.filter(f => f.status === 'ACTIVE').length);
+      } catch (err) {
+        console.error('Failed to fetch facilities:', err);
+      }
+    };
+
+    fetchFacilityStats();
+  }, []);
 
   return (
     <div className="flex bg-gray-50 min-h-screen">
@@ -47,7 +66,7 @@ export default function Dashboard() {
             </div>
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -82,9 +101,39 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-gray-600 text-sm font-medium">Resolved</p>
-                    <p className="text-3xl font-bold text-green-600 mt-2">1</p>
+                    <p className="text-3xl font-bold text-blue-600 mt-2">1</p>
                   </div>
                   <div className="text-4xl">✓</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">Total Resources</p>
+                    <p className="text-3xl font-bold text-indigo-600 mt-2">{facilitiesCount}</p>
+                  </div>
+                  <div className="text-4xl">📦</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">Active Resources</p>
+                    <p className="text-3xl font-bold text-green-600 mt-2">{activeFacilities}</p>
+                  </div>
+                  <div className="text-4xl">🟢</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-600 text-sm font-medium">Unavailable</p>
+                    <p className="text-3xl font-bold text-red-600 mt-2">{facilitiesCount - activeFacilities}</p>
+                  </div>
+                  <div className="text-4xl">⛔</div>
                 </div>
               </div>
             </div>
@@ -173,7 +222,7 @@ export default function Dashboard() {
                   icon="📦"
                   title="Resources"
                   description="Browse available facilities"
-                  onClick={() => {}}
+                  onClick={() => navigate('/facilities')}
                 />
                 <QuickAccessCard
                   icon="📅"

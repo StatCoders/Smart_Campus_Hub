@@ -6,4 +6,5 @@ RUN mvn -B -DskipTests clean package
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
+RUN mkdir -p /uploads && chmod 777 /uploads
 ENTRYPOINT ["java", "-Djava.net.preferIPv4Stack=true", "-jar", "app.jar"]
