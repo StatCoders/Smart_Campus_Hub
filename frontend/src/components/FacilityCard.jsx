@@ -17,75 +17,10 @@ export default function FacilityCard({ facility, onClick }) {
     return status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
   };
 
-  // Check if current time and day are within availability windows
+  // Check booking status from DB
   const isAvailableForBooking = () => {
-    if (facility.status === 'OUT_OF_SERVICE') return null; // null means hidden
-    if (!facility.availabilityWindows) return true; // No windows means always available
-
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTime = currentHour * 60 + currentMinute; // Convert to minutes
-    const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
-    const dayAbbrev = now.toLocaleDateString('en-US', { weekday: 'short' });
-
-    const windowStr = facility.availabilityWindows.toLowerCase();
-
-    // Check day range if specified (e.g., "Mon-Sun", "Monday-Friday", "mon-fri")
-    const dayRegex = /(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s*-?\s*(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)?/i;
-    const dayMatch = windowStr.match(dayRegex);
-    const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const dayIndex = daysOfWeek.indexOf(dayOfWeek.toLowerCase());
-
-    let dayIsValid = true;
-    if (dayMatch) {
-      const startDay = dayMatch[1].substring(0, 3).toLowerCase();
-      const endDay = dayMatch[2]?.substring(0, 3).toLowerCase();
-      const dayAbbrevLower = dayAbbrev.toLowerCase();
-
-      if (endDay) {
-        // Range like "Mon-Fri"
-        const startIdx = daysOfWeek.findIndex(d => d.substring(0, 3) === startDay);
-        const endIdx = daysOfWeek.findIndex(d => d.substring(0, 3) === endDay);
-        if (startIdx <= endIdx) {
-          dayIsValid = dayIndex >= startIdx && dayIndex <= endIdx;
-        } else {
-          // Wrap around (e.g., "Fri-Mon")
-          dayIsValid = dayIndex >= startIdx || dayIndex <= endIdx;
-        }
-      } else {
-        // Single day
-        dayIsValid = dayAbbrevLower === startDay;
-      }
-    }
-
-    // Parse time windows (e.g., "8am-4pm" or "8:00am-4:00pm")
-    const timeRegex = /(\d{1,2}):?(\d{2})?(am|pm)?\s*-\s*(\d{1,2}):?(\d{2})?(am|pm)?/i;
-    const timeMatch = windowStr.match(timeRegex);
-
-    let timeIsValid = true;
-    if (timeMatch) {
-      let startHour = parseInt(timeMatch[1]);
-      const startMinute = parseInt(timeMatch[2]) || 0;
-      let endHour = parseInt(timeMatch[4]);
-      const endMinute = parseInt(timeMatch[5]) || 0;
-      const startPeriod = timeMatch[3]?.toLowerCase() || 'am';
-      const endPeriod = timeMatch[6]?.toLowerCase() || 'pm';
-
-      // Convert to 24-hour format
-      if (startPeriod === 'pm' && startHour !== 12) startHour += 12;
-      if (startPeriod === 'am' && startHour === 12) startHour = 0;
-      if (endPeriod === 'pm' && endHour !== 12) endHour += 12;
-      if (endPeriod === 'am' && endHour === 12) endHour = 0;
-
-      const startTimeInMinutes = startHour * 60 + startMinute;
-      const endTimeInMinutes = endHour * 60 + endMinute;
-
-      timeIsValid = currentTime >= startTimeInMinutes && currentTime <= endTimeInMinutes;
-    }
-
-    // Available only if both day and time conditions are met
-    return dayIsValid && timeIsValid;
+    if (!facility.bookingStatus) return null;
+    return facility.bookingStatus === 'CAN_BOOK_NOW';
   };
 
   const getBookingStatusBadge = () => {

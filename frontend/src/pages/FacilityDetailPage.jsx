@@ -63,82 +63,35 @@ export default function FacilityDetailPage() {
     return status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
   };
 
-  // Check if current time and day are within availability windows
-  const isAvailableForBooking = () => {
-    if (!facility || facility.status === 'OUT_OF_SERVICE') return null;
-    if (!facility.availabilityWindows) return true;
-
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTime = currentHour * 60 + currentMinute;
-    const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
-    const dayAbbrev = now.toLocaleDateString('en-US', { weekday: 'short' });
-
-    const windowStr = facility.availabilityWindows.toLowerCase();
-
-    // Check day range if specified
-    const dayRegex = /(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s*-?\s*(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)?/i;
-    const dayMatch = windowStr.match(dayRegex);
-    const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const dayIndex = daysOfWeek.indexOf(dayOfWeek.toLowerCase());
-
-    let dayIsValid = true;
-    if (dayMatch) {
-      const startDay = dayMatch[1].substring(0, 3).toLowerCase();
-      const endDay = dayMatch[2]?.substring(0, 3).toLowerCase();
-      const dayAbbrevLower = dayAbbrev.toLowerCase();
-
-      if (endDay) {
-        const startIdx = daysOfWeek.findIndex(d => d.substring(0, 3) === startDay);
-        const endIdx = daysOfWeek.findIndex(d => d.substring(0, 3) === endDay);
-        if (startIdx <= endIdx) {
-          dayIsValid = dayIndex >= startIdx && dayIndex <= endIdx;
-        } else {
-          dayIsValid = dayIndex >= startIdx || dayIndex <= endIdx;
-        }
-      } else {
-        dayIsValid = dayAbbrevLower === startDay;
-      }
+  // Format date in IST timezone
+  const formatDateIST = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      return new Intl.DateTimeFormat('en-IN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZone: 'Asia/Kolkata'
+      }).format(date);
+    } catch {
+      return dateString;
     }
-
-    // Parse time windows
-    const timeRegex = /(\d{1,2}):?(\d{2})?(am|pm)?\s*-\s*(\d{1,2}):?(\d{2})?(am|pm)?/i;
-    const timeMatch = windowStr.match(timeRegex);
-
-    let timeIsValid = true;
-    if (timeMatch) {
-      let startHour = parseInt(timeMatch[1]);
-      const startMinute = parseInt(timeMatch[2]) || 0;
-      let endHour = parseInt(timeMatch[4]);
-      const endMinute = parseInt(timeMatch[5]) || 0;
-      const startPeriod = timeMatch[3]?.toLowerCase() || 'am';
-      const endPeriod = timeMatch[6]?.toLowerCase() || 'pm';
-
-      if (startPeriod === 'pm' && startHour !== 12) startHour += 12;
-      if (startPeriod === 'am' && startHour === 12) startHour = 0;
-      if (endPeriod === 'pm' && endHour !== 12) endHour += 12;
-      if (endPeriod === 'am' && endHour === 12) endHour = 0;
-
-      const startTimeInMinutes = startHour * 60 + startMinute;
-      const endTimeInMinutes = endHour * 60 + endMinute;
-
-      timeIsValid = currentTime >= startTimeInMinutes && currentTime <= endTimeInMinutes;
-    }
-
-    return dayIsValid && timeIsValid;
   };
 
+  // Get booking status from backend field (calculated in real-time with IST timezone)
   const getBookingStatusBadge = () => {
-    const available = isAvailableForBooking();
-    if (available === null) return null;
-    return available ? '✅ Available for Booking' : '⏰ Not Available for Booking';
+    if (!facility || facility.status === 'OUT_OF_SERVICE') return null;
+    const isAvailable = facility.bookingStatus === 'CAN_BOOK_NOW';
+    return isAvailable ? '✅ Available for Booking' : '⏰ Not Available for Booking';
   };
 
   const getBookingStatusColor = () => {
-    const available = isAvailableForBooking();
-    if (available === null) return null;
-    return available ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+    if (!facility || facility.status === 'OUT_OF_SERVICE') return null;
+    const isAvailable = facility.bookingStatus === 'CAN_BOOK_NOW';
+    return isAvailable ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
   };
 
   if (loading) {
@@ -308,8 +261,8 @@ export default function FacilityDetailPage() {
           <div className="bg-white rounded-lg shadow-md p-6 mt-6 text-sm text-gray-600">
             <h2 className="font-bold text-lg mb-4 text-gray-900">Resource Information</h2>
             <div className="space-y-2">
-              <p><span className="font-semibold">Resource Added On:</span> {new Date(facility.createdAt).toLocaleString()}</p>
-              <p><span className="font-semibold">Resource Updated On:</span> {new Date(facility.updatedAt).toLocaleString()}</p>
+              <p><span className="font-semibold">Resource Added On:</span> {formatDateIST(facility.createdAt)}</p>
+              <p><span className="font-semibold">Resource Updated On:</span> {formatDateIST(facility.updatedAt)}</p>
             </div>
           </div>
         </div>
