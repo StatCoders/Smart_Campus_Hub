@@ -26,6 +26,7 @@ export default function FacilitiesPage() {
   const [statusFilter, setStatusFilter] = useState('All Statuses');
   const [capacityFilter, setCapacityFilter] = useState('All Capacities');
   const [locationFilter, setLocationFilter] = useState('');
+  const [availabilityFilter, setAvailabilityFilter] = useState('All');
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(0);
@@ -72,7 +73,73 @@ export default function FacilitiesPage() {
     fetchFacilities();
   }, [fetchFacilities]);
 
-  // Apply search filter
+  // Helper function to check if facility is available for booking
+  const isAvailableForBooking = (facility) => {
+    if (facility.status === 'OUT_OF_SERVICE') return false;
+    if (!facility.availabilityWindows) return true;
+
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTime = currentHour * 60 + currentMinute;
+    const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
+    const dayAbbrev = now.toLocaleDateString('en-US', { weekday: 'short' });
+
+    const windowStr = facility.availabilityWindows.toLowerCase();
+
+    // Check day range
+    const dayRegex = /(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s*-?\s*(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)?/i;
+    const dayMatch = windowStr.match(dayRegex);
+    const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayIndex = daysOfWeek.indexOf(dayOfWeek.toLowerCase());
+
+    let dayIsValid = true;
+    if (dayMatch) {
+      const startDay = dayMatch[1].substring(0, 3).toLowerCase();
+      const endDay = dayMatch[2]?.substring(0, 3).toLowerCase();
+      const dayAbbrevLower = dayAbbrev.toLowerCase();
+
+      if (endDay) {
+        const startIdx = daysOfWeek.findIndex(d => d.substring(0, 3) === startDay);
+        const endIdx = daysOfWeek.findIndex(d => d.substring(0, 3) === endDay);
+        if (startIdx <= endIdx) {
+          dayIsValid = dayIndex >= startIdx && dayIndex <= endIdx;
+        } else {
+          dayIsValid = dayIndex >= startIdx || dayIndex <= endIdx;
+        }
+      } else {
+        dayIsValid = dayAbbrevLower === startDay;
+      }
+    }
+
+    // Check time windows
+    const timeRegex = /(\d{1,2}):?(\d{2})?(am|pm)?\s*-\s*(\d{1,2}):?(\d{2})?(am|pm)?/i;
+    const timeMatch = windowStr.match(timeRegex);
+
+    let timeIsValid = true;
+    if (timeMatch) {
+      let startHour = parseInt(timeMatch[1]);
+      const startMinute = parseInt(timeMatch[2]) || 0;
+      let endHour = parseInt(timeMatch[4]);
+      const endMinute = parseInt(timeMatch[5]) || 0;
+      const startPeriod = timeMatch[3]?.toLowerCase() || 'am';
+      const endPeriod = timeMatch[6]?.toLowerCase() || 'pm';
+
+      if (startPeriod === 'pm' && startHour !== 12) startHour += 12;
+      if (startPeriod === 'am' && startHour === 12) startHour = 0;
+      if (endPeriod === 'pm' && endHour !== 12) endHour += 12;
+      if (endPeriod === 'am' && endHour === 12) endHour = 0;
+
+      const startTimeInMinutes = startHour * 60 + startMinute;
+      const endTimeInMinutes = endHour * 60 + endMinute;
+
+      timeIsValid = currentTime >= startTimeInMinutes && currentTime <= endTimeInMinutes;
+    }
+
+    return dayIsValid && timeIsValid;
+  };
+
+  // Apply search and availability filters
   const applySearchFilter = useCallback(() => {
     let filtered = [...facilities];
 
@@ -84,8 +151,21 @@ export default function FacilitiesPage() {
       );
     }
 
+    // Apply availability filter
+    if (availabilityFilter !== 'All') {
+      filtered = filtered.filter(f => {
+        const available = isAvailableForBooking(f);
+        if (availabilityFilter === 'Available for Booking') {
+          return available === true;
+        } else if (availabilityFilter === 'Not Available for Booking') {
+          return available === false;
+        }
+        return true;
+      });
+    }
+
     setFilteredFacilities(filtered);
-  }, [facilities, searchTerm]);
+  }, [facilities, searchTerm, availabilityFilter]);
 
   useEffect(() => {
     applySearchFilter();
@@ -124,6 +204,7 @@ export default function FacilitiesPage() {
     setStatusFilter('All Statuses');
     setCapacityFilter('All Capacities');
     setLocationFilter('');
+    setAvailabilityFilter('All');
     setCurrentPage(0);
   };
 
@@ -183,6 +264,8 @@ export default function FacilitiesPage() {
             setCapacityFilter={setCapacityFilter}
             locationFilter={locationFilter}
             setLocationFilter={setLocationFilter}
+            availabilityFilter={availabilityFilter}
+            setAvailabilityFilter={setAvailabilityFilter}
             onClearFilters={handleClearFilters}
           />
 

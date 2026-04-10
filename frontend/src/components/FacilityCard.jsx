@@ -171,10 +171,10 @@ export default function FacilityCard({ facility, onClick }) {
           )}
         </div>
 
-        {/* This resource includes */}
+        {/* This facility includes */}
         {facility.features && facility.features.length > 0 && (
           <div>
-            <p className="text-xs text-gray-600 mb-1">This resource includes</p>
+            <p className="text-xs text-gray-600 mb-1">This Facility Includes</p>
             <div className="flex flex-wrap gap-1">
               {facility.features.slice(0, 3).map((feature, idx) => (
                 <span key={idx} className="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded">
