@@ -11,20 +11,14 @@ export default function FacilityFilters({
   setCapacityFilter,
   locationFilter,
   setLocationFilter,
+  availabilityFilter,
+  setAvailabilityFilter,
   onClearFilters,
 }) {
   const types = ['All', 'LECTURE_HALL', 'LAB', 'MEETING_ROOM', 'EQUIPMENT'];
   const statuses = ['All Statuses', 'ACTIVE', 'OUT_OF_SERVICE'];
   const capacities = ['All Capacities', '20+', '50+', '100+'];
-
-  const getCapacityValue = (cap) => {
-    const map = {
-      '20+': '20',
-      '50+': '50',
-      '100+': '100',
-    };
-    return map[cap] || null;
-  };
+  const bookingAvailability = ['All', 'Available for Booking', 'Not Available for Booking'];
 
   return (
     <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -43,7 +37,7 @@ export default function FacilityFilters({
       </div>
 
       {/* Filters Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-4">
         {/* Type Filter */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -93,6 +87,24 @@ export default function FacilityFilters({
             {capacities.map((cap) => (
               <option key={cap} value={cap}>
                 {cap}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Booking Availability Filter */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Booking Availability
+          </label>
+          <select
+            value={availabilityFilter}
+            onChange={(e) => setAvailabilityFilter(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+          >
+            {bookingAvailability.map((avail) => (
+              <option key={avail} value={avail}>
+                {avail}
               </option>
             ))}
           </select>
