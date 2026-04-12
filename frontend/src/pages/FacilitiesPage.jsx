@@ -13,6 +13,7 @@ import '../facilities.css';
 export default function FacilitiesPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isCollapsed } = useSidebar();
   const [activeTab, setActiveTab] = useState('resources');
   
   const [facilities, setFacilities] = useState([]);

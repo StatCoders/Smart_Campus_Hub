@@ -4,6 +4,7 @@ import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import { getFacilityById, deleteFacility } from '../services/facilityService';
 import { useAuth } from '../context/useAuth';
+import { useSidebar } from '../context/SidebarContext';
 import AddFacilityModal from '../components/AddFacilityModal';
 import OccupancyChart from '../components/OccupancyChart';
 
@@ -12,6 +13,7 @@ export default function FacilityDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { isCollapsed } = useSidebar();
   const [activeTab, setActiveTab] = useState('resources');
 
   const [facility, setFacility] = useState(location.state?.facility || null);

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Grid3x3, Package, Calendar, Ticket, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useSidebar } from '../context/SidebarContext';
 
 export default function Sidebar({ activeTab, setActiveTab }) {
   const navigate = useNavigate();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isCollapsed, toggleCollapsed } = useSidebar();
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', Icon: Grid3x3 },
@@ -81,7 +82,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       {/* Collapse/Expand Button */}
       <div className={`p-4 border-t ${isCollapsed ? 'flex justify-center' : ''}`}>
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={toggleCollapsed}
           className={`flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 transition-colors ${
             isCollapsed ? 'w-10 h-10 p-0' : 'w-full px-4 py-2'
           }`}

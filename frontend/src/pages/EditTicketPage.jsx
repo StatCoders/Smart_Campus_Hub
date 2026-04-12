@@ -4,11 +4,13 @@ import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import EditTicket from '../components/EditTicket';
 import { useAuth } from '../context/useAuth';
+import { useSidebar } from '../context/SidebarContext';
 
 export default function EditTicketPage() {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState('tickets');
   const { user } = useAuth();
+  const { isCollapsed } = useSidebar();
   const navigate = useNavigate();
 
   return (
@@ -17,7 +19,7 @@ export default function EditTicketPage() {
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col ml-64">
+      <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${isCollapsed ? 'ml-24' : 'ml-64'}`}>
         {/* Top Bar */}
         <TopBar user={user} />
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import { useAuth } from '../context/useAuth';
+import { useSidebar } from '../context/SidebarContext';
 import { getAllFacilities } from '../services/facilityService';
 
 const QuickAccessCard = ({ icon, title, description, onClick }) => (
@@ -19,6 +20,7 @@ const QuickAccessCard = ({ icon, title, description, onClick }) => (
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isCollapsed } = useSidebar();
   const displayName = user?.fullName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email || 'User';
   const displayRole = user?.role || 'N/A';
   const displayEmailVerified = typeof user?.emailVerified === 'boolean' ? (user.emailVerified ? 'Yes' : 'Pending') : 'N/A';
@@ -48,7 +50,7 @@ export default function Dashboard() {
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main Content */}
-      <div className="flex-1 ml-64">
+      <div className={`flex-1 transition-all duration-300 ease-in-out ${isCollapsed ? 'ml-24' : 'ml-64'}`}>
         {/* Top Bar */}
         <TopBar user={user} />
 
