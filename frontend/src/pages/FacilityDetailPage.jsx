@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import { getFacilityById, deleteFacility } from '../services/facilityService';
 import { useAuth } from '../context/useAuth';
 import AddFacilityModal from '../components/AddFacilityModal';
+import OccupancyChart from '../components/OccupancyChart';
 
 export default function FacilityDetailPage() {
   const { id } = useParams();
@@ -18,13 +19,7 @@ export default function FacilityDetailPage() {
   const [error, setError] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
 
-  useEffect(() => {
-    if (!facility) {
-      fetchFacility();
-    }
-  }, [id, facility]);
-
-  const fetchFacility = async () => {
+  const fetchFacility = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -35,7 +30,13 @@ export default function FacilityDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (!facility) {
+      fetchFacility();
+    }
+  }, [id, facility, fetchFacility]);
 
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this facility?')) {
@@ -62,12 +63,43 @@ export default function FacilityDetailPage() {
     return status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
   };
 
+  // Format date in IST timezone
+  const formatDateIST = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      return new Intl.DateTimeFormat('en-IN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZone: 'Asia/Kolkata'
+      }).format(date);
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Get booking status from backend field (calculated in real-time with IST timezone)
+  const getBookingStatusBadge = () => {
+    if (!facility || facility.status === 'OUT_OF_SERVICE') return null;
+    const isAvailable = facility.bookingStatus === 'CAN_BOOK_NOW';
+    return isAvailable ? '✅ Available for Booking' : '⏰ Not Available for Booking';
+  };
+
+  const getBookingStatusColor = () => {
+    if (!facility || facility.status === 'OUT_OF_SERVICE') return null;
+    const isAvailable = facility.bookingStatus === 'CAN_BOOK_NOW';
+    return isAvailable ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen bg-gray-100">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         <div className="flex-1 overflow-auto ml-64">
-          <TopBar />
+          <TopBar user={user} />
           <div className="p-8 flex justify-center items-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
           </div>
@@ -81,7 +113,7 @@ export default function FacilityDetailPage() {
       <div className="flex h-screen bg-gray-100">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         <div className="flex-1 overflow-auto ml-64">
-          <TopBar />
+          <TopBar user={user} />
           <div className="p-8">
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
               {error || 'Facility not found'}
@@ -103,7 +135,7 @@ export default function FacilityDetailPage() {
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div className="flex-1 overflow-auto ml-64">
-        <TopBar />
+        <TopBar user={user} />
 
         <div className="p-8">
           {/* Back Button */}
@@ -124,25 +156,34 @@ export default function FacilityDetailPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              {getBookingStatusBadge() && (
+                <span className={`${getBookingStatusColor()} px-4 py-2 rounded-full font-semibold`}>
+                  {getBookingStatusBadge()}
+                </span>
+              )}
               <span className={`${getStatusColor(facility.status)} px-4 py-2 rounded-full font-semibold`}>
                 {facility.status === 'ACTIVE' ? '🟢 ACTIVE' : '🔴 OUT OF SERVICE'}
               </span>
-              {/* Edit Icon Button */}
-              <button
-                onClick={() => setShowEditModal(true)}
-                title="Edit Facility"
-                className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-xl font-bold"
-              >
-                ✏️
-              </button>
-              {/* Delete Icon Button */}
-              <button
-                onClick={handleDelete}
-                title="Delete Facility"
-                className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-xl font-bold"
-              >
-                🗑️
-              </button>
+              {user?.role === 'ADMIN' && (
+                <>
+                  {/* Edit Icon Button */}
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    title="Edit Facility"
+                    className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-xl font-bold"
+                  >
+                    ✏️
+                  </button>
+                  {/* Delete Icon Button */}
+                  <button
+                    onClick={handleDelete}
+                    title="Delete Facility"
+                    className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-xl font-bold"
+                  >
+                    🗑️
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
@@ -182,23 +223,30 @@ export default function FacilityDetailPage() {
                     <p className="text-sm text-gray-600">Floor</p>
                     <p className="font-semibold text-gray-900">{facility.floor}</p>
                   </div>
+                  {facility.availabilityWindows && (
+                    <>
+                      <hr />
+                      <div>
+                        <p className="text-sm text-gray-600">Hours</p>
+                        <p className="font-semibold text-gray-900">{facility.availabilityWindows}</p>
+                      </div>
+                    </>
+                  )}
                 </div>
+              </div>
+
+              {/* Occupancy Chart */}
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <OccupancyChart facility={facility} />
               </div>
             </div>
           </div>
 
-          {/* Availability */}
-          {facility.availabilityWindows && (
-            <div className="bg-white rounded-lg shadow-md p-6 mt-6">
-              <h2 className="font-bold text-lg mb-3">Availability</h2>
-              <p className="text-gray-700">{facility.availabilityWindows}</p>
-            </div>
-          )}
 
-          {/* Features */}
+          {/* This resource includes */}
           {facility.features && facility.features.length > 0 && (
             <div className="bg-white rounded-lg shadow-md p-6 mt-6">
-              <h2 className="font-bold text-lg mb-4">Features & Equipment</h2>
+              <h2 className="font-bold text-lg mb-4">This resource includes</h2>
               <div className="flex flex-wrap gap-2">
                 {facility.features.map((feature, idx) => (
                   <span key={idx} className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full">
@@ -213,8 +261,8 @@ export default function FacilityDetailPage() {
           <div className="bg-white rounded-lg shadow-md p-6 mt-6 text-sm text-gray-600">
             <h2 className="font-bold text-lg mb-4 text-gray-900">Resource Information</h2>
             <div className="space-y-2">
-              <p><span className="font-semibold">Resource Added On:</span> {new Date(facility.createdAt).toLocaleString()}</p>
-              <p><span className="font-semibold">Resource Updated On:</span> {new Date(facility.updatedAt).toLocaleString()}</p>
+              <p><span className="font-semibold">Resource Added On:</span> {formatDateIST(facility.createdAt)}</p>
+              <p><span className="font-semibold">Resource Updated On:</span> {formatDateIST(facility.updatedAt)}</p>
             </div>
           </div>
         </div>

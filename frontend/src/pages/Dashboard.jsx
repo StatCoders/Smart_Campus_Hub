@@ -130,7 +130,7 @@ export default function Dashboard() {
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 text-sm font-medium">Unavailable</p>
+                    <p className="text-gray-600 text-sm font-medium">Inactive Resources</p>
                     <p className="text-3xl font-bold text-red-600 mt-2">{facilitiesCount - activeFacilities}</p>
                   </div>
                   <div className="text-4xl">⛔</div>

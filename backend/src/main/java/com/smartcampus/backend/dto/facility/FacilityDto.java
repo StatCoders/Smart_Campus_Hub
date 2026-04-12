@@ -21,6 +21,7 @@ public class FacilityDto {
     private String building;
     private String floor;
     private FacilityStatus status;
+    private String bookingStatus;
     private String availabilityWindows;
     private List<String> features;
     private String imageUrl;

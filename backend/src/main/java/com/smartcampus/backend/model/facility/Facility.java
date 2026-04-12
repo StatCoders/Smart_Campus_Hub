@@ -41,6 +41,9 @@ public class Facility {
     @Column(nullable = false)
     private FacilityStatus status = FacilityStatus.ACTIVE;
 
+    @Column(length = 50)
+    private String bookingStatus = "CAN_BOOK_NOW";
+
     @Column(length = 500)
     private String availabilityWindows;
 
@@ -57,9 +60,11 @@ public class Facility {
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
+    @Temporal(jakarta.persistence.TemporalType.TIMESTAMP)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
     @Column(nullable = false)
+    @Temporal(jakarta.persistence.TemporalType.TIMESTAMP)
     private LocalDateTime updatedAt;
 }

@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function OccupancyChart({ facility }) {
   // Mock data for now - will be replaced with actual booking data
-  const mockBookings = Math.floor(Math.random() * (facility.capacity || 5));
+  const mockBookings = 3; // Static mock value
   const capacity = facility.capacity || 0;
   const isEquipment = facility.type === 'EQUIPMENT';
   
