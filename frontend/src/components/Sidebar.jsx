@@ -1,9 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/useAuth';
 
 export default function Sidebar({ activeTab, setActiveTab }) {
-  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const menuItems = [
@@ -33,11 +31,6 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       default:
         break;
     }
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
   };
 
   return (
@@ -72,16 +65,6 @@ export default function Sidebar({ activeTab, setActiveTab }) {
           </button>
         ))}
       </nav>
-
-      {/* Logout Button */}
-      <div className="p-4 border-t">
-        <button
-          onClick={handleLogout}
-          className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-        >
-          Logout
-        </button>
-      </div>
     </aside>
   );
 }
