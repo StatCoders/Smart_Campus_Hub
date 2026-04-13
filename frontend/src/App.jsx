@@ -11,7 +11,17 @@ import EditTicketPage from './pages/EditTicketPage';
 import GoogleAuthSuccess from './pages/GoogleAuthSuccess';
 import FacilitiesPage from './pages/FacilitiesPage';
 import FacilityDetailPage from './pages/FacilityDetailPage';
+import BookingsPage from './pages/BookingsPage';
+import AdminBookingsPage from './pages/AdminBookingsPage';
+import { useAuth } from './context/useAuth';
 import 'tailwindcss';
+
+// Role-based bookings route component
+function BookingsRoute() {
+  const { user } = useAuth();
+  if (!user) return null;
+  return user.role === 'ADMIN' ? <AdminBookingsPage /> : <BookingsPage />;
+}
 
 function App() {
   return (
@@ -73,6 +83,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <FacilityDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/bookings"
+            element={
+              <ProtectedRoute>
+                <BookingsRoute />
               </ProtectedRoute>
             }
           />

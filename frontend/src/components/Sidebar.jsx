@@ -27,8 +27,10 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         navigate('/facilities');
         break;
       case 'bookings':
+        navigate('/bookings');
+        break;
       case 'notifications':
-        // Placeholder for other modules
+        // Placeholder for future module
         break;
       default:
         break;
