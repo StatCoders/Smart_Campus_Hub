@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import HomePage from './pages/HomePage';
 import Dashboard from './pages/Dashboard';
+import TechnicianDashboard from './pages/TechnicianDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import StudentTicketsPage from './pages/StudentTicketsPage';
 import StudentResourcesPage from './pages/StudentResourcesPage';
@@ -39,6 +40,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/technician-dashboard"
+              element={
+                <ProtectedRoute>
+                  <TechnicianDashboard />
                 </ProtectedRoute>
               }
             />

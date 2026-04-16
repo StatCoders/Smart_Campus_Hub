@@ -48,8 +48,10 @@ export default function Login() {
       return;
     }
 
-    // Role-based redirect: USER → home, ADMIN → dashboard
-    const dashboardPath = selectedRole === 'USER' ? '/home' : '/dashboard';
+    // Role-based redirect: USER → home, ADMIN → dashboard, TECHNICIAN → technician-dashboard
+    let dashboardPath = '/home';
+    if (selectedRole === 'ADMIN') dashboardPath = '/dashboard';
+    else if (selectedRole === 'TECHNICIAN') dashboardPath = '/technician-dashboard';
     navigate(dashboardPath, { replace: true });
   }, [isAuthenticated, navigate, selectedRole]);
 
@@ -70,8 +72,10 @@ export default function Login() {
     try {
       setLoading(true);
       await login(formData.email.trim().toLowerCase(), formData.password);
-      // Role-based redirect: USER → home, ADMIN/TECHNICIAN → dashboard
-      const dashboardPath = selectedRole === 'USER' ? '/home' : '/dashboard';
+      // Role-based redirect: USER → home, ADMIN → dashboard, TECHNICIAN → technician-dashboard
+      let dashboardPath = '/home';
+      if (selectedRole === 'ADMIN') dashboardPath = '/dashboard';
+      else if (selectedRole === 'TECHNICIAN') dashboardPath = '/technician-dashboard';
       navigate(dashboardPath);
     } catch (err) {
       let errorMessage = 'Login failed. Please try again.';
