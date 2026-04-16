@@ -247,65 +247,70 @@ export default function StudentTicketsPage() {
             </button>
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTickets.map(ticket => (
               <div
                 key={ticket.id}
-                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition"
+                className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition flex flex-col"
               >
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {ticket.category}
-                      </h3>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(ticket.status)}`}>
+                {/* Card Header - Gradient Background */}
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-white">{ticket.category}</h3>
+                      <p className="text-blue-100 text-sm mt-1">{ticket.resourceId}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(ticket.status)}`}>
                         {ticket.status === 'IN_PROGRESS' ? 'In Progress' : ticket.status}
                       </span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(ticket.priority)}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getPriorityColor(ticket.priority)}`}>
                         {ticket.priority}
                       </span>
                     </div>
+                  </div>
+                </div>
 
-                    <p className="text-gray-700 mb-3">{ticket.description}</p>
+                {/* Card Content */}
+                <div className="p-6 flex-1 space-y-4">
+                  {/* Description */}
+                  <div>
+                    <p className="text-sm text-gray-600 line-clamp-3">{ticket.description}</p>
+                  </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm text-gray-600">
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase font-semibold">Resource</p>
-                        <p className="font-medium text-gray-900">{ticket.resourceId}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase font-semibold">Building</p>
-                        <p className="font-medium text-gray-900">{ticket.building || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase font-semibold">Room</p>
-                        <p className="font-medium text-gray-900">{ticket.roomNumber || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase font-semibold">Raised On</p>
-                        <p className="font-medium text-gray-900">{formatDate(ticket.createdAt)}</p>
-                      </div>
+                  {/* Details Grid */}
+                  <div className="space-y-3 border-t border-gray-200 pt-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Building:</span>
+                      <span className="font-medium text-gray-900">{ticket.building || 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Room:</span>
+                      <span className="font-medium text-gray-900">{ticket.roomNumber || 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Raised On:</span>
+                      <span className="font-medium text-gray-900">{formatDate(ticket.createdAt)}</span>
                     </div>
                   </div>
+                </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setEditingTicketId(ticket.id)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                      title="Edit ticket"
-                    >
-                      <Edit2 className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => setShowDeleteConfirm(ticket.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                      title="Delete ticket"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
+                {/* Card Footer - Action Buttons */}
+                <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex gap-3">
+                  <button
+                    onClick={() => setEditingTicketId(ticket.id)}
+                    className="flex-1 flex items-center justify-center gap-2 text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg transition font-medium text-sm"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(ticket.id)}
+                    className="flex-1 flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition font-medium text-sm"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </button>
                 </div>
 
                 {/* Delete Confirmation Modal */}

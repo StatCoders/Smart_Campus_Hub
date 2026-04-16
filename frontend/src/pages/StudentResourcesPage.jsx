@@ -32,7 +32,16 @@ export default function StudentResourcesPage() {
       try {
         setLoading(true);
         const data = await getAllFacilities();
-        setFacilities(Array.isArray(data) ? (data.content || data) : []);
+        // Handle Spring Data Page response - extract content array
+        let facilitiesData = [];
+        if (Array.isArray(data)) {
+          facilitiesData = data;
+        } else if (data?.content && Array.isArray(data.content)) {
+          facilitiesData = data.content;
+        } else if (data?.data && Array.isArray(data.data)) {
+          facilitiesData = data.data;
+        }
+        setFacilities(facilitiesData);
       } catch (err) {
         setError(err.message || 'Failed to fetch resources');
       } finally {
@@ -56,9 +65,9 @@ export default function StudentResourcesPage() {
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       return (
-        facility.name.toLowerCase().includes(term) ||
-        facility.building.toLowerCase().includes(term) ||
-        facility.floor.toLowerCase().includes(term)
+        (facility.name && facility.name.toLowerCase().includes(term)) ||
+        (facility.building && facility.building.toLowerCase().includes(term)) ||
+        (facility.floor && facility.floor.toLowerCase().includes(term))
       );
     }
     return true;
