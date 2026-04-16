@@ -25,11 +25,6 @@ export default function TicketCreatePage() {
     navigate('/login');
   };
 
-  const handleNavigate = (path) => {
-    navigate(path);
-    setIsMenuOpen(false);
-  };
-
   // Student View
   if (isStudent) {
     return (

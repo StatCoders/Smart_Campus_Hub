@@ -86,6 +86,14 @@ function App() {
               }
             />
             <Route
+              path="/student-bookings"
+              element={
+                <ProtectedRoute>
+                  <BookingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/tickets"
               element={
                 <ProtectedRoute>

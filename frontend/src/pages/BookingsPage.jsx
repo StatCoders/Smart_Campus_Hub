@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import Sidebar from '../components/Sidebar';
-import TopBar from '../components/TopBar';
+import { useNavigate } from 'react-router-dom';
+import { Bell, User, Settings, LogOut, ArrowLeft } from 'lucide-react';
 import BookingCard from '../components/BookingCard';
 import CreateBookingModal from '../components/CreateBookingModal';
 import Toast from '../components/Toast';
 import { getMyBookings } from '../services/bookingService';
 import { useAuth } from '../context/useAuth';
+import campusLogo from '../assets/campus-logo.png';
 
 const STATUS_OPTIONS = ['All', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
 
@@ -17,15 +18,6 @@ function getDaysInMonth(year, month) {
 
 function getFirstDayOfMonth(year, month) {
   return new Date(year, month, 1).getDay(); // 0=Sun
-}
-
-function isSameDay(a, b) {
-  if (!a || !b) return false;
-  const da = new Date(a);
-  const db = new Date(b);
-  return da.getFullYear() === db.getFullYear() &&
-    da.getMonth() === db.getMonth() &&
-    da.getDate() === db.getDate();
 }
 
 const STATUS_CHIP_COLORS = {
@@ -154,8 +146,9 @@ function CalendarView({ bookings }) {
 // ---------- Main Page ----------
 
 export default function BookingsPage() {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('bookings');
+  const navigate = useNavigate();
+  const { logout, user } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -168,12 +161,16 @@ export default function BookingsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [toast, setToast] = useState(null);
 
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
   const fetchBookings = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
       const data = await getMyBookings();
-      // Service now unwraps ApiResponse → data is a plain array
       setBookings(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(typeof err === 'string' ? err : 'Failed to fetch bookings');
@@ -208,120 +205,213 @@ export default function BookingsPage() {
   });
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className="min-h-screen bg-white/95">
+      {/* Navigation Header */}
+      <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/98 backdrop-blur-lg shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo and Title */}
+            <div className="flex items-center gap-3">
+              <img src={campusLogo} alt="Winterfall Northern University" className="h-12 w-12" />
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Winterfall Northern University</h1>
+                <p className="text-xs text-blue-600 font-medium">My Bookings</p>
+              </div>
+            </div>
 
-      <div className="flex-1 overflow-auto ml-64">
-        <TopBar user={user} />
+            {/* Navigation Menu */}
+            <nav className="hidden md:flex items-center gap-8">
+              <button
+                onClick={() => navigate('/student-resources')}
+                className="text-gray-700 hover:text-blue-600 transition font-medium"
+              >
+                Resources
+              </button>
+              <button
+                onClick={() => navigate('/home')}
+                className="text-gray-700 hover:text-blue-600 transition font-medium"
+              >
+                Home
+              </button>
+              <button
+                onClick={() => navigate('/student-tickets')}
+                className="text-gray-700 hover:text-blue-600 transition font-medium"
+              >
+                Tickets
+              </button>
+            </nav>
 
+            {/* User Menu */}
+            <div className="flex items-center gap-3 relative">
+              <button className="p-2 hover:bg-blue-50 rounded-lg transition">
+                <Bell className="w-5 h-5 text-blue-600" />
+              </button>
+              
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50 rounded-lg transition"
+              >
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                  {user?.firstName?.charAt(0) || 'U'}
+                </div>
+              </button>
+
+              {/* Dropdown Menu */}
+              {isMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50">
+                  <div className="p-4 border-b border-gray-100">
+                    <p className="text-sm font-semibold text-gray-900">{user?.firstName} {user?.lastName || ''}</p>
+                    <p className="text-xs text-gray-500">{user?.email}</p>
+                    <div className="mt-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        {user?.role || 'USER'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        navigate('/profile');
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition"
+                    >
+                      <User className="w-4 h-4" />
+                      Your Profile
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate('/settings');
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Settings
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {toast && (
           <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
         )}
 
-        <div className="p-8">
-          {/* Page header */}
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">My Bookings</h1>
-              <p className="text-slate-500 mt-1">View and manage your facility reservations</p>
-            </div>
+        {/* Page Header */}
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">Your Facility Reservations</h2>
+            <p className="text-gray-500 mt-1">View and manage all your bookings</p>
+          </div>
+          <button
+            id="new-booking-btn"
+            onClick={() => setShowCreateModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl transition-colors flex items-center gap-2 shadow-sm"
+          >
+            <span className="text-lg leading-none">+</span> New Booking
+          </button>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* Controls bar */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          {/* Search */}
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+            <input
+              type="text"
+              placeholder="Search by purpose or resource…"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Status filter */}
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            id="status-filter"
+          >
+            {STATUS_OPTIONS.map(s => (
+              <option key={s} value={s}>{s === 'All' ? 'All Statuses' : s}</option>
+            ))}
+          </select>
+
+          {/* View toggle */}
+          <div className="flex border border-gray-200 rounded-xl overflow-hidden bg-white">
             <button
-              id="new-booking-btn"
-              onClick={() => setShowCreateModal(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-xl transition-colors flex items-center gap-2 shadow-sm"
+              onClick={() => setViewMode('list')}
+              className={`px-4 py-2.5 text-sm font-medium transition-colors ${
+                viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+              }`}
+              id="list-view-btn"
             >
-              <span className="text-lg leading-none">+</span> New Booking
+              ☰ List
+            </button>
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={`px-4 py-2.5 text-sm font-medium transition-colors ${
+                viewMode === 'calendar' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+              }`}
+              id="calendar-view-btn"
+            >
+              📅 Calendar
             </button>
           </div>
-
-          {/* Error */}
-          {error && (
-            <div className="bg-rose-50 border border-rose-300 text-rose-700 px-4 py-3 rounded-xl mb-4 text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Controls bar */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
-            {/* Search */}
-            <div className="relative flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
-              <input
-                type="text"
-                placeholder="Search by purpose or resource…"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Status filter */}
-            <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="px-4 py-2.5 border border-slate-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              id="status-filter"
-            >
-              {STATUS_OPTIONS.map(s => (
-                <option key={s} value={s}>{s === 'All' ? 'All Statuses' : s}</option>
-              ))}
-            </select>
-
-            {/* View toggle */}
-            <div className="flex border border-slate-200 rounded-xl overflow-hidden bg-white">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-4 py-2.5 text-sm font-medium transition-colors ${
-                  viewMode === 'list' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
-                }`}
-                id="list-view-btn"
-              >
-                ☰ List
-              </button>
-              <button
-                onClick={() => setViewMode('calendar')}
-                className={`px-4 py-2.5 text-sm font-medium transition-colors ${
-                  viewMode === 'calendar' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
-                }`}
-                id="calendar-view-btn"
-              >
-                📅 Calendar
-              </button>
-            </div>
-          </div>
-
-          {/* Loading */}
-          {loading ? (
-            <div className="flex justify-center items-center py-16">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
-            </div>
-          ) : viewMode === 'calendar' ? (
-            <CalendarView bookings={filtered} />
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
-              <div className="text-5xl mb-3">📅</div>
-              <p className="text-slate-600 font-medium text-lg">No bookings found</p>
-              <p className="text-slate-400 text-sm mt-1">
-                {statusFilter !== 'All' ? 'Try a different status filter' : 'Click "+ New Booking" to get started'}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-slate-500 mb-1">
-                Showing {filtered.length} booking{filtered.length !== 1 ? 's' : ''}
-              </p>
-              {filtered.map(booking => (
-                <BookingCard
-                  key={booking.id}
-                  booking={booking}
-                  onRefresh={handleRefresh}
-                  currentUserId={user?.id}
-                  isAdmin={false}
-                />
-              ))}
-            </div>
-          )}
         </div>
+
+        {/* Loading */}
+        {loading ? (
+          <div className="flex justify-center items-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+          </div>
+        ) : viewMode === 'calendar' ? (
+          <CalendarView bookings={filtered} />
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
+            <div className="text-5xl mb-3">📅</div>
+            <p className="text-gray-600 font-medium text-lg">No bookings found</p>
+            <p className="text-gray-400 text-sm mt-1">
+              {statusFilter !== 'All' ? 'Try a different status filter' : 'Click "+ New Booking" to get started'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-500 mb-1">
+              Showing {filtered.length} booking{filtered.length !== 1 ? 's' : ''}
+            </p>
+            {filtered.map(booking => (
+              <BookingCard
+                key={booking.id}
+                booking={booking}
+                onRefresh={handleRefresh}
+                currentUserId={user?.id}
+                isAdmin={false}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Create Booking Modal */}

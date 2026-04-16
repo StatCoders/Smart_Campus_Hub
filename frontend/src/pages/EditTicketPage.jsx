@@ -22,11 +22,6 @@ export default function EditTicketPage() {
     navigate('/login');
   };
 
-  const handleNavigate = (path) => {
-    navigate(path);
-    setIsMenuOpen(false);
-  };
-
   // Student View
   if (isStudent) {
     return (

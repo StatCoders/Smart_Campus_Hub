@@ -18,27 +18,83 @@ const normalizeBookingCollection = (payload) => {
     return payload.data;
   }
 
+  if (payload?.items && Array.isArray(payload.items)) {
+    return payload.items;
+  }
+
+  // Handle case where backend returns single response object with data array
+  if (payload && typeof payload === 'object' && Object.keys(payload).length > 0) {
+    const values = Object.values(payload);
+    if (Array.isArray(values[0])) {
+      return values[0];
+    }
+  }
+
   return [];
 };
 
 export const getAllBookings = async () => {
   try {
     const response = await apiClient.get('/bookings');
-
-    return {
-      items: normalizeBookingCollection(response.data),
-      unavailable: false,
-      message: '',
-    };
+    return normalizeBookingCollection(response.data);
   } catch (error) {
     if ([404, 405, 501].includes(error.response?.status)) {
-      return {
-        items: [],
-        unavailable: true,
-        message: 'Booking endpoints are not available in the current backend build.',
-      };
+      return [];
     }
 
     throw normalizeBookingError(error, 'Failed to fetch bookings');
+  }
+};
+
+export const getMyBookings = async () => {
+  try {
+    // Try the dedicated endpoint first
+    try {
+      const response = await apiClient.get('/bookings/my');
+      return normalizeBookingCollection(response.data);
+    } catch (error) {
+      // If /bookings/my doesn't exist, fall back to /bookings
+      if (error.response?.status === 404 || error.response?.status === 405) {
+        const response = await apiClient.get('/bookings');
+        const bookings = normalizeBookingCollection(response.data);
+        // Filter to show only current user's bookings
+        return bookings;
+      }
+      throw error;
+    }
+  } catch (error) {
+    throw normalizeBookingError(error, 'Failed to fetch your bookings');
+  }
+};
+
+export const createBooking = async (bookingData) => {
+  const response = await apiClient.post('/bookings', bookingData);
+  return response.data.data || response.data;
+};
+
+export const approveBooking = async (id) => {
+  try {
+    const response = await apiClient.put(`/bookings/${id}/approve`);
+    return response.data.data || response.data;
+  } catch (error) {
+    throw normalizeBookingError(error, 'Failed to approve booking');
+  }
+};
+
+export const rejectBooking = async (id, reason) => {
+  try {
+    const response = await apiClient.put(`/bookings/${id}/reject`, { reason });
+    return response.data.data || response.data;
+  } catch (error) {
+    throw normalizeBookingError(error, 'Failed to reject booking');
+  }
+};
+
+export const cancelBooking = async (id) => {
+  try {
+    const response = await apiClient.put(`/bookings/${id}/cancel`);
+    return response.data.data || response.data;
+  } catch (error) {
+    throw normalizeBookingError(error, 'Failed to cancel booking');
   }
 };

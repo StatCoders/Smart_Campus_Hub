@@ -49,7 +49,7 @@ export default function StudentTicketsPage() {
       await deleteTicket(ticketId);
       setTickets(tickets.filter(t => t.id !== ticketId));
       setShowDeleteConfirm(null);
-    } catch (err) {
+    } catch {
       setError('Failed to delete ticket');
     }
   };
@@ -111,7 +111,7 @@ export default function StudentTicketsPage() {
                 Resources
               </button>
               <button
-                onClick={() => handleNavigate('/bookings')}
+                onClick={() => handleNavigate('/student-bookings')}
                 className="text-gray-700 hover:text-blue-600 transition font-medium"
               >
                 Bookings

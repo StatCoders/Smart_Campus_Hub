@@ -105,7 +105,7 @@ export default function StudentResourcesPage() {
                 Home
               </button>
               <button
-                onClick={() => handleNavigate('/bookings')}
+                onClick={() => handleNavigate('/student-bookings')}
                 className="text-gray-700 hover:text-blue-600 transition font-medium"
               >
                 Bookings

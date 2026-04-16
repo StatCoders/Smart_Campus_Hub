@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import { useAuth } from '../context/useAuth';
 import { useSidebar } from '../context/SidebarContext';
@@ -8,7 +7,7 @@ import { BarChart3, Clock, AlertCircle, CheckCircle, ChevronLeft, ChevronRight, 
 import campusLogo from '../assets/campus-logo.png';
 
 export default function TechnicianDashboard() {
-  const navigate = useNavigate();
+
   const { user } = useAuth();
   const { isCollapsed } = useSidebar();
   const [activeTab, setActiveTab] = useState('maintenance');

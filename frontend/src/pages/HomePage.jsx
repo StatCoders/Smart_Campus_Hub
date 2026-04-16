@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Calendar, Wrench, Users, Clock, Zap, ArrowRight, Bell, User, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
@@ -21,7 +21,7 @@ export default function HomePage() {
     }, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [backgroundImages.length]);
 
   const handleLogout = async () => {
     await logout();
@@ -444,7 +444,7 @@ export default function HomePage() {
           </div>
           <div className="border-t border-gray-800 pt-8">
             <p className="text-center text-gray-500 text-sm">
-              © 2024 Winterfall Northern University. All rights reserved.
+              ┬® 2024 Winterfall Northern University. All rights reserved.
             </p>
           </div>
         </div>
