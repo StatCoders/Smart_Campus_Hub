@@ -4,10 +4,12 @@ import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import TicketDetail from '../components/TicketDetail';
 import { useAuth } from '../context/useAuth';
+import { useSidebar } from '../context/SidebarContext';
 
 export default function TicketDetailPage() {
   const [activeTab, setActiveTab] = useState('tickets');
   const { user } = useAuth();
+  const { isCollapsed } = useSidebar();
   const navigate = useNavigate();
 
   return (
@@ -16,7 +18,7 @@ export default function TicketDetailPage() {
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main Content */}
-      <div className="flex-1 ml-64">
+      <div className={`flex-1 transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:ml-24' : 'lg:ml-64'}`}>
         {/* Top Bar */}
         <TopBar user={user} />
 

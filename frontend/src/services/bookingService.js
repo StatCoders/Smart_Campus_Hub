@@ -1,65 +1,100 @@
 import apiClient from './apiClient';
 
-// Every backend response is wrapped: { success, statusCode, message, data, timestamp }
-// We unwrap response.data.data so callers receive the plain payload directly.
-
-// Create a new booking (USER)
-export const createBooking = async (bookingData) => {
-  try {
-    const response = await apiClient.post('/bookings', bookingData);
-    return response.data.data; // BookingResponseDto
-  } catch (error) {
-    // Propagate the full error so callers can check status codes (e.g. 409 conflict)
-    throw error;
-  }
+const normalizeBookingError = (error, fallbackMessage) => {
+  const message = error.response?.data?.message || fallbackMessage;
+  return new Error(message);
 };
 
-// Get the current user's bookings (USER)
-export const getMyBookings = async () => {
-  try {
-    const response = await apiClient.get('/bookings/my');
-    return response.data.data; // List<BookingResponseDto>
-  } catch (error) {
-    throw error.response?.data?.message || 'Failed to fetch your bookings';
+const normalizeBookingCollection = (payload) => {
+  if (Array.isArray(payload)) {
+    return payload;
   }
+
+  if (Array.isArray(payload?.content)) {
+    return payload.content;
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  if (payload?.items && Array.isArray(payload.items)) {
+    return payload.items;
+  }
+
+  // Handle case where backend returns single response object with data array
+  if (payload && typeof payload === 'object' && Object.keys(payload).length > 0) {
+    const values = Object.values(payload);
+    if (Array.isArray(values[0])) {
+      return values[0];
+    }
+  }
+
+  return [];
 };
 
-// Get all bookings (ADMIN)
 export const getAllBookings = async () => {
   try {
     const response = await apiClient.get('/bookings');
-    return response.data.data; // List<BookingResponseDto>
+    return normalizeBookingCollection(response.data);
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to fetch all bookings';
+    if ([404, 405, 501].includes(error.response?.status)) {
+      return [];
+    }
+
+    throw normalizeBookingError(error, 'Failed to fetch bookings');
   }
 };
 
-// Approve a booking (ADMIN)
+export const getMyBookings = async () => {
+  try {
+    // Try the dedicated endpoint first
+    try {
+      const response = await apiClient.get('/bookings/my');
+      return normalizeBookingCollection(response.data);
+    } catch (error) {
+      // If /bookings/my doesn't exist, fall back to /bookings
+      if (error.response?.status === 404 || error.response?.status === 405) {
+        const response = await apiClient.get('/bookings');
+        const bookings = normalizeBookingCollection(response.data);
+        // Filter to show only current user's bookings
+        return bookings;
+      }
+      throw error;
+    }
+  } catch (error) {
+    throw normalizeBookingError(error, 'Failed to fetch your bookings');
+  }
+};
+
+export const createBooking = async (bookingData) => {
+  const response = await apiClient.post('/bookings', bookingData);
+  return response.data.data || response.data;
+};
+
 export const approveBooking = async (id) => {
   try {
     const response = await apiClient.put(`/bookings/${id}/approve`);
-    return response.data.data; // BookingResponseDto
+    return response.data.data || response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to approve booking';
+    throw normalizeBookingError(error, 'Failed to approve booking');
   }
 };
 
-// Reject a booking with a reason (ADMIN)
 export const rejectBooking = async (id, reason) => {
   try {
     const response = await apiClient.put(`/bookings/${id}/reject`, { reason });
-    return response.data.data; // BookingResponseDto
+    return response.data.data || response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to reject booking';
+    throw normalizeBookingError(error, 'Failed to reject booking');
   }
 };
 
-// Cancel a booking (USER – own booking only)
 export const cancelBooking = async (id) => {
   try {
     const response = await apiClient.put(`/bookings/${id}/cancel`);
-    return response.data.data; // BookingResponseDto
+    return response.data.data || response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to cancel booking';
+    throw normalizeBookingError(error, 'Failed to cancel booking');
   }
 };

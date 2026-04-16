@@ -180,8 +180,8 @@ export default function CreateTicket({ onSuccess }) {
     <div className="max-w-4xl bg-white rounded-xl shadow-lg overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-8 py-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Create New Maintenance Ticket</h1>
-        <p className="text-indigo-100">Report an issue or request maintenance for campus facilities</p>
+        <h1 className="text-3xl font-bold text-white mb-2">Report an Issue</h1>
+        <p className="text-indigo-100">Describe the problem and we'll prioritize it for resolution</p>
       </div>
 
       <div className="p-8">
