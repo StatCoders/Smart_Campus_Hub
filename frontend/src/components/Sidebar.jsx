@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { useSidebar } from '../context/SidebarContext';
+import campusLogo from '../assets/campus-logo.png';
 
 export default function Sidebar({ activeTab, setActiveTab }) {
   const navigate = useNavigate();
@@ -63,15 +64,13 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         <div className={`border-b border-white/10 p-5 ${isCollapsed ? 'lg:px-4' : ''}`}>
           <div className="flex items-center justify-between gap-3">
             <div className={`flex items-center gap-3 ${isCollapsed ? 'lg:justify-center lg:w-full' : ''}`}>
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-sm font-bold uppercase tracking-[0.2em] text-white shadow-lg shadow-slate-950/20">
-                SC
-              </div>
+              <img src={campusLogo} alt="Winterfall Northern University" className="h-11 w-11 rounded-2xl shadow-lg shadow-slate-950/20" />
               {!isCollapsed && (
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-100/75">
-                    Smart Campus
+                    Winterfall Northern
                   </p>
-                  <h1 className="truncate text-lg font-semibold text-white">Operations Hub</h1>
+                  <h1 className="truncate text-lg font-semibold text-white">University</h1>
                 </div>
               )}
             </div>
@@ -119,12 +118,6 @@ export default function Sidebar({ activeTab, setActiveTab }) {
             {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
             {!isCollapsed && <span className="text-sm font-medium">Collapse</span>}
           </button>
-
-          {!isCollapsed && (
-            <p className="mt-4 hidden text-xs uppercase tracking-[0.22em] text-sky-100/60 lg:block">
-              Maintenance & Incident Desk
-            </p>
-          )}
         </div>
       </aside>
     </>
