@@ -1,12 +1,17 @@
 import apiClient from './apiClient';
 
+const normalizeTicketError = (error, fallbackMessage) => {
+  const message = error.response?.data?.message || fallbackMessage;
+  return new Error(message);
+};
+
 // Create a new ticket
 export const createTicket = async (ticketData) => {
   try {
     const response = await apiClient.post('/tickets', ticketData);
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to create ticket';
+    throw normalizeTicketError(error, 'Failed to create ticket');
   }
 };
 
@@ -16,7 +21,7 @@ export const updateTicket = async (id, ticketData) => {
     const response = await apiClient.put(`/tickets/${id}`, ticketData);
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to update ticket';
+    throw normalizeTicketError(error, 'Failed to update ticket');
   }
 };
 
@@ -24,9 +29,9 @@ export const updateTicket = async (id, ticketData) => {
 export const getAllTickets = async () => {
   try {
     const response = await apiClient.get('/tickets');
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to fetch tickets';
+    throw normalizeTicketError(error, 'Failed to fetch tickets');
   }
 };
 
@@ -36,7 +41,7 @@ export const getTicketById = async (id) => {
     const response = await apiClient.get(`/tickets/${id}`);
     return response.data;
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to fetch ticket';
+    throw normalizeTicketError(error, 'Failed to fetch ticket');
   }
 };
 
@@ -45,6 +50,6 @@ export const deleteTicket = async (id) => {
   try {
     await apiClient.delete(`/tickets/${id}`);
   } catch (error) {
-    throw error.response?.data?.message || 'Failed to delete ticket';
+    throw normalizeTicketError(error, 'Failed to delete ticket');
   }
 };

@@ -22,7 +22,7 @@ export default function TicketCreatePage() {
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main Content */}
-      <div className={`flex-1 transition-all duration-300 ease-in-out ${isCollapsed ? 'ml-24' : 'ml-64'}`}>
+      <div className={`flex-1 transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:ml-24' : 'lg:ml-64'}`}>
         {/* Top Bar */}
         <TopBar user={user} />
 

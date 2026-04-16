@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/useAuth';
 import authService from '../services/authService';
+import campusLogo from '../assets/campus-logo.png';
 
 const roleOptions = [
   {
@@ -47,8 +48,10 @@ export default function Login() {
       return;
     }
 
-    navigate('/dashboard', { replace: true });
-  }, [isAuthenticated, navigate]);
+    // Role-based redirect: USER → home, ADMIN → dashboard
+    const dashboardPath = selectedRole === 'USER' ? '/home' : '/dashboard';
+    navigate(dashboardPath, { replace: true });
+  }, [isAuthenticated, navigate, selectedRole]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -67,7 +70,9 @@ export default function Login() {
     try {
       setLoading(true);
       await login(formData.email.trim().toLowerCase(), formData.password);
-      navigate('/dashboard');
+      // Role-based redirect: USER → home, ADMIN/TECHNICIAN → dashboard
+      const dashboardPath = selectedRole === 'USER' ? '/home' : '/dashboard';
+      navigate(dashboardPath);
     } catch (err) {
       let errorMessage = 'Login failed. Please try again.';
 
@@ -132,7 +137,8 @@ export default function Login() {
         {!selectedRole ? (
           <div className="space-y-6 rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-xl shadow-slate-200/60 backdrop-blur sm:p-8">
             <div className="space-y-2">
-              <p className="text-sm font-medium uppercase tracking-widest text-slate-500">Smart Campus Hub</p>
+              <img src={campusLogo} alt="Winterfall Northern University" className="h-24 w-24 mx-auto mb-4" />
+              <p className="text-sm font-medium uppercase tracking-widest text-slate-500">Winterfall Northern University</p>
               <h2 className="text-4xl font-semibold tracking-tight text-slate-900">Welcome back</h2>
               <p className="text-lg text-slate-600">Sign in to manage your campus operations</p>
             </div>

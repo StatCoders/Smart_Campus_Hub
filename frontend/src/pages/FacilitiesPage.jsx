@@ -8,6 +8,7 @@ import FacilityCard from '../components/FacilityCard';
 import FacilityFilters from '../components/FacilityFilters';
 import AddFacilityModal from '../components/AddFacilityModal';
 import Toast from '../components/Toast';
+import { useSidebar } from '../context/SidebarContext';
 import '../facilities.css';
 
 export default function FacilitiesPage() {
@@ -146,7 +147,7 @@ export default function FacilitiesPage() {
     <div className="flex h-screen bg-gray-100">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
-      <div className="flex-1 overflow-auto ml-64">
+      <div className={`flex-1 overflow-auto transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:ml-24' : 'lg:ml-64'}`}>
         <TopBar user={user} />
         
         {/* Toast Notification */}

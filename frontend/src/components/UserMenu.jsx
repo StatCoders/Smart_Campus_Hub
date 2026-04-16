@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from 'react';
-import { User, Settings, ArrowRight } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { ArrowRight, Settings, User } from 'lucide-react';
 
 export default function UserMenu({ user, isOpen, onClose, onLogout }) {
   const menuRef = useRef(null);
@@ -22,10 +22,8 @@ export default function UserMenu({ user, isOpen, onClose, onLogout }) {
 
   if (!isOpen) return null;
 
-  // Generate avatar initials
   const initials = `${user?.firstName?.[0] || 'U'}${user?.lastName?.[0] || 'U'}`.toUpperCase();
 
-  // Get role badge color based on role
   const getRoleBadgeColor = (role) => {
     const roleMap = {
       ADMIN: 'bg-purple-100 text-purple-700',
@@ -33,70 +31,64 @@ export default function UserMenu({ user, isOpen, onClose, onLogout }) {
       STUDENT: 'bg-green-100 text-green-700',
       STAFF: 'bg-orange-100 text-orange-700',
     };
+
     return roleMap[role?.toUpperCase()] || 'bg-blue-100 text-blue-700';
   };
 
   return (
     <div
       ref={menuRef}
-      className="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 overflow-hidden"
+      className="absolute right-0 top-full z-50 mt-3 w-72 overflow-hidden rounded-[28px] border border-sky-100 bg-white shadow-[0_30px_70px_-35px_rgba(15,23,42,0.55)]"
     >
-      {/* User Profile Section */}
-      <div className="px-6 py-6 border-b border-gray-200 bg-gradient-to-br from-gray-50 to-white">
-        <div className="flex items-center gap-4 mb-4">
-          {/* Avatar */}
-          <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+      <div className="border-b border-sky-100 bg-gradient-to-br from-[#0F172A] to-[#1E40AF] px-6 py-6 text-white">
+        <div className="mb-4 flex items-center gap-4">
+          <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15 text-lg font-bold text-white">
             {initials}
           </div>
 
-          {/* Name and Email */}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-white">
               {user?.firstName} {user?.lastName}
             </p>
-            <p className="text-xs text-gray-500 truncate">
-              {user?.email || 'user@university.edu'}
-            </p>
+            <p className="truncate text-xs text-sky-100/75">{user?.email || 'user@university.edu'}</p>
           </div>
         </div>
 
-        {/* Role Badge */}
         <div>
-          <span className={`inline-block px-4 py-1.5 ${getRoleBadgeColor(user?.role)} text-xs font-semibold rounded-full uppercase tracking-wide`}>
+          <span
+            className={`inline-block rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wide ${getRoleBadgeColor(
+              user?.role
+            )}`}
+          >
             {user?.role || 'USER'}
           </span>
         </div>
       </div>
 
-      {/* Menu Items */}
       <div className="py-1">
-        {/* Your Profile */}
         <button
           onClick={onClose}
-          className="w-full flex items-center gap-3 px-6 py-3 text-gray-700 hover:bg-gray-50 transition-colors text-sm font-medium group"
+          className="group flex w-full items-center gap-3 px-6 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-sky-50"
         >
-          <User className="w-5 h-5 text-gray-400 group-hover:text-gray-600" />
+          <User className="h-5 w-5 text-slate-400 group-hover:text-blue-700" />
           <span>Your Profile</span>
         </button>
 
-        {/* Settings */}
         <button
           onClick={onClose}
-          className="w-full flex items-center gap-3 px-6 py-3 text-gray-700 hover:bg-gray-50 transition-colors text-sm font-medium group"
+          className="group flex w-full items-center gap-3 px-6 py-3 text-sm font-medium text-slate-700 transition-colors hover:bg-sky-50"
         >
-          <Settings className="w-5 h-5 text-gray-400 group-hover:text-gray-600" />
+          <Settings className="h-5 w-5 text-slate-400 group-hover:text-blue-700" />
           <span>Settings</span>
         </button>
 
-        {/* Divider */}
-        <div className="my-1 border-t border-gray-200"></div>
+        <div className="my-1 border-t border-sky-100"></div>
 
-        {/* Sign Out */}
         <button
           onClick={onLogout}
-          className="w-full flex items-center gap-3 px-6 py-3 text-red-600 hover:bg-red-50 transition-colors text-sm font-medium group"
+          className="group flex w-full items-center gap-3 px-6 py-3 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50"
         >
-          <ArrowRight className="w-5 h-5 text-red-400 group-hover:text-red-600" />
+          <ArrowRight className="h-5 w-5 text-rose-400 group-hover:text-rose-600" />
           <span>Sign out</span>
         </button>
       </div>
