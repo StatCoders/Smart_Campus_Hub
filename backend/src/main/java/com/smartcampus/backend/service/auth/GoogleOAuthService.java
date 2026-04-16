@@ -42,6 +42,7 @@ public class GoogleOAuthService {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private GoogleTokenInfo validateIdToken(String token) throws Exception {
         // Parse JWT payload (without signature verification) and validate audience.
         String[] parts = token.split("\\.");
@@ -65,6 +66,7 @@ public class GoogleOAuthService {
         return tokenInfo;
     }
 
+    @SuppressWarnings("unchecked")
     private GoogleTokenInfo validateAccessToken(String accessToken) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://www.googleapis.com/oauth2/v3/userinfo"))

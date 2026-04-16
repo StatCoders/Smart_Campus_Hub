@@ -60,11 +60,9 @@ public class Facility {
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
-    @Temporal(jakarta.persistence.TemporalType.TIMESTAMP)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
     @Column(nullable = false)
-    @Temporal(jakarta.persistence.TemporalType.TIMESTAMP)
     private LocalDateTime updatedAt;
 }

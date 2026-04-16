@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/useAuth';
 import { getTicketById, updateTicket } from '../services/ticketService';
 
 // Sample resource IDs for searchable dropdown
@@ -34,9 +35,11 @@ const PRIORITY_OPTIONS = [
   { value: 'URGENT', label: 'Urgent', color: 'bg-red-100 text-red-800 border-red-300' },
 ];
 
-export default function EditTicket() {
-  const { id } = useParams();
+export default function EditTicket({ ticketId, onSuccess, onCancel }) {
+  const id = ticketId;
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isStudent = user?.role === 'USER';
   
   const [formData, setFormData] = useState({
     resourceId: '',
@@ -148,7 +151,12 @@ export default function EditTicket() {
       setSuccess('✓ Ticket updated successfully!');
       
       setTimeout(() => {
-        navigate(`/tickets/${id}`);
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          const redirectPath = isStudent ? '/student-tickets' : `/tickets/${id}`;
+          navigate(redirectPath);
+        }
       }, 1500);
     } catch (err) {
       setError(err.message || 'Failed to update ticket');
@@ -166,164 +174,189 @@ export default function EditTicket() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-0">
+      {/* Error & Success Messages */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start gap-3">
-          <span className="text-lg">⚠️</span>
-          <div>{error}</div>
+        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-lg flex items-start gap-3">
+          <span className="text-lg mt-0.5">⚠️</span>
+          <div className="font-medium">{error}</div>
         </div>
       )}
 
       {success && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-start gap-3">
-          <span className="text-lg">✓</span>
-          <div>{success}</div>
+        <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded-lg flex items-start gap-3">
+          <span className="text-lg mt-0.5">✓</span>
+          <div className="font-medium">{success}</div>
         </div>
       )}
 
-      {/* Required Information */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Required Information</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Resource ID */}
-          <div className="md:col-span-2">
-            <label className="block text-gray-900 font-semibold mb-2">Resource Location *</label>
+      {/* Section 1: Location & Resource */}
+      <div className="mb-8 pb-8 border-b border-gray-200">
+        <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600">1</div>
+          Resource Location
+        </h3>
+        
+        <div className="space-y-5">
+          {/* Resource ID - Full Width */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Resource Location *</label>
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search or select resource (e.g., FAC-ENG-101)"
+                placeholder="Search facility (e.g., FAC-ENG-101)"
                 value={searchResource}
                 onChange={(e) => {
                   setSearchResource(e.target.value);
                   setShowResourceDropdown(true);
                 }}
                 onFocus={() => setShowResourceDropdown(true)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               />
               {showResourceDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
                   {filteredResources.length > 0 ? (
                     filteredResources.map(resource => (
                       <button
                         key={resource.id}
                         type="button"
                         onClick={() => handleResourceSelect(resource)}
-                        className="w-full text-left px-4 py-3 hover:bg-indigo-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                        className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition-colors"
                       >
                         <div className="font-medium text-gray-900">{resource.id}</div>
                         <div className="text-sm text-gray-500">{resource.label.split(' - ')[1]}</div>
                       </button>
                     ))
                   ) : (
-                    <div className="px-4 py-3 text-gray-500 text-center">No resources found</div>
+                    <div className="px-4 py-3 text-gray-500 text-center text-sm">No resources found</div>
                   )}
                 </div>
               )}
             </div>
           </div>
 
+          {/* Building & Room - Two Columns */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-3">Building</label>
+              <input
+                type="text"
+                name="building"
+                value={formData.building}
+                onChange={handleChange}
+                placeholder="e.g., Block A"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-3">Room</label>
+              <input
+                type="text"
+                name="roomNumber"
+                value={formData.roomNumber}
+                onChange={handleChange}
+                placeholder="e.g., 101"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 2: Issue Details */}
+      <div className="mb-8 pb-8 border-b border-gray-200">
+        <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600">2</div>
+          Issue Details
+        </h3>
+
+        <div className="space-y-5">
           {/* Category */}
           <div>
-            <label className="block text-gray-900 font-semibold mb-2">Category *</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Category *</label>
             <select
               name="category"
               value={formData.category}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               required
             >
-              <option value="">Select a category...</option>
+              <option value="">Select category...</option>
               {CATEGORIES.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
           </div>
 
-          {/* Building & Room */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-gray-900 font-semibold mb-2">Building</label>
-              <input
-                type="text"
-                name="building"
-                placeholder="e.g., Block A"
-                value={formData.building}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-gray-900 font-semibold mb-2">Room</label>
-              <input
-                type="text"
-                name="roomNumber"
-                placeholder="e.g., 101"
-                value={formData.roomNumber}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Description *</label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="Describe the issue in detail..."
+              rows="4"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
+              required
+            />
           </div>
         </div>
       </div>
 
-      {/* Description */}
-      <div>
-        <label className="block text-gray-900 font-semibold mb-2">
-          Description * <span className="text-sm font-normal text-gray-500">({formData.description.length}/1000)</span>
-        </label>
-        <textarea
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          placeholder="Describe the issue in detail..."
-          maxLength="1000"
-          rows="5"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-          required
-        />
-      </div>
+      {/* Section 3: Priority & Timeline */}
+      <div className="mb-8 pb-8 border-b border-gray-200">
+        <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600">3</div>
+          Priority & Timeline
+        </h3>
 
-      {/* Priority */}
-      <div>
-        <label className="block text-gray-900 font-semibold mb-3">Priority *</label>
-        <div className="flex flex-wrap gap-3">
-          {PRIORITY_OPTIONS.map(option => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => handlePriorityChange(option.value)}
-              className={`px-4 py-2 rounded-lg font-medium border-2 transition-all ${
-                formData.priority === option.value
-                  ? `${option.color} border-current ring-2 ring-offset-2 ring-current`
-                  : `bg-gray-100 text-gray-700 border-gray-300 hover:border-indigo-300`
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Optional Fields */}
-      <div className="border-t pt-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Additional Information</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          {/* Priority */}
           <div>
-            <label className="block text-gray-900 font-semibold mb-2">Expected Completion Date</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-4">Priority Level *</label>
+            <div className="flex flex-wrap gap-3">
+              {PRIORITY_OPTIONS.map(option => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handlePriorityChange(option.value)}
+                  className={`px-6 py-2 rounded-full font-medium transition-all ${
+                    formData.priority === option.value
+                      ? `${option.color} ring-2 ring-offset-2 ring-current`
+                      : `bg-gray-100 text-gray-700 hover:bg-gray-200`
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Expected Date */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Expected Completion Date</label>
             <input
               type="date"
               name="expectedDate"
               value={formData.expectedDate}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
             />
           </div>
         </div>
+      </div>
 
-        <div className="mt-6">
-          <label className="block text-gray-900 font-semibold mb-2">
-            Additional Notes <span className="text-sm font-normal text-gray-500">({formData.additionalNotes.length}/500)</span>
+      {/* Section 4: Notes */}
+      <div className="mb-8">
+        <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600">4</div>
+          Additional Notes
+        </h3>
+
+        <div>
+          <label className="block text-sm font-semibold text-gray-900 mb-3">
+            Notes <span className="text-xs font-normal text-gray-500">({formData.additionalNotes.length}/500)</span>
           </label>
           <textarea
             name="additionalNotes"
@@ -332,26 +365,30 @@ export default function EditTicket() {
             placeholder="Any additional information..."
             maxLength="500"
             rows="3"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
           />
         </div>
       </div>
 
-      {/* Buttons */}
-      <div className="border-t pt-6 flex gap-4">
+      {/* Action Buttons */}
+      <div className="flex gap-3 pt-8 border-t border-gray-200">
+        <button
+          type="button"
+          onClick={() => {
+            if (onCancel) {
+              onCancel();
+            }
+          }}
+          className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition"
+        >
+          Cancel
+        </button>
         <button
           type="submit"
           disabled={saving}
-          className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+          className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold rounded-xl transition"
         >
           {saving ? '⏳ Saving...' : '💾 Save Changes'}
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate(`/tickets/${id}`)}
-          className="flex-1 border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-        >
-          ✕ Cancel
         </button>
       </div>
     </form>
