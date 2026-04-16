@@ -7,6 +7,8 @@ import Signup from './pages/Signup';
 import HomePage from './pages/HomePage';
 import Dashboard from './pages/Dashboard';
 import StudentDashboard from './pages/StudentDashboard';
+import StudentTicketsPage from './pages/StudentTicketsPage';
+import StudentResourcesPage from './pages/StudentResourcesPage';
 import Tickets from './pages/Tickets';
 import TicketCreatePage from './pages/TicketCreatePage';
 import TicketDetailPage from './pages/TicketDetailPage';
@@ -45,6 +47,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <StudentDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student-tickets"
+              element={
+                <ProtectedRoute>
+                  <StudentTicketsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student-resources"
+              element={
+                <ProtectedRoute>
+                  <StudentResourcesPage />
                 </ProtectedRoute>
               }
             />

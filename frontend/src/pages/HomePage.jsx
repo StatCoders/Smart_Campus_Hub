@@ -51,7 +51,7 @@ export default function HomePage() {
             {/* Navigation Menu */}
             <nav className="hidden md:flex items-center gap-8">
               <button
-                onClick={() => handleNavigate('/facilities')}
+                onClick={() => handleNavigate('/student-resources')}
                 className="text-gray-700 hover:text-blue-600 transition font-medium"
               >
                 Resources
@@ -63,7 +63,7 @@ export default function HomePage() {
                 Bookings
               </button>
               <button
-                onClick={() => handleNavigate('/tickets')}
+                onClick={() => handleNavigate('/student-tickets')}
                 className="text-gray-700 hover:text-blue-600 transition font-medium"
               >
                 Tickets
@@ -170,7 +170,7 @@ export default function HomePage() {
                 {/* CTA Buttons */}
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   <button
-                    onClick={() => handleNavigate('/facilities')}
+                    onClick={() => handleNavigate('/student-resources')}
                     className="group inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-semibold transition transform hover:scale-105"
                   >
                     Explore Campus Resources
@@ -249,7 +249,7 @@ export default function HomePage() {
                   icon: Building2,
                   title: 'Facilities',
                   description: 'Browse and manage campus facilities, labs, and study rooms',
-                  path: '/facilities',
+                  path: '/student-resources',
                   color: 'bg-blue-600',
                   lightColor: 'from-blue-50 to-blue-100',
                 },
@@ -265,7 +265,7 @@ export default function HomePage() {
                   icon: Wrench,
                   title: 'Maintenance',
                   description: 'Report issues and track maintenance requests in real-time',
-                  path: '/tickets',
+                  path: '/student-tickets',
                   color: 'bg-blue-800',
                   lightColor: 'from-blue-50 to-blue-100',
                 },
@@ -399,14 +399,14 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => handleNavigate('/facilities')}
+              onClick={() => handleNavigate('/student-resources')}
               className="inline-flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white px-8 py-3 rounded-full font-semibold transition transform hover:scale-105"
             >
               Explore Resources
               <ArrowRight className="w-5 h-5" />
             </button>
             <button
-              onClick={() => handleNavigate('/tickets')}
+              onClick={() => handleNavigate('/student-tickets')}
               className="inline-flex items-center justify-center gap-2 border-2 border-white hover:bg-white/10 text-white px-8 py-3 rounded-full font-semibold transition"
             >
               View Tickets
@@ -428,9 +428,9 @@ export default function HomePage() {
             <div>
               <h4 className="text-white font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><button onClick={() => handleNavigate('/facilities')} className="hover:text-white transition">Facilities</button></li>
+                <li><button onClick={() => handleNavigate('/student-resources')} className="hover:text-white transition">Resources</button></li>
                 <li><button onClick={() => handleNavigate('/bookings')} className="hover:text-white transition">Bookings</button></li>
-                <li><button onClick={() => handleNavigate('/tickets')} className="hover:text-white transition">Tickets</button></li>
+                <li><button onClick={() => handleNavigate('/student-tickets')} className="hover:text-white transition">Tickets</button></li>
               </ul>
             </div>
             <div>
