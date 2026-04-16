@@ -29,7 +29,7 @@ public class TicketController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<TicketDto>> getAllTickets() {
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
@@ -40,7 +40,7 @@ public class TicketController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<TicketDto> getTicketById(@PathVariable Long id) {
         try {
             TicketDto ticket = ticketService.getTicketById(id);

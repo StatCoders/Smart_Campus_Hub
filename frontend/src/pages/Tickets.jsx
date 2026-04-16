@@ -123,18 +123,11 @@ export default function Tickets() {
         {/* Content Area */}
         <main className="p-8">
           {/* Header Section */}
-          <div className="flex justify-between items-start mb-8">
+          <div className="mb-8">
             <div>
               <h1 className="text-4xl font-bold text-gray-900 mb-2">Tickets</h1>
-              <p className="text-gray-600">Manage maintenance and IT requests</p>
+              <p className="text-gray-600">View maintenance and IT requests raised by students and staff</p>
             </div>
-            <button
-              onClick={() => navigate('/tickets/create')}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
-            >
-              <span className="text-xl">+</span>
-              Create Ticket
-            </button>
           </div>
 
           {/* Filters Section */}
@@ -198,12 +191,7 @@ export default function Tickets() {
           ) : filteredTickets.length === 0 ? (
             <div className="bg-white rounded-lg shadow p-12 text-center">
               <p className="text-gray-600 text-lg mb-4">No tickets found</p>
-              <button
-                onClick={() => navigate('/tickets/create')}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg"
-              >
-                Create Your First Ticket
-              </button>
+              <p className="text-gray-500 text-sm">Tickets raised by students and staff will appear here</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
