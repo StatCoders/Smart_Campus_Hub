@@ -276,9 +276,18 @@ export default function StudentResourcesPage() {
                 className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition"
               >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-                  <h3 className="text-lg font-semibold text-white">{facility.name}</h3>
-                  <p className="text-blue-100 text-sm mt-1">{facility.type}</p>
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-start justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">{facility.name}</h3>
+                    <p className="text-blue-100 text-sm mt-1">{facility.type}</p>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                    facility.status === 'ACTIVE' 
+                      ? 'bg-white/20 text-white border border-white/30' 
+                      : 'bg-white/10 text-white border border-white/20'
+                  }`}>
+                    {facility.status === 'ACTIVE' ? 'Active' : 'Out of Service'}
+                  </span>
                 </div>
 
                 {/* Content */}
