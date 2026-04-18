@@ -53,4 +53,29 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
 
     Optional<Booking> findByIdAndUserId(Long id, Long userId);
+
+    /**
+     * Fetch all APPROVED bookings for a specific resource within a date range.
+     * Used for occupancy chart calculation on facility detail pages.
+     * 
+     * @param resourceId the facility/resource ID to fetch bookings for
+     * @param startDate the start date of the range (inclusive)
+     * @param endDate the end date of the range (inclusive)
+     * @return List of approved bookings with user data, ordered by date and time
+     * 
+     * NOTE: Only APPROVED bookings are included.
+     * This method does NOT modify or affect any other booking queries or functionality.
+     */
+    @Query("""
+            SELECT b FROM Booking b
+            WHERE b.resource.id = :resourceId
+              AND b.status = com.smartcampus.backend.model.booking.BookingStatus.APPROVED
+              AND b.bookingDate BETWEEN :startDate AND :endDate
+            ORDER BY b.bookingDate ASC, b.startTime ASC
+            """)
+    List<Booking> findApprovedBookingsForResourceInWeek(
+            @Param("resourceId") Long resourceId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
 }

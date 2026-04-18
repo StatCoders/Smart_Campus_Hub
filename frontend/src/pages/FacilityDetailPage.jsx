@@ -239,7 +239,7 @@ export default function FacilityDetailPage() {
 
               {/* Occupancy Chart */}
               <div className="bg-white rounded-lg shadow-md p-6">
-                <OccupancyChart facility={facility} />
+                <OccupancyChart facilityId={facility?.id} facility={facility} />
               </div>
             </div>
           </div>

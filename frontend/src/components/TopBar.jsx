@@ -18,6 +18,9 @@ export default function TopBar({ user }) {
     user?.email ||
     'Operations User';
   const initials = `${user?.firstName?.[0] || 'O'}${user?.lastName?.[0] || 'U'}`.toUpperCase();
+  
+  // Get role - handle both string and enum formats from backend
+  const roleDisplay = user?.role ? String(user.role).toUpperCase() : 'ADMIN';
 
   const handleLogout = async () => {
     await logout();
@@ -59,7 +62,7 @@ export default function TopBar({ user }) {
             >
               <div>
                 <p className="max-w-32 truncate text-sm font-semibold text-slate-950 sm:max-w-none">{displayName}</p>
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{user?.role || 'USER'}</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{roleDisplay}</p>
               </div>
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1E40AF] to-[#38BDF8] text-sm font-bold text-white">
                 {initials}

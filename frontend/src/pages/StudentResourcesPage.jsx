@@ -4,6 +4,7 @@ import { Bell, User, Settings, LogOut, MapPin, Users, Clock, Check, X } from 'lu
 import { useAuth } from '../context/useAuth';
 import campusLogo from '../assets/campus-logo.png';
 import { getAllFacilities } from '../services/facilityService';
+import OccupancyChart from '../components/OccupancyChart';
 
 export default function StudentResourcesPage() {
   const navigate = useNavigate();
@@ -275,6 +276,21 @@ export default function StudentResourcesPage() {
                 key={facility.id}
                 className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition"
               >
+                {/* Image Section */}
+                <div className="relative h-48 bg-gray-200 overflow-hidden">
+                  {facility.imageUrl ? (
+                    <img 
+                      src={facility.imageUrl}
+                      alt={facility.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <span className="text-4xl">📦</span>
+                    </div>
+                  )}
+                </div>
+
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-start justify-between">
                   <div>
@@ -298,7 +314,7 @@ export default function StudentResourcesPage() {
                     <div className="min-w-0">
                       <p className="text-sm text-gray-600">Location</p>
                       <p className="font-medium text-gray-900">
-                        {facility.building} - Floor {facility.floor}
+                        {facility.building} - {facility.floor?.includes('Floor') ? facility.floor : `Floor ${facility.floor}`}
                       </p>
                     </div>
                   </div>
@@ -380,6 +396,21 @@ export default function StudentResourcesPage() {
               <X className="w-6 h-6 text-gray-600" />
             </button>
 
+            {/* Image Section */}
+            <div className="relative h-64 bg-gray-200 overflow-hidden">
+              {selectedFacility.imageUrl ? (
+                <img 
+                  src={selectedFacility.imageUrl}
+                  alt={selectedFacility.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <span className="text-6xl">📦</span>
+                </div>
+              )}
+            </div>
+
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 pr-12">
               <h2 className="text-2xl font-bold text-white">{selectedFacility.name}</h2>
@@ -433,6 +464,11 @@ export default function StudentResourcesPage() {
                   </div>
                 </div>
               )}
+
+              {/* Occupancy Chart */}
+              <div className="border-l-4 border-blue-600 pl-4 bg-blue-50 p-4 rounded">
+                <OccupancyChart facilityId={selectedFacility.id} facility={selectedFacility} />
+              </div>
 
               {/* Timestamps */}
               <div className="pt-6 border-t border-gray-200 space-y-2 text-xs text-gray-500">
