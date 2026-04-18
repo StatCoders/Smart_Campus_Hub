@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { createFacility, updateFacility, uploadImage } from '../services/facilityService';
+import { createFacility, updateFacility } from '../services/facilityService';
 
 export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -11,17 +11,17 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
     status: 'ACTIVE',
     features: [],
     imageUrl: '',
-    availabilityWindows: '',
-    imagePath: ''
+    availabilityWindows: ''
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [imagePreview, setImagePreview] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [resourceNameInput, setResourceNameInput] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [processingImage, setProcessingImage] = useState(false);
 
   useEffect(() => {
     if (facilityToEdit) {
@@ -34,13 +34,10 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
         status: facilityToEdit.status || 'ACTIVE',
         features: Array.isArray(facilityToEdit.features) ? facilityToEdit.features : [],
         imageUrl: facilityToEdit.imageUrl || '',
-        availabilityWindows: facilityToEdit.availabilityWindows || '',
-        imagePath: facilityToEdit.imagePath || ''
+        availabilityWindows: facilityToEdit.availabilityWindows || ''
       });
       // Set image preview for editing
-      if (facilityToEdit.imagePath) {
-        setImagePreview(`/uploads/${facilityToEdit.imagePath}`);
-      } else if (facilityToEdit.imageUrl) {
+      if (facilityToEdit.imageUrl) {
         setImagePreview(facilityToEdit.imageUrl);
       }
     } else {
@@ -54,20 +51,22 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
         status: 'ACTIVE',
         features: [],
         imageUrl: '',
-        availabilityWindows: '',
-        imagePath: ''
+        availabilityWindows: ''
       });
       setImagePreview('');
       setSelectedFile(null);
     }
     setResourceNameInput('');
     setError('');
+    setShowSuccess(false);
+    setProcessingImage(false);
   }, [facilityToEdit, isOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setError('');
+    setShowSuccess(false);
   };
 
   const handleDrag = (e) => {
@@ -81,76 +80,163 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
   };
 
   const handleDrop = (e) => {
+    console.log('🔽 handleDrop called');
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
 
     const files = e.dataTransfer.files;
+    console.log('📦 Files in drop event:', files.length);
     if (files && files[0]) {
+      console.log('✅ Processing first file:', files[0].name);
       handleFile(files[0]);
+    } else {
+      console.error('❌ No files found in drop event');
     }
   };
 
   const handleFile = (file) => {
+    console.log('📁 handleFile called with:', file.name);
+    
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      setError('Please select an image file (JPEG, PNG, GIF, WebP)');
+      const msg = 'Please select an image file (JPEG, PNG, GIF, WebP)';
+      console.error('❌ Invalid file type:', file.type);
+      setError(msg);
       return;
     }
 
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      setError('File size must be less than 10MB');
-      return;
-    }
-
+    console.log('✅ File validation passed');
     setError('');
+    setProcessingImage(true);
     setSelectedFile(file);
     
-    // Create preview
+    // Convert to Base64 and auto-compress if needed
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
+    
+    reader.onload = (event) => {
+      console.log('📚 FileReader onload triggered');
+      const result = event.target.result;
+      if (result) {
+        // Image loaded, now compress if needed
+        const img = new Image();
+        img.onload = () => {
+          console.log('🖼️ Image dimensions:', img.width, 'x', img.height);
+          
+          // Compress if image is large
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Max dimensions: 1920x1080
+          const maxWidth = 1920;
+          const maxHeight = 1080;
+          
+          if (width > maxWidth || height > maxHeight) {
+            console.log('📦 Compressing large image...');
+            if (width > height) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            } else {
+              width = (width * maxHeight) / height;
+              height = maxHeight;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convert to Base64 with 75% quality compression
+          const base64String = canvas.toDataURL('image/jpeg', 0.75);
+          console.log('✅ Image compression complete!', {
+            fileName: file.name,
+            originalSize: file.size,
+            originalDimensions: img.width + 'x' + img.height,
+            compressedDimensions: width + 'x' + height,
+            base64Size: base64String.length
+          });
+          
+          console.log('🎨 Setting image preview...');
+          setImagePreview(base64String);
+          
+          console.log('💾 Storing in form data...');
+          setFormData(prev => {
+            const updated = { 
+              ...prev, 
+              imageUrl: base64String
+            };
+            console.log('✅ Form data updated:', {
+              hasImageUrl: !!updated.imageUrl,
+              imageUrlLength: updated.imageUrl.length
+            });
+            return updated;
+          });
+          
+          console.log('⏹️ Setting processing image to false...');
+          setProcessingImage(false);
+        };
+        
+        img.onerror = () => {
+          console.error('❌ Failed to load image for compression');
+          setError('Failed to process image');
+          setSelectedFile(null);
+          setImagePreview('');
+          setProcessingImage(false);
+        };
+        
+        img.src = result;
+      } else {
+        console.error('❌ No result from FileReader');
+      }
     };
-    reader.readAsDataURL(file);
+    
+    reader.onerror = (err) => {
+      console.error('❌ FileReader error:', err);
+      setError('Failed to read image file: ' + err);
+      setSelectedFile(null);
+      setImagePreview('');
+      setProcessingImage(false);
+    };
+    
+    reader.onabort = () => {
+      console.error('❌ FileReader abort');
+      setError('Image reading was cancelled');
+      setSelectedFile(null);
+      setProcessingImage(false);
+    };
+    
+    console.log('📖 Starting FileReader.readAsDataURL...');
+    try {
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('❌ Error calling readAsDataURL:', err);
+      setError('Error processing image: ' + err.message);
+      setSelectedFile(null);
+      setProcessingImage(false);
+    }
   };
 
   const handleFileInput = (e) => {
+    console.log('🖱️ handleFileInput called');
     const file = e.target.files?.[0];
+    console.log('📄 Selected file:', file?.name);
     if (file) {
       handleFile(file);
+      // Reset input so same file can be selected again
+      e.target.value = '';
     }
   };
 
-  const uploadSelectedImage = async () => {
-    if (!selectedFile) {
-      setError('No file selected');
-      return;
-    }
 
-    setUploading(true);
-    setError('');
-
-    try {
-      const result = await uploadImage(selectedFile);
-      setFormData(prev => ({ 
-        ...prev, 
-        imagePath: result.filename 
-      }));
-      setSelectedFile(null);
-      // Keep preview showing
-    } catch (err) {
-      setError(err.message || 'Failed to upload image');
-      setSelectedFile(null);
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const clearImage = () => {
     setImagePreview('');
     setSelectedFile(null);
-    setFormData(prev => ({ ...prev, imagePath: '', imageUrl: '' }));
+    setFormData(prev => ({ ...prev, imageUrl: '' }));
+    setShowSuccess(false);
+    setProcessingImage(false);
   };
 
   const addFeature = () => {
@@ -198,14 +284,9 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
       return;
     }
 
-    // If file is selected but not uploaded yet, upload it first
-    if (selectedFile && !formData.imagePath) {
-      setError('Please upload the selected image first');
-      return;
-    }
-
     setLoading(true);
     setError('');
+    setShowSuccess(false);
 
     try {
       const submissionData = {
@@ -216,47 +297,67 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
         floor: formData.floor.trim(),
         status: formData.status,
         features: formData.features || [],
-        imageUrl: formData.imageUrl.trim() || null,
-        availabilityWindows: formData.availabilityWindows.trim() || null,
-        imagePath: formData.imagePath || null
+        imageUrl: formData.imageUrl || null,
+        availabilityWindows: formData.availabilityWindows.trim() || null
       };
+
+      // Debug log
+      console.log('Submitting facility:', {
+        name: submissionData.name,
+        hasImage: !!submissionData.imageUrl,
+        imageSize: submissionData.imageUrl ? submissionData.imageUrl.length : 0
+      });
 
       if (facilityToEdit) {
         await updateFacility(facilityToEdit.id, submissionData);
-        onSuccess?.();
-        onClose();
+        setShowSuccess(true);
+        setTimeout(() => {
+          onSuccess?.();
+          onClose();
+        }, 1500);
       } else {
         const newFacility = await createFacility(submissionData);
-        setFormData({
-          name: '',
-          type: 'LECTURE_HALL',
-          capacity: '',
-          building: '',
-          floor: '',
-          status: 'ACTIVE',
-          features: [],
-          imageUrl: '',
-          availabilityWindows: '',
-          imagePath: ''
-        });
-        setImagePreview('');
-        setSelectedFile(null);
-        // Call onSuccess with new facility and close modal
-        onSuccess?.(newFacility);
-        onClose();
+        setShowSuccess(true);
+        setTimeout(() => {
+          setFormData({
+            name: '',
+            type: 'LECTURE_HALL',
+            capacity: '',
+            building: '',
+            floor: '',
+            status: 'ACTIVE',
+            features: [],
+            imageUrl: '',
+            availabilityWindows: ''
+          });
+          setImagePreview('');
+          setSelectedFile(null);
+          setShowSuccess(false);
+          // Call onSuccess with new facility and close modal
+          onSuccess?.(newFacility);
+          onClose();
+        }, 1500);
       }
     } catch (err) {
       setError(err.message || 'Failed to save facility');
-    } finally {
       setLoading(false);
     }
   };
 
   if (!isOpen) return null;
 
+  // Debug logging on every render
+  console.log('🎭 Modal render - State:', {
+    isOpen,
+    imagePreview: !!imagePreview ? `(${imagePreview.length} chars)` : 'empty',
+    processingImage,
+    selectedFile: selectedFile?.name,
+    formDataImageUrl: !!formData.imageUrl ? `(${formData.imageUrl.length} chars)` : 'empty'
+  });
+
   return (
-    <div className="fixed inset-0 bg-white bg-opacity-40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-8 py-6 sticky top-0 z-10">
           <div className="flex justify-between items-center">
@@ -274,6 +375,11 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
+          {showSuccess && (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded animate-pulse">
+              ✓ Update successful!
+            </div>
+          )}
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
               {error}
@@ -447,20 +553,31 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
             </label>
 
             {/* Image Preview */}
-            {imagePreview && (
-              <div className="mb-4 relative">
-                <img 
-                  src={imagePreview} 
-                  alt="Preview" 
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-                <button
-                  type="button"
-                  onClick={clearImage}
-                  className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2"
-                >
-                  ✕
-                </button>
+            {(imagePreview || processingImage) && (
+              <div className="mb-4">
+                {processingImage ? (
+                  <div className="relative h-48 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
+                      <p className="text-sm text-gray-600">Processing image: {selectedFile?.name}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <img 
+                      src={imagePreview} 
+                      alt="Preview" 
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={clearImage}
+                      className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -489,60 +606,12 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
                   Drag and drop your image here
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
-                  or click to select (Max 10MB, JPG/PNG/GIF/WebP)
+                  or click to select
                 </p>
               </label>
             </div>
 
-            {/* Upload Button (shown when file is selected) */}
-            {selectedFile && !formData.imagePath && (
-              <div className="mt-3 flex gap-2">
-                <button
-                  type="button"
-                  onClick={uploadSelectedImage}
-                  disabled={uploading}
-                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition"
-                >
-                  {uploading ? 'Uploading...' : 'Upload Image'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedFile(null);
-                    setImagePreview('');
-                  }}
-                  className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
 
-            {/* Success Message */}
-            {formData.imagePath && !selectedFile && (
-              <div className="mt-3 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-sm">
-                ✓ Image uploaded successfully
-              </div>
-            )}
-
-            {/* Alternative: URL Input */}
-            <div className="mt-4 border-t pt-4">
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Or paste Image URL (Optional)
-              </label>
-              <input
-                type="url"
-                name="imageUrl"
-                value={formData.imageUrl}
-                onChange={handleChange}
-                placeholder="https://example.com/image.jpg"
-                disabled={!!formData.imagePath}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent disabled:bg-gray-100"
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                💡 Use free image sites: Unsplash, Pixabay, or Imgur
-              </p>
-            </div>
           </div>
 
           {/* Buttons */}

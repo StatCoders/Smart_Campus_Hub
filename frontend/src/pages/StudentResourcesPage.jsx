@@ -275,6 +275,21 @@ export default function StudentResourcesPage() {
                 key={facility.id}
                 className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition"
               >
+                {/* Image Section */}
+                <div className="relative h-48 bg-gray-200 overflow-hidden">
+                  {facility.imageUrl ? (
+                    <img 
+                      src={facility.imageUrl}
+                      alt={facility.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <span className="text-4xl">📦</span>
+                    </div>
+                  )}
+                </div>
+
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-start justify-between">
                   <div>
@@ -379,6 +394,21 @@ export default function StudentResourcesPage() {
             >
               <X className="w-6 h-6 text-gray-600" />
             </button>
+
+            {/* Image Section */}
+            <div className="relative h-64 bg-gray-200 overflow-hidden">
+              {selectedFacility.imageUrl ? (
+                <img 
+                  src={selectedFacility.imageUrl}
+                  alt={selectedFacility.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <span className="text-6xl">📦</span>
+                </div>
+              )}
+            </div>
 
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 pr-12">
