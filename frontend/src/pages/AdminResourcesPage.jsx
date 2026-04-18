@@ -57,7 +57,9 @@ export default function AdminResourcesPage() {
   };
 
   const handleDelete = async (facilityId, facilityName) => {
-    if (window.confirm(`Are you sure you want to delete "${facilityName}"?`)) {
+    const confirmMessage = `Are you sure you want to delete "${facilityName}"?\n\nThis action is permanent. If this facility has active bookings, you must cancel them first before deletion.`;
+    
+    if (window.confirm(confirmMessage)) {
       try {
         await deleteFacility(facilityId);
         setToast({ type: 'success', message: `${facilityName} deleted successfully` });
@@ -65,7 +67,17 @@ export default function AdminResourcesPage() {
         setIsModalOpen(false);
         setTimeout(() => setToast(null), 3000);
       } catch (err) {
-        setToast({ type: 'error', message: err || 'Failed to delete facility' });
+        let errorMessage = 'Failed to delete facility';
+        
+        // Check if error is due to foreign key constraint (active bookings)
+        if (err?.includes?.('foreign key') || err?.includes?.('bookings')) {
+          errorMessage = `Cannot delete "${facilityName}" - This facility has active bookings. Please cancel or modify all bookings before deletion.`;
+        } else if (err?.includes?.('constraint')) {
+          errorMessage = `Cannot delete "${facilityName}" - This facility is still in use. Please ensure all related bookings are removed first.`;
+        }
+        
+        setToast({ type: 'error', message: errorMessage });
+        setTimeout(() => setToast(null), 4000);
       }
     }
   };
