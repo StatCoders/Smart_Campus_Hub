@@ -24,6 +24,7 @@ export default function AdminResourcesPage() {
   const [editingFacility, setEditingFacility] = useState(null);
   const [toast, setToast] = useState(null);
   const [activeTab, setActiveTab] = useState('resources');
+  const [statusFilter, setStatusFilter] = useState('All');
 
   const fetchFacilities = useCallback(async () => {
     try {
@@ -79,6 +80,7 @@ export default function AdminResourcesPage() {
 
   const filteredFacilities = facilities.filter(facility => {
     if (typeFilter !== 'All' && facility.type !== typeFilter) return false;
+    if (statusFilter !== 'All' && facility.status !== statusFilter) return false;
     if (availabilityFilter !== 'All') {
       if (availabilityFilter === 'Available' && facility.bookingStatus !== 'CAN_BOOK_NOW') return false;
       if (availabilityFilter === 'Not Available' && facility.bookingStatus === 'CAN_BOOK_NOW') return false;
@@ -159,34 +161,47 @@ export default function AdminResourcesPage() {
               />
             </div>
 
-            {/* Resource Type Filter */}
+            {/* Facility Type Filter */}
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
+              <option value="All">Filter by Facility Type</option>
               {facilityTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
+                type !== 'All' && <option key={type} value={type}>{type}</option>
               ))}
             </select>
 
-            {/* Availability Filter */}
+            {/* Facility Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="All">Facility Status</option>
+              <option value="ACTIVE">Active</option>
+              <option value="OUT_OF_SERVICE">Out of Service</option>
+            </select>
+
+            {/* Booking Status Filter */}
             <select
               value={availabilityFilter}
               onChange={(e) => setAvailabilityFilter(e.target.value)}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="All">All</option>
+              <option value="All">Booking Status</option>
               <option value="Available">Available</option>
               <option value="Not Available">Not Available</option>
             </select>
           </div>
 
-          {(searchTerm || typeFilter !== 'All' || availabilityFilter !== 'All') && (
+          {(searchTerm || typeFilter !== 'All' || statusFilter !== 'All' || availabilityFilter !== 'All') && (
             <button
               onClick={() => {
                 setSearchTerm('');
                 setTypeFilter('All');
+                setStatusFilter('All');
                 setAvailabilityFilter('All');
               }}
               className="mb-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
@@ -248,30 +263,6 @@ export default function AdminResourcesPage() {
                         {facility.type?.toLowerCase().replace(/_/g, ' ')}
                       </p>
 
-                      {/* Features */}
-                      {facility.features && facility.features.length > 0 && (
-                        <div className="mb-4">
-                          <p className="text-xs text-blue-600 font-semibold mb-2">This Facility Includes</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {facility.features.slice(0, 2).map((feature, idx) => (
-                              <span key={idx} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
-                                {feature}
-                              </span>
-                            ))}
-                            {facility.features.length > 2 && (
-                              <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
-                                +{facility.features.length - 2} more
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Booking Status */}
-                      <div className="mb-4">
-                        {getAvailabilityBadge(facility.bookingStatus)}
-                      </div>
-
                       {/* Info Grid */}
                       <div className="space-y-2 mb-4 text-sm">
                         <div>
@@ -280,11 +271,13 @@ export default function AdminResourcesPage() {
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 font-semibold">Location</p>
-                          <p className="font-medium text-gray-900">{facility.building} - Floor {facility.floor}</p>
+                          <p className="font-medium text-gray-900">{facility.building} - {facility.floor?.includes('Floor') ? facility.floor : `Floor ${facility.floor}`}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 font-semibold">Hours</p>
-                          <p className="font-medium text-gray-900">{facility.availabilityWindows || 'N/A'}</p>
+                          <p className="text-xs text-gray-500 font-semibold">Booking Status</p>
+                          <div className="mt-1">
+                            {getAvailabilityBadge(facility.bookingStatus)}
+                          </div>
                         </div>
                       </div>
 
@@ -370,7 +363,7 @@ export default function AdminResourcesPage() {
               <div className="border-l-4 border-blue-600 pl-4">
                 <p className="text-sm text-gray-600 font-medium">Location</p>
                 <p className="text-gray-900 font-semibold mt-1">
-                  {selectedFacility.building} - Floor {selectedFacility.floor}
+                  {selectedFacility.building} - {selectedFacility.floor?.includes('Floor') ? selectedFacility.floor : `Floor ${selectedFacility.floor}`}
                 </p>
               </div>
 

@@ -314,7 +314,7 @@ export default function StudentResourcesPage() {
                     <div className="min-w-0">
                       <p className="text-sm text-gray-600">Location</p>
                       <p className="font-medium text-gray-900">
-                        {facility.building} - Floor {facility.floor}
+                        {facility.building} - {facility.floor?.includes('Floor') ? facility.floor : `Floor ${facility.floor}`}
                       </p>
                     </div>
                   </div>
