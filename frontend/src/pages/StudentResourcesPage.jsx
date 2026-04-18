@@ -4,6 +4,7 @@ import { Bell, User, Settings, LogOut, MapPin, Users, Clock, Check, X } from 'lu
 import { useAuth } from '../context/useAuth';
 import campusLogo from '../assets/campus-logo.png';
 import { getAllFacilities } from '../services/facilityService';
+import OccupancyChart from '../components/OccupancyChart';
 
 export default function StudentResourcesPage() {
   const navigate = useNavigate();
@@ -463,6 +464,11 @@ export default function StudentResourcesPage() {
                   </div>
                 </div>
               )}
+
+              {/* Occupancy Chart */}
+              <div className="border-l-4 border-blue-600 pl-4 bg-blue-50 p-4 rounded">
+                <OccupancyChart facilityId={selectedFacility.id} facility={selectedFacility} />
+              </div>
 
               {/* Timestamps */}
               <div className="pt-6 border-t border-gray-200 space-y-2 text-xs text-gray-500">
