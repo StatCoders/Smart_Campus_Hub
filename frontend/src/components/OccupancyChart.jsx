@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getWeeklyOccupancy } from '../services/facilityService';
 
-export default function OccupancyChart({ facilityId, facility }) {
+export default function OccupancyChart({ facilityId }) {
   const [occupancyData, setOccupancyData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -85,8 +85,7 @@ export default function OccupancyChart({ facilityId, facility }) {
                   <p className="text-xs text-slate-600">{day.totalAttendees} expected attendees</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-slate-900">{occupancyPercent}%</p>
-                  <p className="text-xs text-slate-600">{statusText}</p>
+                  <p className="text-sm font-semibold text-slate-700">{statusText}</p>
                 </div>
               </div>
 

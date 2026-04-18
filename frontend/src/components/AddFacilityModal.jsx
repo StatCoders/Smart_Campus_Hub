@@ -24,24 +24,30 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
   const [processingImage, setProcessingImage] = useState(false);
 
   useEffect(() => {
-    if (facilityToEdit) {
-      setFormData({
-        name: facilityToEdit.name || '',
-        type: facilityToEdit.type || 'LECTURE_HALL',
-        capacity: facilityToEdit.capacity || '',
-        building: facilityToEdit.building || '',
-        floor: facilityToEdit.floor || '',
-        status: facilityToEdit.status || 'ACTIVE',
-        features: Array.isArray(facilityToEdit.features) ? facilityToEdit.features : [],
-        imageUrl: facilityToEdit.imageUrl || '',
-        availabilityWindows: facilityToEdit.availabilityWindows || ''
-      });
-      // Set image preview for editing
-      if (facilityToEdit.imageUrl) {
-        setImagePreview(facilityToEdit.imageUrl);
-      }
-    } else {
-      // Reset for new facility
+    if (!facilityToEdit) return;
+    
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFormData({
+      name: facilityToEdit.name || '',
+      type: facilityToEdit.type || 'LECTURE_HALL',
+      capacity: facilityToEdit.capacity || '',
+      building: facilityToEdit.building || '',
+      floor: facilityToEdit.floor || '',
+      status: facilityToEdit.status || 'ACTIVE',
+      features: Array.isArray(facilityToEdit.features) ? facilityToEdit.features : [],
+      imageUrl: facilityToEdit.imageUrl || '',
+      availabilityWindows: facilityToEdit.availabilityWindows || ''
+    });
+    if (facilityToEdit.imageUrl) {
+      setImagePreview(facilityToEdit.imageUrl);
+    }
+  }, [facilityToEdit]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    if (!facilityToEdit) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         name: '',
         type: 'LECTURE_HALL',
@@ -60,7 +66,7 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
     setError('');
     setShowSuccess(false);
     setProcessingImage(false);
-  }, [facilityToEdit, isOpen]);
+  }, [isOpen, facilityToEdit]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -349,10 +355,10 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
   // Debug logging on every render
   console.log('🎭 Modal render - State:', {
     isOpen,
-    imagePreview: !!imagePreview ? `(${imagePreview.length} chars)` : 'empty',
+    imagePreview: imagePreview ? `(${imagePreview.length} chars)` : 'empty',
     processingImage,
     selectedFile: selectedFile?.name,
-    formDataImageUrl: !!formData.imageUrl ? `(${formData.imageUrl.length} chars)` : 'empty'
+    formDataImageUrl: formData.imageUrl ? `(${formData.imageUrl.length} chars)` : 'empty'
   });
 
   return (
