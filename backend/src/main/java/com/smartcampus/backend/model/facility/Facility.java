@@ -52,11 +52,8 @@ public class Facility {
     @Column(name = "feature")
     private List<String> features;
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "TEXT")
     private String imageUrl;
-
-    @Column(length = 500)
-    private String imagePath;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

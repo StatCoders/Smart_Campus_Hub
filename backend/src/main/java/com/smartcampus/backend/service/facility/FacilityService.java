@@ -3,8 +3,11 @@ package com.smartcampus.backend.service.facility;
 import com.smartcampus.backend.dto.facility.FacilityCreateRequest;
 import com.smartcampus.backend.dto.facility.FacilityDto;
 import com.smartcampus.backend.dto.facility.FacilitySearchFilter;
+import com.smartcampus.backend.dto.facility.OccupancyDataDto;
 import com.smartcampus.backend.model.facility.Facility;
 import com.smartcampus.backend.repository.facility.FacilityRepository;
+import com.smartcampus.backend.repository.booking.BookingRepository;
+import com.smartcampus.backend.model.booking.Booking;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -13,6 +16,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,6 +27,7 @@ import java.util.stream.Collectors;
 public class FacilityService {
 
     private final FacilityRepository facilityRepository;
+    private final BookingRepository bookingRepository;
     private final ModelMapper modelMapper;
 
     /**
@@ -253,5 +258,91 @@ public class FacilityService {
      */
     public long getTotalFacilityCount() {
         return facilityRepository.count();
+    }
+
+    /**
+     * Get 7-day occupancy data for a facility.
+     * Aggregates approved bookings per day with user information.
+     * 
+     * @param resourceId the facility ID
+     * @param startDate the start date (today or custom)
+     * @return OccupancyDataDto with 7-day breakdown
+     */
+    public OccupancyDataDto getWeeklyOccupancy(Long resourceId, LocalDate startDate) {
+        // Verify facility exists
+        Facility facility = facilityRepository.findById(resourceId)
+                .orElseThrow(() -> new RuntimeException("Facility not found with id: " + resourceId));
+        
+        // Calculate end date (7 days from start)
+        LocalDate endDate = startDate.plusDays(6);
+        
+        // Build occupancy data
+        return buildOccupancyData(facility, startDate, endDate);
+    }
+    
+    /**
+     * Build occupancy DTO with 7-day breakdown.
+     * Aggregates approved bookings with user details.
+     */
+    private OccupancyDataDto buildOccupancyData(Facility facility, LocalDate startDate, LocalDate endDate) {
+        OccupancyDataDto dto = OccupancyDataDto.builder()
+                .resourceId(facility.getId())
+                .capacity(facility.getCapacity())
+                .build();
+        
+        List<OccupancyDataDto.DayOccupancyDto> dailyData = new java.util.ArrayList<>();
+        
+        // Fetch all approved bookings for the facility in this week
+        List<Booking> weekBookings = bookingRepository.findApprovedBookingsForResourceInWeek(
+                facility.getId(), startDate, endDate);
+        
+        // Group bookings by date
+        java.util.Map<LocalDate, List<Booking>> bookingsByDate = weekBookings.stream()
+                .collect(java.util.stream.Collectors.groupingBy(Booking::getBookingDate));
+        
+        // Generate data for each day
+        for (int i = 0; i < 7; i++) {
+            LocalDate date = startDate.plusDays(i);
+            String dayName = date.getDayOfWeek().toString().substring(0, 3)
+                    + " " + date.getDayOfMonth();
+            
+            // Get bookings for this day
+            List<Booking> dayBookings = bookingsByDate.getOrDefault(date, java.util.Collections.emptyList());
+            
+            // Convert to DTOs and aggregate attendees
+            List<OccupancyDataDto.BookingUserDto> bookingUsers = new java.util.ArrayList<>();
+            int totalAttendees = 0;
+            
+            for (Booking booking : dayBookings) {
+                if (booking.getExpectedAttendees() != null && booking.getUser() != null) {
+                    totalAttendees += booking.getExpectedAttendees();
+                    
+                    bookingUsers.add(OccupancyDataDto.BookingUserDto.builder()
+                            .userId(booking.getUser().getId())
+                            .userName(booking.getUser().getFullName() != null 
+                                ? booking.getUser().getFullName() 
+                                : booking.getUser().getEmail())
+                            .email(booking.getUser().getEmail())
+                            .expectedAttendees(booking.getExpectedAttendees())
+                            .build());
+                }
+            }
+            
+            // Calculate occupancy percentage
+            double occupancyPercent = facility.getCapacity() > 0 
+                ? (totalAttendees * 100.0) / facility.getCapacity() 
+                : 0.0;
+            
+            dailyData.add(OccupancyDataDto.DayOccupancyDto.builder()
+                    .date(date)
+                    .dayName(dayName)
+                    .bookings(bookingUsers)
+                    .totalAttendees(totalAttendees)
+                    .occupancyPercent(Math.min(occupancyPercent, 100.0)) // Cap at 100%
+                    .build());
+        }
+        
+        dto.setOccupancyData(dailyData);
+        return dto;
     }
 }
