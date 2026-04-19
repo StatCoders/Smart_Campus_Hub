@@ -24,8 +24,7 @@ public class FacilityDto {
     private String bookingStatus;
     private String availabilityWindows;
     private List<String> features;
-    private String imageUrl;
-    private String imagePath;
+    private String imageUrl; // Base64 encoded image
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
