@@ -177,23 +177,33 @@ export default function CreateTicket({ onSuccess }) {
   };
 
   return (
-    <div className="max-w-4xl bg-white rounded-xl shadow-lg overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-8 py-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Report an Issue</h1>
-        <p className="text-indigo-100">Describe the problem and we'll prioritize it for resolution</p>
+    <div className="max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-sky-100/80">
+      {/* Premium Header Section */}
+      <div className="relative bg-gradient-to-br from-sky-100 via-blue-50 to-sky-50 px-8 py-8 border-b border-sky-200/80">
+        {/* Decorative accents */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-300/10 rounded-full -mr-16 -mt-16 blur-xl"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-sky-300/10 rounded-full -ml-12 -mb-12 blur-lg"></div>
+        
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-2 h-2 rounded-full bg-blue-700"></div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">Report Issue</p>
+          </div>
+          <h1 className="text-3xl font-bold text-slate-950 mb-2">Report an Issue</h1>
+          <p className="text-slate-600 font-medium">Describe the problem and we'll prioritize it for resolution</p>
+        </div>
       </div>
 
       <div className="p-8">
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start gap-3">
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-3 shadow-sm">
             <span className="text-lg">⚠️</span>
             <div>{error}</div>
           </div>
         )}
 
         {success && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-start gap-3">
+          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl flex items-start gap-3 shadow-sm">
             <span className="text-lg">✓</span>
             <div>{success}</div>
           </div>
@@ -202,13 +212,13 @@ export default function CreateTicket({ onSuccess }) {
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Required Fields Section */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <span className="text-indigo-600">★</span> Required Information
+            <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+              <span className="text-blue-700">★</span> Required Information
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Resource ID - Searchable Dropdown */}
               <div className="md:col-span-2">
-                <label className="block text-gray-900 font-semibold mb-2">
+                <label className="block text-slate-900 font-semibold mb-2">
                   Resource Location *
                 </label>
                 <div className="relative">
@@ -221,24 +231,24 @@ export default function CreateTicket({ onSuccess }) {
                       setShowResourceDropdown(true);
                     }}
                     onFocus={() => setShowResourceDropdown(true)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-sky-100 rounded-xl bg-sky-50/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all shadow-sm"
                   />
                   {showResourceDropdown && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-10 w-full mt-2 bg-white border border-sky-100 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                       {filteredResources.length > 0 ? (
                         filteredResources.map(resource => (
                           <button
                             key={resource.id}
                             type="button"
                             onClick={() => handleResourceSelect(resource)}
-                            className="w-full text-left px-4 py-3 hover:bg-indigo-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                            className="w-full text-left px-4 py-3 hover:bg-sky-50 border-b border-sky-50 last:border-b-0 transition-colors"
                           >
-                            <div className="font-medium text-gray-900">{resource.id}</div>
-                            <div className="text-sm text-gray-500">{resource.label.split(' - ')[1]}</div>
+                            <div className="font-medium text-slate-900">{resource.id}</div>
+                            <div className="text-sm text-slate-500">{resource.label.split(' - ')[1]}</div>
                           </button>
                         ))
                       ) : (
-                        <div className="px-4 py-3 text-gray-500 text-center">No resources found</div>
+                        <div className="px-4 py-3 text-slate-500 text-center">No resources found</div>
                       )}
                     </div>
                   )}
@@ -247,14 +257,14 @@ export default function CreateTicket({ onSuccess }) {
 
               {/* Category - Dropdown */}
               <div>
-                <label className="block text-gray-900 font-semibold mb-2">
+                <label className="block text-slate-900 font-semibold mb-2">
                   Category *
                 </label>
                 <select
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-sky-100 rounded-xl bg-sky-50/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all shadow-sm"
                   required
                 >
                   <option value="">Select a category...</option>
@@ -267,25 +277,25 @@ export default function CreateTicket({ onSuccess }) {
               {/* Building / Room Number */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-900 font-semibold mb-2">Building</label>
+                  <label className="block text-slate-900 font-semibold mb-2">Building</label>
                   <input
                     type="text"
                     name="building"
                     placeholder="e.g., Block A"
                     value={formData.building}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-sky-100 rounded-xl bg-sky-50/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all shadow-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-900 font-semibold mb-2">Room</label>
+                  <label className="block text-slate-900 font-semibold mb-2">Room</label>
                   <input
                     type="text"
                     name="roomNumber"
                     placeholder="e.g., 101"
                     value={formData.roomNumber}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-sky-100 rounded-xl bg-sky-50/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all shadow-sm"
                   />
                 </div>
               </div>
@@ -294,8 +304,8 @@ export default function CreateTicket({ onSuccess }) {
 
           {/* Description */}
           <div>
-            <label className="block text-gray-900 font-semibold mb-2">
-              Description * <span className="text-sm font-normal text-gray-500">({formData.description.length}/1000)</span>
+            <label className="block text-slate-900 font-semibold mb-2">
+              Description * <span className="text-sm font-normal text-slate-500">({formData.description.length}/1000)</span>
             </label>
             <textarea
               name="description"
@@ -304,14 +314,14 @@ export default function CreateTicket({ onSuccess }) {
               placeholder="Describe the issue in detail..."
               maxLength="1000"
               rows="5"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-3 border border-sky-100 rounded-xl bg-sky-50/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all resize-none shadow-sm"
               required
             />
           </div>
 
           {/* Priority - Chips */}
           <div>
-            <label className="block text-gray-900 font-semibold mb-3">Priority *</label>
+            <label className="block text-slate-900 font-semibold mb-3">Priority *</label>
             <div className="flex flex-wrap gap-3">
               {PRIORITY_OPTIONS.map(option => (
                 <button
@@ -320,8 +330,8 @@ export default function CreateTicket({ onSuccess }) {
                   onClick={() => handlePriorityChange(option.value)}
                   className={`px-4 py-2 rounded-lg font-medium border-2 transition-all ${
                     formData.priority === option.value
-                      ? `${option.color} border-current ring-2 ring-offset-2 ring-current`
-                      : `bg-gray-100 text-gray-700 border-gray-300 hover:border-indigo-300`
+                      ? `${option.color} border-current ring-2 ring-offset-2 ring-current shadow-md`
+                      : `bg-slate-100 text-slate-700 border-slate-200 hover:border-blue-300`
                   }`}
                 >
                   {option.label}
@@ -331,20 +341,20 @@ export default function CreateTicket({ onSuccess }) {
           </div>
 
           {/* Optional Fields Section */}
-          <div className="border-t pt-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <span className="text-gray-400">○</span> Additional Information (Optional)
+          <div className="border-t border-sky-100 pt-8">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+              <span className="text-slate-300">○</span> Additional Information (Optional)
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Expected Completion Date */}
               <div>
-                <label className="block text-gray-900 font-semibold mb-2">Expected Completion Date</label>
+                <label className="block text-slate-900 font-semibold mb-2">Expected Completion Date</label>
                 <input
                   type="date"
                   name="expectedDate"
                   value={formData.expectedDate}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-sky-100 rounded-xl bg-sky-50/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all shadow-sm"
                 />
               </div>
 
@@ -354,8 +364,8 @@ export default function CreateTicket({ onSuccess }) {
 
             {/* Additional Notes */}
             <div className="mt-6">
-              <label className="block text-gray-900 font-semibold mb-2">
-                Additional Notes <span className="text-sm font-normal text-gray-500">({formData.additionalNotes.length}/500)</span>
+              <label className="block text-slate-900 font-semibold mb-2">
+                Additional Notes <span className="text-sm font-normal text-slate-500">({formData.additionalNotes.length}/500)</span>
               </label>
               <textarea
                 name="additionalNotes"
@@ -364,21 +374,21 @@ export default function CreateTicket({ onSuccess }) {
                 placeholder="Any additional information..."
                 maxLength="500"
                 rows="3"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-3 border border-sky-100 rounded-xl bg-sky-50/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all resize-none shadow-sm"
               />
             </div>
           </div>
 
           {/* File Attachments */}
-          <div className="border-t pt-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Attachments (Optional)</h2>
+          <div className="border-t border-sky-100 pt-8">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Attachments (Optional)</h2>
             <div
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
-                dragActive ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300 hover:border-gray-400 bg-gray-50'
+              className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
+                dragActive ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-sky-200 hover:border-sky-300 bg-sky-50/50'
               }`}
             >
               <input
@@ -391,8 +401,8 @@ export default function CreateTicket({ onSuccess }) {
               />
               <label htmlFor="file-input" className="cursor-pointer block">
                 <div className="text-4xl mb-2">📎</div>
-                <p className="text-gray-900 font-semibold mb-1">Drag & drop files here</p>
-                <p className="text-gray-500 text-sm">or click to browse (Max 5 files)</p>
+                <p className="text-slate-900 font-semibold mb-1">Drag & drop files here</p>
+                <p className="text-slate-500 text-sm">or click to browse (Max 5 files)</p>
               </label>
             </div>
 
@@ -400,18 +410,18 @@ export default function CreateTicket({ onSuccess }) {
             {attachments.length > 0 && (
               <div className="mt-4 space-y-2">
                 {attachments.map(att => (
-                  <div key={att.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                  <div key={att.id} className="flex items-center justify-between bg-sky-50/50 p-3 rounded-xl border border-sky-100 shadow-sm hover:shadow-md transition-all">
                     <div className="flex items-center gap-3">
                       <span className="text-xl">📄</span>
                       <div>
-                        <p className="text-gray-900 font-medium text-sm">{att.file.name}</p>
-                        <p className="text-gray-500 text-xs">{(att.file.size / 1024).toFixed(1)} KB</p>
+                        <p className="text-slate-900 font-medium text-sm">{att.file.name}</p>
+                        <p className="text-slate-500 text-xs">{(att.file.size / 1024).toFixed(1)} KB</p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => removeAttachment(att.id)}
-                      className="text-red-600 hover:text-red-700 font-bold"
+                      className="text-red-600 hover:text-red-700 font-bold transition-colors"
                     >
                       ✕
                     </button>
@@ -422,14 +432,14 @@ export default function CreateTicket({ onSuccess }) {
           </div>
 
           {/* Submit Button */}
-          <div className="border-t pt-8">
+          <div className="border-t border-sky-100 pt-8">
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-4 px-6 rounded-lg font-bold text-white text-lg transition-all transform ${
+              className={`w-full py-4 px-6 rounded-xl font-bold text-white text-lg transition-all transform ${
                 loading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0'
+                  ? 'bg-slate-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 hover:from-blue-500 hover:to-blue-600'
               }`}
             >
               {loading ? (
