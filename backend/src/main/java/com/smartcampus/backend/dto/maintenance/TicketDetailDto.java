@@ -1,5 +1,6 @@
 package com.smartcampus.backend.dto.maintenance;
 
+import com.smartcampus.backend.model.auth.Role;
 import com.smartcampus.backend.model.maintenance.Priority;
 import com.smartcampus.backend.model.maintenance.Status;
 import lombok.AllArgsConstructor;
@@ -42,7 +43,8 @@ public class TicketDetailDto {
     private LocalDateTime firstResponseAt;
     private LocalDateTime resolvedAt;
     private String rejectionReason;
-    
+    private Role rejectedByRole;
+
     // Contact info
     private String contactEmail;
     private String contactPhone;
@@ -54,7 +56,14 @@ public class TicketDetailDto {
     // Related data
     private List<TicketCommentDto> comments;
     private List<TicketAttachmentDto> attachments;
+    private List<TicketAttachmentDto> technicianAttachments;
     private List<TicketHistoryDto> history;
+
+    // Admin feedback
+    private String adminFeedback;
+    private Integer adminRating;
+    private String feedbackByAdminName;
+    private LocalDateTime adminFeedbackAt;
     
     // SLA metrics (calculated)
     private Long minutesToFirstResponse; // null if not yet responded

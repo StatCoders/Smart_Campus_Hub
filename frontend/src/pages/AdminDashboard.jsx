@@ -201,6 +201,16 @@ export default function AdminDashboard() {
               All Tickets
             </button>
             <button
+              onClick={() => setActiveTab('maintenance')}
+              className={`px-4 py-3 font-medium transition-colors ${
+                activeTab === 'maintenance'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              🔧 Maintenance
+            </button>
+            <button
               onClick={() => setActiveTab('open')}
               className={`px-4 py-3 font-medium transition-colors ${
                 activeTab === 'open'
@@ -217,6 +227,164 @@ export default function AdminDashboard() {
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-slate-950">System Tickets</h2>
               <TicketTable tickets={allTickets} isLoading={isLoading} onDelete={handleDeleteTicket} />
+            </div>
+          )}
+
+          {activeTab === 'maintenance' && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-slate-950">🔧 Maintenance & Incident Management</h2>
+              
+              {/* Quick Stats for Maintenance */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-600 font-medium">Unassigned</p>
+                      <p className="text-2xl font-bold text-orange-600 mt-2">{stats.unassigned}</p>
+                    </div>
+                    <Users className="h-8 w-8 text-orange-600 bg-orange-50 rounded-lg p-1" />
+                  </div>
+                </div>
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-600 font-medium">In Progress</p>
+                      <p className="text-2xl font-bold text-amber-600 mt-2">{stats.inProgress}</p>
+                    </div>
+                    <Clock className="h-8 w-8 text-amber-600 bg-amber-50 rounded-lg p-1" />
+                  </div>
+                </div>
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-600 font-medium">Urgent Tickets</p>
+                      <p className="text-2xl font-bold text-red-600 mt-2">{stats.urgent + stats.high}</p>
+                    </div>
+                    <AlertCircle className="h-8 w-8 text-red-600 bg-red-50 rounded-lg p-1" />
+                  </div>
+                </div>
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-600 font-medium">Open Tickets</p>
+                      <p className="text-2xl font-bold text-blue-600 mt-2">{stats.open}</p>
+                    </div>
+                    <Ticket className="h-8 w-8 text-blue-600 bg-blue-50 rounded-lg p-1" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Unassigned Tickets for Assignment */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+                <div className="p-6 border-b border-gray-100">
+                  <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                    <Users className="h-5 w-5 text-orange-600" />
+                    Unassigned Tickets - Ready to Assign ({stats.unassigned})
+                  </h3>
+                </div>
+                {unassignedTickets.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <p className="text-sm text-slate-600">✅ All tickets are assigned! Great work.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                          <th className="px-6 py-3 text-left font-medium text-slate-700">Ticket ID</th>
+                          <th className="px-6 py-3 text-left font-medium text-slate-700">Resource</th>
+                          <th className="px-6 py-3 text-left font-medium text-slate-700">Priority</th>
+                          <th className="px-6 py-3 text-left font-medium text-slate-700">Status</th>
+                          <th className="px-6 py-3 text-left font-medium text-slate-700">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {unassignedTickets.map(ticket => (
+                          <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-6 py-4">
+                              <button
+                                onClick={() => navigate(`/tickets/${ticket.id}`)}
+                                className="text-blue-600 hover:text-blue-700 font-semibold"
+                              >
+                                #{ticket.id}
+                              </button>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div>
+                                <p className="font-medium text-slate-900">{ticket.resourceId}</p>
+                                <p className="text-xs text-slate-600">{ticket.category}</p>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
+                                ticket.priority === 'URGENT' ? 'bg-red-100 text-red-800' :
+                                ticket.priority === 'HIGH' ? 'bg-orange-100 text-orange-800' :
+                                ticket.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-green-100 text-green-800'
+                              }`}>
+                                {ticket.priority}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800">
+                                {ticket.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <button
+                                onClick={() => navigate(`/tickets/${ticket.id}`)}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                              >
+                                Assign →
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Urgent/Open Tickets */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+                <div className="p-6 border-b border-gray-100">
+                  <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                    Urgent/Open Tickets - Priority Monitoring ({stats.urgent + stats.high})
+                  </h3>
+                </div>
+                {urgentTickets.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <p className="text-sm text-slate-600">✅ No urgent open tickets!</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-200">
+                    {urgentTickets.slice(0, 10).map(ticket => (
+                      <button
+                        key={ticket.id}
+                        onClick={() => navigate(`/tickets/${ticket.id}`)}
+                        className="w-full text-left p-4 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="font-bold text-slate-900">#{ticket.id} - {ticket.resourceId}</p>
+                            <p className="text-sm text-slate-600 mt-1">{ticket.description?.substring(0, 80)}...</p>
+                          </div>
+                          <div className="flex items-center gap-3 ml-4">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              ticket.priority === 'URGENT' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                            }`}>
+                              {ticket.priority}
+                            </span>
+                            <span className="text-blue-600">→</span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

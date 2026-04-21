@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Users } from 'lucide-react';
 import { getTicketById, deleteTicket } from '../services/ticketService';
+import { useAuth } from '../context/useAuth';
+import AssignTechnicianModal from './AssignTechnicianModal';
 
 export default function TicketDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchTicket = async () => {
@@ -38,6 +43,20 @@ export default function TicketDetail() {
         setDeleting(false);
       }
     }
+  };
+
+  const handleAssignSuccess = () => {
+    setAssignModalOpen(false);
+    // Refetch ticket to get updated assigned technician info
+    const fetchTicket = async () => {
+      try {
+        const data = await getTicketById(id);
+        setTicket(data);
+      } catch (err) {
+        console.error('Failed to refetch ticket:', err);
+      }
+    };
+    fetchTicket();
   };
 
   const getPriorityColor = (priority) => {
@@ -166,6 +185,20 @@ export default function TicketDetail() {
           <p className="text-gray-600 font-semibold mb-2">Updated At</p>
           <p className="text-gray-900">{new Date(ticket.updatedAt).toLocaleString()}</p>
         </div>
+
+        <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+          <p className="text-blue-600 font-semibold mb-2">Assigned To</p>
+          <p className="text-blue-900 text-lg font-medium">
+            {ticket.assignedTechnicianName ? (
+              <span className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                {ticket.assignedTechnicianName}
+              </span>
+            ) : (
+              <span className="text-blue-500 italic">Unassigned</span>
+            )}
+          </p>
+        </div>
       </div>
 
       {/* Additional Notes Section */}
@@ -178,6 +211,15 @@ export default function TicketDetail() {
 
       {/* Delete Button */}
       <div className="flex gap-4">
+        {user?.role === 'ADMIN' && (
+          <button
+            onClick={() => setAssignModalOpen(true)}
+            className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+          >
+            <Users className="w-5 h-5" />
+            Assign Technician
+          </button>
+        )}
         <button
           onClick={() => navigate(`/tickets/${id}/edit`)}
           className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
@@ -192,6 +234,16 @@ export default function TicketDetail() {
           {deleting ? '⏳ Deleting...' : '🗑️ Delete Ticket'}
         </button>
       </div>
+
+      {/* Assign Technician Modal */}
+      <AssignTechnicianModal
+        isOpen={assignModalOpen}
+        ticketId={ticket.id}
+        ticketNumber={ticket.id}
+        currentAssignedTo={ticket.assignedTechnicianName}
+        onClose={() => setAssignModalOpen(false)}
+        onSuccess={handleAssignSuccess}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 package com.smartcampus.backend.model.maintenance;
 
 import jakarta.persistence.*;
+import com.smartcampus.backend.model.auth.Role;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -73,6 +74,22 @@ public class Ticket {
     // Rejection reason (if status = REJECTED)
     @Column(columnDefinition = "TEXT")
     private String rejectionReason;
+
+    @Enumerated(EnumType.STRING)
+    @Column
+    private Role rejectedByRole;
+
+    @Column(columnDefinition = "TEXT")
+    private String adminFeedback;
+
+    @Column
+    private Integer adminRating;
+
+    @Column
+    private Long adminFeedbackBy;
+
+    @Column
+    private LocalDateTime adminFeedbackAt;
 
     // Contact info
     @Column

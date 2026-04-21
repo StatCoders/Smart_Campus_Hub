@@ -1,12 +1,20 @@
 package com.smartcampus.backend.controller.maintenance;
 
-import com.smartcampus.backend.dto.maintenance.*;
-import com.smartcampus.backend.service.maintenance.TicketService;
+import com.smartcampus.backend.dto.maintenance.CommentCreateRequest;
+import com.smartcampus.backend.dto.maintenance.TicketAssignmentRequest;
+import com.smartcampus.backend.dto.maintenance.TicketCommentDto;
+import com.smartcampus.backend.dto.maintenance.TicketCreateRequest;
+import com.smartcampus.backend.dto.maintenance.TicketDetailDto;
+import com.smartcampus.backend.dto.maintenance.TicketDto;
+import com.smartcampus.backend.dto.maintenance.TicketFeedbackRequest;
+import com.smartcampus.backend.dto.maintenance.TicketStatusUpdateRequest;
 import com.smartcampus.backend.service.maintenance.CommentService;
+import com.smartcampus.backend.service.maintenance.TicketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -21,8 +29,6 @@ public class TicketController {
 
     private final TicketService ticketService;
     private final CommentService commentService;
-
-    // ==================== TICKET CREATION & RETRIEVAL ====================
 
     @PostMapping
     @PreAuthorize("hasRole('USER')")
@@ -48,105 +54,107 @@ public class TicketController {
         try {
             TicketDetailDto ticket = ticketService.getTicketDetailById(id);
             return new ResponseEntity<>(ticket, HttpStatus.OK);
+        } catch (AccessDeniedException e) {
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.FORBIDDEN);
         } catch (Exception e) {
-            // Ticket not found or other error
-            return new ResponseEntity<>(
-                    new ErrorResponse("Ticket not found: " + e.getMessage()),
-                    HttpStatus.NOT_FOUND
-            );
+            return new ResponseEntity<>(new ErrorResponse("Ticket not found: " + e.getMessage()), HttpStatus.NOT_FOUND);
         }
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<TicketDto> updateTicket(@PathVariable Long id, @Valid @RequestBody TicketCreateRequest request) {
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'TECHNICIAN')")
+    public ResponseEntity<?> updateTicket(@PathVariable Long id, @Valid @RequestBody TicketCreateRequest request) {
         try {
             TicketDto ticket = ticketService.updateTicket(id, request);
             return new ResponseEntity<>(ticket, HttpStatus.OK);
+        } catch (AccessDeniedException e) {
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.FORBIDDEN);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ErrorResponse("Ticket not found"), HttpStatus.NOT_FOUND);
         }
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<Void> deleteTicket(@PathVariable Long id) {
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'TECHNICIAN')")
+    public ResponseEntity<?> deleteTicket(@PathVariable Long id) {
         try {
             ticketService.deleteTicket(id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (AccessDeniedException e) {
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.FORBIDDEN);
         } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ErrorResponse("Ticket not found"), HttpStatus.NOT_FOUND);
         }
     }
-
-    // ==================== TICKET WORKFLOW (Status Transitions) ====================
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
-    public ResponseEntity<?> updateTicketStatus(
-            @PathVariable Long id,
-            @Valid @RequestBody TicketStatusUpdateRequest request) {
+    public ResponseEntity<?> updateTicketStatus(@PathVariable Long id, @Valid @RequestBody TicketStatusUpdateRequest request) {
         try {
             TicketDetailDto ticket = ticketService.updateTicketStatus(id, request);
             return new ResponseEntity<>(ticket, HttpStatus.OK);
+        } catch (AccessDeniedException e) {
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.FORBIDDEN);
         } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(
-                    new ErrorResponse(e.getMessage()),
-                    HttpStatus.BAD_REQUEST
-            );
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ErrorResponse("Ticket not found"), HttpStatus.NOT_FOUND);
         }
     }
 
-    // ==================== TECHNICIAN ASSIGNMENT ====================
-
     @PostMapping("/{id}/assign")
     @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
-    public ResponseEntity<?> assignTicket(
-            @PathVariable Long id,
-            @Valid @RequestBody TicketAssignmentRequest request) {
+    public ResponseEntity<?> assignTicket(@PathVariable Long id, @Valid @RequestBody TicketAssignmentRequest request) {
         try {
             TicketDetailDto ticket = ticketService.assignTicket(id, request);
             return new ResponseEntity<>(ticket, HttpStatus.OK);
+        } catch (AccessDeniedException e) {
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.FORBIDDEN);
         } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(
-                    new ErrorResponse(e.getMessage()),
-                    HttpStatus.BAD_REQUEST
-            );
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ErrorResponse("Ticket not found"), HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @PostMapping("/{id}/feedback")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> addAdminFeedback(@PathVariable Long id, @Valid @RequestBody TicketFeedbackRequest request) {
+        try {
+            TicketDetailDto ticket = ticketService.addAdminFeedback(id, request);
+            return new ResponseEntity<>(ticket, HttpStatus.OK);
+        } catch (AccessDeniedException e) {
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.FORBIDDEN);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return new ResponseEntity<>(new ErrorResponse("Ticket not found"), HttpStatus.NOT_FOUND);
         }
     }
 
     @GetMapping("/technician/{technicianId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
-    public ResponseEntity<List<TicketDto>> getTechnicianTickets(@PathVariable Long technicianId) {
-        List<TicketDto> tickets = ticketService.getTicketsByAssignedTechnician(technicianId);
-        return new ResponseEntity<>(tickets, HttpStatus.OK);
+    public ResponseEntity<?> getTechnicianTickets(@PathVariable Long technicianId) {
+        try {
+            List<TicketDto> tickets = ticketService.getTicketsByAssignedTechnician(technicianId);
+            return new ResponseEntity<>(tickets, HttpStatus.OK);
+        } catch (AccessDeniedException e) {
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.FORBIDDEN);
+        }
     }
-
-    // ==================== COMMENTS ====================
 
     @PostMapping("/{ticketId}/comments")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'TECHNICIAN')")
-    public ResponseEntity<?> addComment(
-            @PathVariable Long ticketId,
-            @Valid @RequestBody CommentCreateRequest request) {
+    public ResponseEntity<?> addComment(@PathVariable Long ticketId, @Valid @RequestBody CommentCreateRequest request) {
         try {
             TicketCommentDto comment = commentService.addComment(ticketId, request);
             return new ResponseEntity<>(comment, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
-            // Access denied error
-            return new ResponseEntity<>(
-                    new ErrorResponse(e.getMessage()),
-                    HttpStatus.FORBIDDEN
-            );
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.FORBIDDEN);
         } catch (Exception e) {
-            return new ResponseEntity<>(
-                    new ErrorResponse(e.getMessage()),
-                    HttpStatus.BAD_REQUEST
-            );
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -157,26 +165,18 @@ public class TicketController {
             List<TicketCommentDto> comments = commentService.getCommentsByTicketId(ticketId);
             return new ResponseEntity<>(comments, HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(
-                    new ErrorResponse("Error loading comments: " + e.getMessage()),
-                    HttpStatus.NOT_FOUND
-            );
+            return new ResponseEntity<>(new ErrorResponse("Error loading comments: " + e.getMessage()), HttpStatus.NOT_FOUND);
         }
     }
 
     @PutMapping("/comments/{commentId}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'TECHNICIAN')")
-    public ResponseEntity<?> updateComment(
-            @PathVariable Long commentId,
-            @Valid @RequestBody CommentCreateRequest request) {
+    public ResponseEntity<?> updateComment(@PathVariable Long commentId, @Valid @RequestBody CommentCreateRequest request) {
         try {
             TicketCommentDto comment = commentService.updateComment(commentId, request);
             return new ResponseEntity<>(comment, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(
-                    new ErrorResponse(e.getMessage()),
-                    HttpStatus.FORBIDDEN
-            );
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.FORBIDDEN);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
@@ -189,16 +189,11 @@ public class TicketController {
             commentService.deleteComment(commentId);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(
-                    new ErrorResponse(e.getMessage()),
-                    HttpStatus.FORBIDDEN
-            );
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.FORBIDDEN);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
-
-    // ==================== ERROR RESPONSE ====================
 
     public static class ErrorResponse {
         public String message;

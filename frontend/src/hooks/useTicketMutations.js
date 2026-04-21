@@ -4,14 +4,14 @@ export const useUpdateTicketStatus = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ ticketId, status }) => {
+    mutationFn: async ({ ticketId, status, notes = null, rejectionReason = null }) => {
       const response = await fetch(`/api/tickets/${ticketId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
         },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status, notes, rejectionReason })
       });
       
       if (!response.ok) {
@@ -35,14 +35,14 @@ export const useAssignTechnician = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ ticketId, technicianId }) => {
+    mutationFn: async ({ ticketId, technicianId, note }) => {
       const response = await fetch(`/api/tickets/${ticketId}/assign`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
         },
-        body: JSON.stringify({ technicianId })
+        body: JSON.stringify({ technicianId, note })
       });
       
       if (!response.ok) {
@@ -62,6 +62,34 @@ export const useAssignTechnician = () => {
   });
 };
 
+export const useAddAdminFeedback = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ ticketId, feedback, rating }) => {
+      const response = await fetch(`/api/tickets/${ticketId}/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify({ feedback, rating })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to save feedback: ${response.status}`);
+      }
+
+      return await response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['ticket', variables.ticketId] });
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+    },
+  });
+};
+
 export const useUpdateTicket = () => {
   const queryClient = useQueryClient();
   
@@ -71,7 +99,7 @@ export const useUpdateTicket = () => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
         },
         body: JSON.stringify(data)
       });
@@ -100,7 +128,7 @@ export const useDeleteTicket = () => {
       const response = await fetch(`/api/tickets/${ticketId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
         }
       });
       

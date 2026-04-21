@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/useAuth';
 import { getTicketById, updateTicket } from '../services/ticketService';
+import { uploadMultipleAttachments } from '../services/fileUploadService';
+import { useAuth } from '../context/useAuth';
+import TicketAttachmentGallery from './tickets/TicketAttachmentGallery';
 
-// Sample resource IDs for searchable dropdown
 const RESOURCE_OPTIONS = [
   { id: 'FAC-ENG-101', label: 'FAC-ENG-101 - Engineering Facility 101' },
   { id: 'FAC-ENG-205', label: 'FAC-ENG-205 - Engineering Facility 205' },
@@ -35,12 +36,14 @@ const PRIORITY_OPTIONS = [
   { value: 'URGENT', label: 'Urgent', color: 'bg-red-100 text-red-800 border-red-300' },
 ];
 
+const MAX_ATTACHMENTS = 3;
+
 export default function EditTicket({ ticketId, onSuccess, onCancel }) {
-  const id = ticketId;
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isStudent = user?.role === 'USER';
-  
+  const isStudent = String(user?.role || '').toUpperCase() === 'USER';
+  const todayString = new Date().toISOString().split('T')[0];
+
   const [formData, setFormData] = useState({
     resourceId: '',
     category: '',
@@ -51,7 +54,8 @@ export default function EditTicket({ ticketId, onSuccess, onCancel }) {
     expectedDate: '',
     additionalNotes: '',
   });
-
+  const [existingAttachments, setExistingAttachments] = useState([]);
+  const [pendingAttachments, setPendingAttachments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -61,7 +65,7 @@ export default function EditTicket({ ticketId, onSuccess, onCancel }) {
 
   const fetchTicketData = useCallback(async () => {
     try {
-      const ticket = await getTicketById(id);
+      const ticket = await getTicketById(ticketId);
       setFormData({
         resourceId: ticket.resourceId || '',
         category: ticket.category || '',
@@ -73,70 +77,69 @@ export default function EditTicket({ ticketId, onSuccess, onCancel }) {
         additionalNotes: ticket.additionalNotes || '',
       });
       setSearchResource(ticket.resourceId || '');
-      setLoading(false);
-    } catch {
-      setError('Failed to load ticket');
+      setExistingAttachments(Array.isArray(ticket.attachments) ? ticket.attachments : []);
+    } catch (err) {
+      setError(err.message || 'Failed to load ticket');
+    } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [ticketId]);
 
   useEffect(() => {
     fetchTicketData();
   }, [fetchTicketData]);
 
-  const filteredResources = RESOURCE_OPTIONS.filter(r =>
-    r.id.toLowerCase().includes(searchResource.toLowerCase()) ||
-    r.label.toLowerCase().includes(searchResource.toLowerCase())
+  const filteredResources = RESOURCE_OPTIONS.filter((resource) =>
+    resource.id.toLowerCase().includes(searchResource.toLowerCase()) ||
+    resource.label.toLowerCase().includes(searchResource.toLowerCase())
   );
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handlePriorityChange = (priority) => {
-    setFormData(prev => ({
-      ...prev,
-      priority
-    }));
+    setFormData((prev) => ({ ...prev, priority }));
   };
 
   const handleResourceSelect = (resource) => {
-    setFormData(prev => ({
-      ...prev,
-      resourceId: resource.id
-    }));
+    setFormData((prev) => ({ ...prev, resourceId: resource.id }));
     setSearchResource(resource.id);
     setShowResourceDropdown(false);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const appendFiles = (files) => {
+    const remainingSlots = Math.max(MAX_ATTACHMENTS - existingAttachments.length - pendingAttachments.length, 0);
+    const nextFiles = Array.from(files || [])
+      .filter((file) => file.type.startsWith('image/'))
+      .slice(0, remainingSlots)
+      .map((file) => ({ id: Math.random(), file }));
+
+    setPendingAttachments((prev) => [...prev, ...nextFiles]);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setSaving(true);
     setError('');
     setSuccess('');
 
     try {
       if (!formData.resourceId.trim()) {
-        setError('Resource ID is required');
-        setSaving(false);
-        return;
+        throw new Error('Resource ID is required');
       }
       if (!formData.category.trim()) {
-        setError('Category is required');
-        setSaving(false);
-        return;
+        throw new Error('Category is required');
       }
       if (!formData.description.trim()) {
-        setError('Description is required');
-        setSaving(false);
-        return;
+        throw new Error('Description is required');
+      }
+      if (formData.expectedDate && formData.expectedDate < todayString) {
+        throw new Error('Expected date cannot be in the past');
       }
 
-      const ticketData = {
+      await updateTicket(ticketId, {
         resourceId: formData.resourceId,
         category: formData.category,
         description: formData.description,
@@ -145,19 +148,23 @@ export default function EditTicket({ ticketId, onSuccess, onCancel }) {
         roomNumber: formData.roomNumber || null,
         expectedDate: formData.expectedDate || null,
         additionalNotes: formData.additionalNotes || null,
-      };
+      });
 
-      await updateTicket(id, ticketData);
-      setSuccess('✓ Ticket updated successfully!');
-      
+      if (pendingAttachments.length > 0) {
+        await uploadMultipleAttachments(pendingAttachments.map((attachment) => attachment.file), ticketId, 'BEFORE');
+      }
+
+      setSuccess('Ticket updated successfully.');
+
       setTimeout(() => {
         if (onSuccess) {
           onSuccess();
-        } else {
-          const redirectPath = isStudent ? '/student-tickets' : `/tickets/${id}`;
-          navigate(redirectPath);
+          return;
         }
-      }, 1500);
+
+        const redirectPath = isStudent ? '/student-tickets' : `/tickets/${ticketId}`;
+        navigate(redirectPath);
+      }, 1200);
     } catch (err) {
       setError(err.message || 'Failed to update ticket');
     } finally {
@@ -167,164 +174,153 @@ export default function EditTicket({ ticketId, onSuccess, onCancel }) {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <p className="text-xl text-gray-600">⏳ Loading ticket...</p>
+      <div className="flex h-96 items-center justify-center">
+        <p className="text-xl text-gray-600">Loading ticket...</p>
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-0">
-      {/* Error & Success Messages */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-lg flex items-start gap-3">
-          <span className="text-lg mt-0.5">⚠️</span>
+      {error ? (
+        <div className="mb-6 rounded-lg border-l-4 border-red-500 bg-red-50 p-4 text-red-700">
           <div className="font-medium">{error}</div>
         </div>
-      )}
+      ) : null}
 
-      {success && (
-        <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded-lg flex items-start gap-3">
-          <span className="text-lg mt-0.5">✓</span>
+      {success ? (
+        <div className="mb-6 rounded-lg border-l-4 border-green-500 bg-green-50 p-4 text-green-700">
           <div className="font-medium">{success}</div>
         </div>
-      )}
+      ) : null}
 
-      {/* Section 1: Location & Resource */}
-      <div className="mb-8 pb-8 border-b border-gray-200">
-        <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600">1</div>
+      <div className="mb-8 border-b border-gray-200 pb-8">
+        <h3 className="mb-6 flex items-center gap-2 text-lg font-bold text-gray-900">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-600">1</div>
           Resource Location
         </h3>
-        
+
         <div className="space-y-5">
-          {/* Resource ID - Full Width */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">Resource Location *</label>
+            <label className="mb-3 block text-sm font-semibold text-gray-900">Resource Location *</label>
             <div className="relative">
               <input
                 type="text"
                 placeholder="Search facility (e.g., FAC-ENG-101)"
                 value={searchResource}
-                onChange={(e) => {
-                  setSearchResource(e.target.value);
+                onChange={(event) => {
+                  setSearchResource(event.target.value);
                   setShowResourceDropdown(true);
                 }}
                 onFocus={() => setShowResourceDropdown(true)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full rounded-xl border border-gray-300 px-4 py-3 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               {showResourceDropdown && (
-                <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                <div className="absolute z-10 mt-2 max-h-48 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
                   {filteredResources.length > 0 ? (
-                    filteredResources.map(resource => (
+                    filteredResources.map((resource) => (
                       <button
                         key={resource.id}
                         type="button"
                         onClick={() => handleResourceSelect(resource)}
-                        className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                        className="w-full border-b border-gray-100 px-4 py-3 text-left transition-colors hover:bg-blue-50 last:border-b-0"
                       >
                         <div className="font-medium text-gray-900">{resource.id}</div>
                         <div className="text-sm text-gray-500">{resource.label.split(' - ')[1]}</div>
                       </button>
                     ))
                   ) : (
-                    <div className="px-4 py-3 text-gray-500 text-center text-sm">No resources found</div>
+                    <div className="px-4 py-3 text-center text-sm text-gray-500">No resources found</div>
                   )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Building & Room - Two Columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-3">Building</label>
+              <label className="mb-3 block text-sm font-semibold text-gray-900">Building</label>
               <input
                 type="text"
                 name="building"
                 value={formData.building}
                 onChange={handleChange}
                 placeholder="e.g., Block A"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full rounded-xl border border-gray-300 px-4 py-3 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-3">Room</label>
+              <label className="mb-3 block text-sm font-semibold text-gray-900">Room</label>
               <input
                 type="text"
                 name="roomNumber"
                 value={formData.roomNumber}
                 onChange={handleChange}
                 placeholder="e.g., 101"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full rounded-xl border border-gray-300 px-4 py-3 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Section 2: Issue Details */}
-      <div className="mb-8 pb-8 border-b border-gray-200">
-        <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600">2</div>
+      <div className="mb-8 border-b border-gray-200 pb-8">
+        <h3 className="mb-6 flex items-center gap-2 text-lg font-bold text-gray-900">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-600">2</div>
           Issue Details
         </h3>
 
         <div className="space-y-5">
-          {/* Category */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">Category *</label>
+            <label className="mb-3 block text-sm font-semibold text-gray-900">Category *</label>
             <select
               name="category"
               value={formData.category}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             >
               <option value="">Select category...</option>
-              {CATEGORIES.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
+              {CATEGORIES.map((category) => (
+                <option key={category} value={category}>{category}</option>
               ))}
             </select>
           </div>
 
-          {/* Description */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">Description *</label>
+            <label className="mb-3 block text-sm font-semibold text-gray-900">Description *</label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleChange}
               placeholder="Describe the issue in detail..."
               rows="4"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
+              className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
         </div>
       </div>
 
-      {/* Section 3: Priority & Timeline */}
-      <div className="mb-8 pb-8 border-b border-gray-200">
-        <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600">3</div>
+      <div className="mb-8 border-b border-gray-200 pb-8">
+        <h3 className="mb-6 flex items-center gap-2 text-lg font-bold text-gray-900">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-600">3</div>
           Priority & Timeline
         </h3>
 
         <div className="space-y-6">
-          {/* Priority */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-4">Priority Level *</label>
+            <label className="mb-4 block text-sm font-semibold text-gray-900">Priority Level *</label>
             <div className="flex flex-wrap gap-3">
-              {PRIORITY_OPTIONS.map(option => (
+              {PRIORITY_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => handlePriorityChange(option.value)}
-                  className={`px-6 py-2 rounded-full font-medium transition-all ${
+                  className={`rounded-full px-6 py-2 font-medium transition-all ${
                     formData.priority === option.value
-                      ? `${option.color} ring-2 ring-offset-2 ring-current`
-                      : `bg-gray-100 text-gray-700 hover:bg-gray-200`
+                      ? `${option.color} ring-2 ring-current ring-offset-2`
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   {option.label}
@@ -333,29 +329,28 @@ export default function EditTicket({ ticketId, onSuccess, onCancel }) {
             </div>
           </div>
 
-          {/* Expected Date */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">Expected Completion Date</label>
+            <label className="mb-3 block text-sm font-semibold text-gray-900">Expected Completion Date</label>
             <input
               type="date"
               name="expectedDate"
               value={formData.expectedDate}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              min={todayString}
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
       </div>
 
-      {/* Section 4: Notes */}
-      <div className="mb-8">
-        <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600">4</div>
+      <div className="mb-8 border-b border-gray-200 pb-8">
+        <h3 className="mb-6 flex items-center gap-2 text-lg font-bold text-gray-900">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-600">4</div>
           Additional Notes
         </h3>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-3">
+          <label className="mb-3 block text-sm font-semibold text-gray-900">
             Notes <span className="text-xs font-normal text-gray-500">({formData.additionalNotes.length}/500)</span>
           </label>
           <textarea
@@ -365,30 +360,60 @@ export default function EditTicket({ ticketId, onSuccess, onCancel }) {
             placeholder="Any additional information..."
             maxLength="500"
             rows="3"
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
+            className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-3 pt-8 border-t border-gray-200">
+      <div className="mb-8">
+        <h3 className="mb-6 flex items-center gap-2 text-lg font-bold text-gray-900">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-600">5</div>
+          Issue Images
+        </h3>
+        <TicketAttachmentGallery
+          attachments={existingAttachments}
+          onUpload={(files) => appendFiles(files)}
+          isLoading={saving}
+          emptyMessage="No issue images uploaded yet."
+          helperMessage="Upload up to 3 total issue images."
+          maxAttachments={MAX_ATTACHMENTS}
+        />
+
+        {pendingAttachments.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {pendingAttachments.map((attachment) => (
+              <div key={attachment.id} className="flex items-center justify-between rounded-xl border border-sky-100 bg-sky-50 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">{attachment.file.name}</p>
+                  <p className="text-xs text-slate-500">{(attachment.file.size / 1024).toFixed(1)} KB</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPendingAttachments((prev) => prev.filter((item) => item.id !== attachment.id))}
+                  className="text-sm font-semibold text-red-600 transition hover:text-red-700"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-3 border-t border-gray-200 pt-8">
         <button
           type="button"
-          onClick={() => {
-            if (onCancel) {
-              onCancel();
-            }
-          }}
-          className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition"
+          onClick={() => onCancel?.()}
+          className="flex-1 rounded-xl border-2 border-gray-300 px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-50"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={saving}
-          className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold rounded-xl transition"
+          className="flex-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3 font-semibold text-white transition hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-400"
         >
-          {saving ? '⏳ Saving...' : '💾 Save Changes'}
+          {saving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
     </form>

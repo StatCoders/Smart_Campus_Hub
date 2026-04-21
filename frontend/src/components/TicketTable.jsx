@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Edit, Trash2, ChevronDown, ArrowUpDown, Loader } from 'lucide-react';
+import { Eye, Edit, Trash2, ChevronDown, ArrowUpDown, Loader, Users } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
+import AssignTechnicianModal from './AssignTechnicianModal';
 
 const SortableHeader = ({ label, sortKey, sortConfig, handleSort }) => (
   <button
@@ -21,6 +22,12 @@ export default function TicketTable({ tickets, isLoading, onDelete }) {
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
+  const [assignModalState, setAssignModalState] = useState({
+    isOpen: false,
+    ticketId: null,
+    ticketNumber: null,
+    currentAssignedTo: null,
+  });
 
   const statusColor = {
     OPEN: 'bg-red-100 text-red-800',
@@ -78,6 +85,29 @@ export default function TicketTable({ tickets, isLoading, onDelete }) {
       key,
       direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
     }));
+  };
+
+  const handleOpenAssignModal = (ticketId, ticketNumber, assignedTechnicianName) => {
+    setAssignModalState({
+      isOpen: true,
+      ticketId,
+      ticketNumber,
+      currentAssignedTo: assignedTechnicianName,
+    });
+  };
+
+  const handleCloseAssignModal = () => {
+    setAssignModalState({
+      isOpen: false,
+      ticketId: null,
+      ticketNumber: null,
+      currentAssignedTo: null,
+    });
+  };
+
+  const handleAssignSuccess = () => {
+    handleCloseAssignModal();
+    // React Query will auto-invalidate and refetch tickets
   };
 
   if (isLoading) {
@@ -215,6 +245,15 @@ export default function TicketTable({ tickets, isLoading, onDelete }) {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
+                      {user?.role === 'ADMIN' && (
+                        <button
+                          onClick={() => handleOpenAssignModal(ticket.id, ticket.id, ticket.assignedTechnicianName)}
+                          className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                          title="Assign technician"
+                        >
+                          <Users className="h-4 w-4" />
+                        </button>
+                      )}
                       {isAdminOrTech && (
                         <>
                           <button
@@ -260,6 +299,16 @@ export default function TicketTable({ tickets, isLoading, onDelete }) {
           </div>
         </div>
       )}
+
+      {/* Assign Technician Modal */}
+      <AssignTechnicianModal
+        isOpen={assignModalState.isOpen}
+        ticketId={assignModalState.ticketId}
+        ticketNumber={assignModalState.ticketNumber}
+        currentAssignedTo={assignModalState.currentAssignedTo}
+        onClose={handleCloseAssignModal}
+        onSuccess={handleAssignSuccess}
+      />
     </div>
   );
 }

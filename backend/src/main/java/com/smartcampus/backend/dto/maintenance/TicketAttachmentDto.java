@@ -1,5 +1,6 @@
 package com.smartcampus.backend.dto.maintenance;
 
+import com.smartcampus.backend.model.maintenance.AttachmentCategory;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,5 +24,6 @@ public class TicketAttachmentDto {
     private Long fileSize;
     private Long uploadedBy;
     private String uploadedByName;
+    private AttachmentCategory attachmentCategory;
     private LocalDateTime uploadedAt;
 }

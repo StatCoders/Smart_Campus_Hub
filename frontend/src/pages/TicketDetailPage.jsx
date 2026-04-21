@@ -1,80 +1,142 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, MessageSquare, AlertCircle, CheckCircle, Send, Edit2, Trash2, Loader, Clock, User } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  Clock,
+  FileText,
+  Loader,
+  MessageSquare,
+  ShieldCheck,
+  UploadCloud,
+  User,
+  Users,
+} from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
+import TechnicianMaintenanceSidebar from '../components/TechnicianMaintenanceSidebar';
 import { useAuth } from '../context/useAuth';
 import { useSidebar } from '../context/useSidebar';
 import { useTicketDetail } from '../hooks/useTicketDetail';
-import { useComments, useAddComment, useUpdateComment, useDeleteComment } from '../hooks/useComments';
-import { useUpdateTicketStatus } from '../hooks/useTicketMutations';
+import { useAddAdminFeedback, useUpdateTicketStatus } from '../hooks/useTicketMutations';
+import { useSLATimer, formatMinutesToTime, getSLAStatusColor } from '../hooks/useSLATimer';
+import TicketCommentThread from '../components/tickets/TicketCommentThread';
+import TicketTimeline from '../components/tickets/TicketTimeline';
+import TicketAttachmentGallery from '../components/tickets/TicketAttachmentGallery';
+import AssignTechnicianModal from '../components/AssignTechnicianModal';
+import BeforeAfterComparison from '../components/tickets/BeforeAfterComparison';
+import FeedbackModal from '../components/tickets/FeedbackModal';
+import RejectModal from '../components/tickets/RejectModal';
+import { uploadMultipleAttachments } from '../services/fileUploadService';
+
+const formatStatusLabel = (status) => String(status || '').replace(/_/g, ' ');
 
 export default function TicketDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isCollapsed } = useSidebar();
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [resolutionNotes, setResolutionNotes] = useState('');
+  const [uploadError, setUploadError] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState('');
+  const [uploadingAfterImages, setUploadingAfterImages] = useState(false);
 
-  const [newComment, setNewComment] = useState('');
-  const [editingCommentId, setEditingCommentId] = useState(null);
-  const [editCommentText, setEditCommentText] = useState('');
-
-  const { data: ticket, isLoading: ticketLoading, error: ticketError } = useTicketDetail(id);
-  const { data: comments } = useComments(id);
-  const addCommentMutation = useAddComment();
-  const updateCommentMutation = useUpdateComment();
-  const deleteCommentMutation = useDeleteComment();
+  const { data: ticket, isLoading: ticketLoading, error: ticketError, refetch: refetchTicket } = useTicketDetail(id);
   const updateStatusMutation = useUpdateTicketStatus();
+  const addFeedbackMutation = useAddAdminFeedback();
+  const slaMetrics = useSLATimer(ticket);
 
-  const isAdminOrTech = user?.role === 'ADMIN' || user?.role === 'TECHNICIAN';
+  const userRole = String(user?.role || '').toUpperCase();
+  const isAdmin = userRole === 'ADMIN';
+  const isTechnician = userRole === 'TECHNICIAN';
+  const isStudent = userRole === 'USER';
+  const isAdminOrTech = isAdmin || isTechnician;
+  const isAssignedToCurrentTechnician =
+    isTechnician &&
+    (Number(ticket?.assignedTechnicianId) === Number(user?.id) ||
+      (ticket?.assignedTechnicianEmail &&
+        user?.email &&
+        ticket.assignedTechnicianEmail.toLowerCase() === user.email.toLowerCase()));
 
-  const handleAddComment = async () => {
-    if (!newComment.trim()) return;
-    try {
-      await addCommentMutation.mutateAsync({ ticketId: id, content: newComment });
-      setNewComment('');
-    } catch (error) {
-      console.error('Error adding comment:', error);
+  useEffect(() => {
+    setResolutionNotes(ticket?.resolutionNotes || '');
+  }, [ticket?.resolutionNotes]);
+
+  const handleBack = () => {
+    if (isTechnician) {
+      navigate('/technician-dashboard');
+      return;
     }
+    if (isStudent) {
+      navigate('/student-tickets');
+      return;
+    }
+    navigate('/tickets');
   };
 
-  const handleUpdateComment = async (commentId) => {
-    if (!editCommentText.trim()) return;
+  const handleStatusUpdate = async (newStatus, payload = {}) => {
     try {
-      await updateCommentMutation.mutateAsync({ commentId, content: editCommentText });
-      setEditingCommentId(null);
-      setEditCommentText('');
-    } catch (error) {
-      console.error('Error updating comment:', error);
-    }
-  };
-
-  const handleDeleteComment = async (commentId) => {
-    if (window.confirm('Are you sure you want to delete this comment?')) {
-      try {
-        await deleteCommentMutation.mutateAsync(commentId);
-      } catch (error) {
-        console.error('Error deleting comment:', error);
+      await updateStatusMutation.mutateAsync({ ticketId: id, status: newStatus, ...payload });
+      if (newStatus === 'RESOLVED') {
+        setResolutionNotes(payload.notes || '');
       }
-    }
-  };
-
-  const handleStatusUpdate = async (newStatus) => {
-    try {
-      await updateStatusMutation.mutateAsync({ ticketId: id, status: newStatus });
+      refetchTicket();
     } catch (error) {
       console.error('Error updating status:', error);
     }
   };
 
+  const handleAssignSuccess = () => {
+    setAssignModalOpen(false);
+    refetchTicket();
+  };
+
+  const handleReject = async (reason) => {
+    await handleStatusUpdate('REJECTED', { rejectionReason: reason });
+    setRejectModalOpen(false);
+  };
+
+  const handleFeedbackSubmit = async ({ feedback, rating }) => {
+    try {
+      await addFeedbackMutation.mutateAsync({ ticketId: id, feedback, rating });
+      setFeedbackModalOpen(false);
+      refetchTicket();
+    } catch (error) {
+      console.error('Error saving feedback:', error);
+    }
+  };
+
+  const handleAfterUpload = async (files) => {
+    setUploadError('');
+    setUploadSuccess('');
+    setUploadingAfterImages(true);
+
+    try {
+      await uploadMultipleAttachments(files, ticket.id, 'AFTER');
+      setUploadSuccess('Completion images uploaded for admin review.');
+      refetchTicket();
+    } catch (error) {
+      setUploadError(error.message || 'Failed to upload completion images');
+    } finally {
+      setUploadingAfterImages(false);
+    }
+  };
+
   if (ticketLoading) {
     return (
-      <div className="flex bg-gray-50 min-h-screen">
-        <Sidebar activeTab="tickets" setActiveTab={() => {}} />
+      <div className="flex min-h-screen bg-gray-50">
+        {isTechnician ? (
+          <TechnicianMaintenanceSidebar activeTab="maintenance" setActiveTab={() => {}} />
+        ) : (
+          <Sidebar activeTab="tickets" setActiveTab={() => {}} />
+        )}
         <div className={`flex-1 transition-all duration-300 ${isCollapsed ? 'lg:ml-24' : 'lg:ml-64'}`}>
           <TopBar user={user} />
           <main className="p-8">
-            <div className="flex items-center justify-center h-96">
+            <div className="flex h-96 items-center justify-center">
               <Loader className="h-8 w-8 animate-spin text-blue-600" />
             </div>
           </main>
@@ -85,23 +147,24 @@ export default function TicketDetailPage() {
 
   if (ticketError || !ticket) {
     return (
-      <div className="flex bg-gray-50 min-h-screen">
-        <Sidebar activeTab="tickets" setActiveTab={() => {}} />
+      <div className="flex min-h-screen bg-gray-50">
+        {isTechnician ? (
+          <TechnicianMaintenanceSidebar activeTab="maintenance" setActiveTab={() => {}} />
+        ) : (
+          <Sidebar activeTab="tickets" setActiveTab={() => {}} />
+        )}
         <div className={`flex-1 transition-all duration-300 ${isCollapsed ? 'lg:ml-24' : 'lg:ml-64'}`}>
           <TopBar user={user} />
           <main className="p-8">
-            <button
-              onClick={() => navigate(-1)}
-              className="mb-6 flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
-            >
-              <ArrowLeft className="w-4 h-4" />
+            <button onClick={handleBack} className="mb-6 flex items-center gap-2 font-medium text-blue-600 hover:text-blue-700">
+              <ArrowLeft className="h-4 w-4" />
               Back
             </button>
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex items-start gap-4">
-              <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-4 rounded-2xl border border-red-200 bg-red-50 p-6">
+              <AlertCircle className="mt-0.5 h-6 w-6 flex-shrink-0 text-red-600" />
               <div>
                 <h3 className="font-bold text-red-900">Error Loading Ticket</h3>
-                <p className="text-red-700 mt-1">{ticketError?.message || 'Ticket not found or access denied'}</p>
+                <p className="mt-1 text-red-700">{ticketError?.message || 'Ticket not found or access denied'}</p>
               </div>
             </div>
           </main>
@@ -115,321 +178,499 @@ export default function TicketDetailPage() {
     IN_PROGRESS: 'bg-amber-100 text-amber-800 border-amber-300',
     RESOLVED: 'bg-green-100 text-green-800 border-green-300',
     CLOSED: 'bg-slate-100 text-slate-800 border-slate-300',
-    REJECTED: 'bg-rose-100 text-rose-800 border-rose-300'
+    REJECTED: 'bg-rose-100 text-rose-800 border-rose-300',
   };
 
   const priorityColor = {
     LOW: 'bg-green-100 text-green-800',
     MEDIUM: 'bg-yellow-100 text-yellow-800',
     HIGH: 'bg-orange-100 text-orange-800',
-    URGENT: 'bg-red-100 text-red-800'
+    URGENT: 'bg-red-100 text-red-800',
   };
 
+  const workflowSteps = [
+    {
+      key: 'OPEN',
+      title: 'Ticket Submitted',
+      description: ticket.assignedTechnicianName
+        ? 'A technician has been assigned and the ticket is now in active maintenance flow.'
+        : 'Waiting for an admin to assign this request to a technician.',
+    },
+    {
+      key: 'IN_PROGRESS',
+      title: 'Technician Working',
+      description: ticket.assignedTechnicianName
+        ? `${ticket.assignedTechnicianName} owns the current maintenance work.`
+        : 'A technician should be assigned before work begins.',
+    },
+    {
+      key: 'RESOLVED',
+      title: 'Work Completed',
+      description: 'The technician has finished the task and marked the issue resolved.',
+    },
+    {
+      key: 'CLOSED',
+      title: 'Ticket Closed',
+      description: 'The maintenance and incident workflow is fully complete.',
+    },
+  ];
+
+  const currentWorkflowIndex = {
+    OPEN: 0,
+    IN_PROGRESS: 1,
+    RESOLVED: 2,
+    CLOSED: 3,
+    REJECTED: 0,
+  }[ticket.status] ?? 0;
+
+  let nextStepCopy = 'Review the latest ticket updates.';
+
+  if (ticket.status === 'REJECTED') {
+    nextStepCopy = 'This ticket has been rejected and is outside the normal maintenance workflow.';
+  } else if (isAdmin) {
+    nextStepCopy = ticket.assignedTechnicianName
+      ? 'Review technician progress, verify before/after evidence, or record final feedback.'
+      : 'Assign a technician to move this ticket into active maintenance handling.';
+  } else if (isAssignedToCurrentTechnician) {
+    if (ticket.status === 'OPEN') {
+      nextStepCopy = 'Start work to acknowledge the assignment and begin handling the issue.';
+    } else if (ticket.status === 'IN_PROGRESS') {
+      nextStepCopy = 'Complete the repair, add resolution notes, and upload completion images for admin review.';
+    } else if (ticket.status === 'RESOLVED') {
+      nextStepCopy = 'Wait for admin review or final closure after the completed work is verified.';
+    } else if (ticket.status === 'CLOSED') {
+      nextStepCopy = 'No further technician action is required on this ticket.';
+    }
+  } else if (isTechnician) {
+    nextStepCopy = 'This ticket is not assigned to your account, so technician workflow actions are unavailable.';
+  }
+
+  const canGiveFeedback = isAdmin && ['RESOLVED', 'CLOSED'].includes(ticket.status);
+  const canReject = (isAdmin || isAssignedToCurrentTechnician) && ticket.status !== 'CLOSED';
+
   return (
-    <div className="flex bg-gray-50 min-h-screen">
-      <Sidebar activeTab="tickets" setActiveTab={() => {}} />
+    <div className="flex min-h-screen bg-gray-50">
+      {isTechnician ? (
+        <TechnicianMaintenanceSidebar activeTab="maintenance" setActiveTab={() => {}} />
+      ) : (
+        <Sidebar activeTab="tickets" setActiveTab={() => {}} />
+      )}
+
       <div className={`flex-1 transition-all duration-300 ${isCollapsed ? 'lg:ml-24' : 'lg:ml-64'}`}>
         <TopBar user={user} />
 
         <main className="p-8">
-          <button
-            onClick={() => navigate(-1)}
-            className="mb-6 flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
-          >
-            <ArrowLeft className="w-4 h-4" />
+          <button onClick={handleBack} className="mb-6 flex items-center gap-2 font-medium text-blue-600 hover:text-blue-700">
+            <ArrowLeft className="h-4 w-4" />
             Back
           </button>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Header Card */}
-              <div className="bg-gradient-to-r from-sky-100 via-blue-50 to-sky-50 rounded-3xl border border-sky-200 p-6 shadow-sm">
-                <div className="flex items-start justify-between mb-4">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="space-y-6 lg:col-span-2">
+              <div className="rounded-3xl border border-sky-200 bg-gradient-to-r from-sky-100 via-blue-50 to-sky-50 p-6 shadow-sm">
+                <div className="mb-4 flex items-start justify-between gap-4">
                   <div>
                     <h1 className="text-3xl font-bold text-slate-950">Ticket #{ticket.id}</h1>
-                    <p className="text-slate-600 mt-1">{ticket.resourceId} - {ticket.building} / {ticket.roomNumber}</p>
+                    <p className="mt-1 text-slate-600">
+                      {ticket.resourceId} - {ticket.building} / {ticket.roomNumber}
+                    </p>
                   </div>
-                  <span className={`inline-block rounded-full px-4 py-2 text-xs font-bold border ${statusColor[ticket.status]}`}>
-                    {ticket.status}
+                  <span className={`inline-block rounded-full border px-4 py-2 text-xs font-bold ${statusColor[ticket.status]}`}>
+                    {formatStatusLabel(ticket.status)}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                   <div>
-                    <p className="text-xs text-slate-500 font-medium">Created</p>
-                    <p className="text-sm text-slate-900 font-semibold mt-1">{new Date(ticket.createdAt).toLocaleDateString()}</p>
+                    <p className="text-xs font-medium text-slate-500">Created</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">{new Date(ticket.createdAt).toLocaleDateString()}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500 font-medium">Priority</p>
-                    <span className={`inline-block text-xs font-bold px-2 py-1 rounded mt-1 ${priorityColor[ticket.priority]}`}>
+                    <p className="text-xs font-medium text-slate-500">Priority</p>
+                    <span className={`mt-1 inline-block rounded px-2 py-1 text-xs font-bold ${priorityColor[ticket.priority]}`}>
                       {ticket.priority}
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500 font-medium">Category</p>
-                    <p className="text-sm text-slate-900 font-semibold mt-1">{ticket.category}</p>
+                    <p className="text-xs font-medium text-slate-500">Category</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">{ticket.category}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500 font-medium">Last Updated</p>
-                    <p className="text-sm text-slate-900 font-semibold mt-1">{new Date(ticket.updatedAt).toLocaleDateString()}</p>
+                    <p className="text-xs font-medium text-slate-500">Last Updated</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">{new Date(ticket.updatedAt).toLocaleDateString()}</p>
                   </div>
                 </div>
+
+                {(slaMetrics.minutesToFirstResponse !== null || slaMetrics.minutesToResolution !== null) && (
+                  <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                    {slaMetrics.minutesToFirstResponse !== null && (
+                      <div className={`rounded-2xl border p-4 ${getSLAStatusColor(slaMetrics.isOverdueFirstResponse, slaMetrics.status)}`}>
+                        <p className="text-xs font-medium uppercase tracking-[0.16em]">Time to First Response</p>
+                        <p className="mt-2 text-2xl font-bold">{formatMinutesToTime(slaMetrics.minutesToFirstResponse)}</p>
+                        <p className="mt-1 text-xs">SLA target: 4 hours</p>
+                      </div>
+                    )}
+                    {slaMetrics.minutesToResolution !== null && (
+                      <div className={`rounded-2xl border p-4 ${getSLAStatusColor(false, slaMetrics.status)}`}>
+                        <p className="text-xs font-medium uppercase tracking-[0.16em]">Time to Resolution</p>
+                        <p className="mt-2 text-2xl font-bold">{formatMinutesToTime(slaMetrics.minutesToResolution)}</p>
+                        <p className="mt-1 text-xs">SLA target: 24 hours</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Description */}
-              <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
-                <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">
                   <FileText className="h-5 w-5 text-blue-600" />
                   Description
                 </h2>
-                <p className="text-slate-700 leading-relaxed">{ticket.description}</p>
-                {ticket.additionalNotes && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <p className="text-xs text-slate-500 font-medium mb-2">Additional Notes</p>
+                <p className="leading-relaxed text-slate-700">{ticket.description}</p>
+                {ticket.additionalNotes ? (
+                  <div className="mt-4 border-t border-gray-200 pt-4">
+                    <p className="mb-2 text-xs font-medium text-slate-500">Additional Notes</p>
                     <p className="text-slate-700">{ticket.additionalNotes}</p>
                   </div>
-                )}
+                ) : null}
               </div>
 
-              {/* SLA Metrics */}
-              {(ticket.minutesToFirstResponse !== null || ticket.minutesToResolution !== null) && (
-                <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
-                  <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-blue-600" />
-                    SLA Metrics
-                  </h2>
-                  <div className="grid grid-cols-2 gap-4">
-                    {ticket.minutesToFirstResponse !== null && (
-                      <div className="p-4 bg-sky-50 rounded-xl border border-sky-100">
-                        <p className="text-xs text-slate-600 font-medium">Time to First Response</p>
-                        <p className="text-2xl font-bold text-blue-600 mt-2">{ticket.minutesToFirstResponse} min</p>
-                      </div>
-                    )}
-                    {ticket.minutesToResolution !== null && (
-                      <div className="p-4 bg-green-50 rounded-xl border border-green-100">
-                        <p className="text-xs text-slate-600 font-medium">Time to Resolution</p>
-                        <p className="text-2xl font-bold text-green-600 mt-2">{ticket.minutesToResolution} min</p>
-                      </div>
-                    )}
+              {ticket.rejectionReason ? (
+                <div className="rounded-3xl border border-rose-200 bg-rose-50 p-6 shadow-sm">
+                  <h2 className="mb-4 text-lg font-bold text-rose-950">Rejection Reason</h2>
+                  <p className="leading-relaxed text-rose-900">{ticket.rejectionReason}</p>
+                </div>
+              ) : null}
+
+              {ticket.adminFeedback ? (
+                <div className="rounded-3xl border border-sky-200 bg-sky-50 p-6 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">Admin Review</p>
+                      <h2 className="mt-2 text-lg font-bold text-slate-950">Feedback & Rating</h2>
+                    </div>
+                    {ticket.adminRating ? (
+                      <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
+                        {ticket.adminRating}/5
+                      </span>
+                    ) : null}
                   </div>
+                  <p className="mt-4 leading-relaxed text-slate-700">{ticket.adminFeedback}</p>
+                  {ticket.feedbackByAdminName ? (
+                    <p className="mt-3 text-xs text-slate-500">
+                      Reviewed by {ticket.feedbackByAdminName}
+                      {ticket.adminFeedbackAt ? ` on ${new Date(ticket.adminFeedbackAt).toLocaleString()}` : ''}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {isAdmin ? (
+                <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <h2 className="mb-4 text-lg font-bold text-slate-900">Before / After Comparison</h2>
+                  <BeforeAfterComparison
+                    beforeAttachments={ticket.attachments || []}
+                    afterAttachments={ticket.technicianAttachments || []}
+                  />
+                </div>
+              ) : (
+                <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <h2 className="mb-4 text-lg font-bold text-slate-900">Issue Attachments</h2>
+                  <TicketAttachmentGallery attachments={ticket.attachments || []} />
                 </div>
               )}
 
-              {/* Comments Section */}
-              <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
-                <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+              {ticket.resolutionNotes ? (
+                <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+                  <h2 className="mb-4 text-lg font-bold text-emerald-950">Resolution Notes</h2>
+                  <p className="leading-relaxed text-emerald-900">{ticket.resolutionNotes}</p>
+                </div>
+              ) : null}
+
+              <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">
                   <MessageSquare className="h-5 w-5 text-blue-600" />
-                  Comments ({comments?.length || 0})
+                  Comments
                 </h2>
-
-                {/* Add Comment */}
-                <div className="mb-6 p-4 bg-sky-50 rounded-xl border border-sky-100">
-                  <textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Add a comment..."
-                    className="w-full px-4 py-3 border border-sky-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white"
-                    rows="3"
-                  />
-                  <button
-                    onClick={handleAddComment}
-                    disabled={!newComment.trim() || addCommentMutation.isPending}
-                    className="mt-3 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors font-medium"
-                  >
-                    <Send className="h-4 w-4" />
-                    {addCommentMutation.isPending ? 'Sending...' : 'Send'}
-                  </button>
-                </div>
-
-                {/* Comments List */}
-                <div className="space-y-4">
-                  {!comments || comments.length === 0 ? (
-                    <p className="text-center text-slate-500 py-8">No comments yet</p>
-                  ) : (
-                    comments.map(comment => (
-                      <div key={comment.id} className="p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600">
-                              {comment.userFullName?.charAt(0) || 'U'}
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold text-slate-900">{comment.userFullName}</p>
-                              <p className="text-xs text-slate-500">{new Date(comment.createdAt).toLocaleString()}</p>
-                            </div>
-                          </div>
-                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
-                            {comment.userRole}
-                          </span>
-                        </div>
-
-                        {editingCommentId === comment.id ? (
-                          <div className="mt-3">
-                            <textarea
-                              value={editCommentText}
-                              onChange={(e) => setEditCommentText(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                              rows="2"
-                            />
-                            <div className="flex gap-2 mt-2">
-                              <button
-                                onClick={() => handleUpdateComment(comment.id)}
-                                disabled={updateCommentMutation.isPending}
-                                className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setEditingCommentId(null);
-                                  setEditCommentText('');
-                                }}
-                                className="px-3 py-1 bg-gray-300 text-slate-900 rounded text-sm hover:bg-gray-400 transition-colors"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="text-slate-700 text-sm">{comment.content}</p>
-                            {(comment.userId === user?.id || user?.role === 'ADMIN') && (
-                              <div className="flex gap-2 mt-3">
-                                <button
-                                  onClick={() => {
-                                    setEditingCommentId(comment.id);
-                                    setEditCommentText(comment.content);
-                                  }}
-                                  className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-                                >
-                                  <Edit2 className="h-3 w-3" />
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteComment(comment.id)}
-                                  className="text-xs text-red-600 hover:text-red-700 font-medium flex items-center gap-1"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                  Delete
-                                </button>
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
+                <TicketCommentThread ticketId={id} />
               </div>
 
-              {/* History Timeline */}
-              {ticket.history && ticket.history.length > 0 && (
-                <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
-                  <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+              {ticket.history && ticket.history.length > 0 ? (
+                <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">
                     <Clock className="h-5 w-5 text-blue-600" />
                     Activity History
                   </h2>
-                  <div className="space-y-4">
-                    {ticket.history.map((entry, idx) => (
-                      <div key={idx} className="flex gap-4 pb-4 border-b border-gray-200 last:border-b-0">
-                        <div className="flex-shrink-0">
-                          <div className="flex items-center justify-center h-10 w-10 rounded-full bg-blue-100">
-                            <CheckCircle className="h-5 w-5 text-blue-600" />
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-slate-900">{entry.action}</p>
-                          <p className="text-xs text-slate-600 mt-1">{entry.userFullName} - {new Date(entry.createdAt).toLocaleString()}</p>
-                          {entry.details && <p className="text-sm text-slate-700 mt-2">{entry.details}</p>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <TicketTimeline history={ticket.history} />
                 </div>
-              )}
+              ) : null}
             </div>
 
-            {/* Right Sidebar */}
             <div className="space-y-6">
-              {/* Assignment Card */}
-              <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
-                <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                <h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-900">
                   <User className="h-4 w-4 text-blue-600" />
-                  Assigned To
+                  Technician Assignment
                 </h3>
                 {ticket.assignedTechnicianName ? (
-                  <div className="p-4 bg-sky-50 rounded-xl border border-sky-100">
+                  <div className="rounded-xl border border-sky-100 bg-sky-50 p-4">
                     <p className="text-sm font-semibold text-slate-900">{ticket.assignedTechnicianName}</p>
-                    <p className="text-xs text-slate-600 mt-1">{ticket.assignedTechnicianEmail}</p>
+                    <p className="mt-1 text-xs text-slate-600">{ticket.assignedTechnicianEmail}</p>
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-600 italic">Unassigned</p>
+                  <p className="text-sm italic text-slate-600">Unassigned</p>
                 )}
+
+                {isAdmin ? (
+                  <div className="mt-4 border-t border-gray-100 pt-4">
+                    <button
+                      onClick={() => setAssignModalOpen(true)}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-sm font-medium text-white transition-all hover:shadow-lg"
+                    >
+                      <Users className="h-4 w-4" />
+                      {ticket.assignedTechnicianName ? 'Reassign Technician' : 'Assign Technician'}
+                    </button>
+                  </div>
+                ) : null}
               </div>
 
-              {/* Actions */}
-              {isAdminOrTech && (
-                <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
-                  <h3 className="text-sm font-bold text-slate-900 mb-4">Quick Actions</h3>
-                  <div className="space-y-2">
-                    {ticket.status === 'OPEN' && (
-                      <button
-                        onClick={() => handleStatusUpdate('IN_PROGRESS')}
-                        disabled={updateStatusMutation.isPending}
-                        className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400 transition-colors text-sm font-medium"
-                      >
-                        {updateStatusMutation.isPending ? 'Updating...' : 'Start Work'}
-                      </button>
-                    )}
-                    {ticket.status === 'IN_PROGRESS' && (
-                      <button
-                        onClick={() => handleStatusUpdate('RESOLVED')}
-                        disabled={updateStatusMutation.isPending}
-                        className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors text-sm font-medium"
-                      >
-                        {updateStatusMutation.isPending ? 'Updating...' : 'Mark Resolved'}
-                      </button>
-                    )}
-                    {ticket.status === 'RESOLVED' && (
-                      <button
-                        onClick={() => handleStatusUpdate('CLOSED')}
-                        disabled={updateStatusMutation.isPending}
-                        className="w-full px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:bg-gray-400 transition-colors text-sm font-medium"
-                      >
-                        {updateStatusMutation.isPending ? 'Updating...' : 'Close Ticket'}
-                      </button>
-                    )}
+              {isAdminOrTech ? (
+                <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <h3 className="mb-4 text-sm font-bold text-slate-900">Maintenance Workflow</h3>
+                  <div className="space-y-3">
+                    {workflowSteps.map((step, index) => {
+                      const isComplete = currentWorkflowIndex >= index;
+                      const isCurrent = currentWorkflowIndex === index;
+
+                      return (
+                        <div
+                          key={step.key}
+                          className={`rounded-2xl border p-4 ${
+                            isComplete ? 'border-sky-200 bg-sky-50' : 'border-gray-200 bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">{step.title}</p>
+                              <p className="mt-1 text-xs leading-5 text-slate-600">{step.description}</p>
+                            </div>
+                            <span
+                              className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${
+                                isCurrent
+                                  ? 'bg-blue-600 text-white'
+                                  : isComplete
+                                    ? 'bg-sky-100 text-blue-700'
+                                    : 'bg-white text-slate-400'
+                              }`}
+                            >
+                              {isCurrent ? 'Current' : isComplete ? 'Done' : 'Pending'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Next Step</p>
+                    <p className="mt-2 text-sm leading-6 text-amber-950">{nextStepCopy}</p>
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              {/* Details Card */}
-              <div className="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm">
-                <h3 className="text-sm font-bold text-slate-900 mb-4">Details</h3>
+              {isAdmin ? (
+                <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <h3 className="mb-4 text-sm font-bold text-slate-900">Admin Actions</h3>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setAssignModalOpen(true)}
+                      className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-sm font-medium text-white transition-all hover:shadow-lg"
+                    >
+                      {ticket.assignedTechnicianName ? 'Reassign Technician' : 'Assign Technician'}
+                    </button>
+                    {canReject ? (
+                      <button
+                        onClick={() => setRejectModalOpen(true)}
+                        className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+                      >
+                        Reject Ticket
+                      </button>
+                    ) : null}
+                    {canGiveFeedback ? (
+                      <button
+                        onClick={() => setFeedbackModalOpen(true)}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
+                      >
+                        <ShieldCheck className="h-4 w-4" />
+                        {ticket.adminFeedback ? 'Update Feedback' : 'Give Feedback'}
+                      </button>
+                    ) : null}
+                    <button
+                      onClick={() => navigate(`/tickets/${ticket.id}/edit`)}
+                      className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Edit Ticket Details
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {isTechnician ? (
+                <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                  <h3 className="mb-4 text-sm font-bold text-slate-900">Technician Actions</h3>
+
+                  {!isAssignedToCurrentTechnician ? (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                      <p className="text-sm font-semibold text-amber-950">Waiting for technician ownership</p>
+                      <p className="mt-2 text-xs leading-5 text-amber-800">
+                        This ticket is not assigned to your account yet. Workflow actions are locked until ownership is assigned to you.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {(ticket.status === 'IN_PROGRESS' || ticket.status === 'RESOLVED') ? (
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-900">Resolution Notes</label>
+                          <textarea
+                            value={resolutionNotes}
+                            onChange={(event) => setResolutionNotes(event.target.value)}
+                            rows={5}
+                            placeholder="Document the work completed, materials used, and final outcome..."
+                            className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <p className="mt-2 text-xs text-slate-500">
+                            Resolution notes are mandatory before a technician can mark this ticket as resolved.
+                          </p>
+                        </div>
+                      ) : null}
+
+                      <div className="space-y-2">
+                        {ticket.status === 'OPEN' ? (
+                          <button
+                            onClick={() => handleStatusUpdate('IN_PROGRESS')}
+                            disabled={updateStatusMutation.isPending}
+                            className="w-full rounded-lg bg-amber-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-amber-700 disabled:bg-gray-400"
+                          >
+                            {updateStatusMutation.isPending ? 'Updating...' : 'Start Work'}
+                          </button>
+                        ) : null}
+
+                        {ticket.status === 'IN_PROGRESS' ? (
+                          <button
+                            onClick={() => handleStatusUpdate('RESOLVED', { notes: resolutionNotes })}
+                            disabled={updateStatusMutation.isPending || !resolutionNotes.trim()}
+                            className="w-full rounded-lg bg-green-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:bg-gray-400"
+                          >
+                            {updateStatusMutation.isPending ? 'Updating...' : 'Mark as Resolved'}
+                          </button>
+                        ) : null}
+
+                        {ticket.status === 'RESOLVED' ? (
+                          <button
+                            onClick={() => handleStatusUpdate('CLOSED')}
+                            disabled={updateStatusMutation.isPending}
+                            className="w-full rounded-lg bg-slate-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-slate-700 disabled:bg-gray-400"
+                          >
+                            {updateStatusMutation.isPending ? 'Updating...' : 'Close Ticket'}
+                          </button>
+                        ) : null}
+
+                        {canReject ? (
+                          <button
+                            onClick={() => setRejectModalOpen(true)}
+                            disabled={updateStatusMutation.isPending}
+                            className="w-full rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
+                          >
+                            Reject Ticket
+                          </button>
+                        ) : null}
+                      </div>
+
+                      <div className="rounded-2xl border border-sky-100 bg-sky-50 p-4">
+                        <div className="flex items-center gap-2">
+                          <UploadCloud className="h-4 w-4 text-blue-700" />
+                          <p className="text-sm font-semibold text-slate-900">Completion Images</p>
+                        </div>
+                        <p className="mt-2 text-xs leading-5 text-slate-600">
+                          Upload up to 3 after-work images for admin-only verification. These images are hidden from students and technicians after upload.
+                        </p>
+                        {uploadError ? (
+                          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">{uploadError}</div>
+                        ) : null}
+                        {uploadSuccess ? (
+                          <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-700">{uploadSuccess}</div>
+                        ) : null}
+                        <div className="mt-4">
+                          <TicketAttachmentGallery
+                            attachments={[]}
+                            onUpload={handleAfterUpload}
+                            isLoading={uploadingAfterImages}
+                            emptyMessage="No completion images uploaded yet."
+                            helperMessage="Upload up to 3 completion images for admin review."
+                            maxAttachments={3}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                <h3 className="mb-4 text-sm font-bold text-slate-900">Details</h3>
                 <div className="space-y-3 text-sm">
                   <div>
-                    <p className="text-xs text-slate-600 font-medium">Requester</p>
-                    <p className="text-slate-900 mt-1 font-medium">{ticket.userFullName}</p>
+                    <p className="text-xs font-medium text-slate-600">Requester</p>
+                    <p className="mt-1 font-medium text-slate-900">{ticket.userFullName}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-600 font-medium">Contact Email</p>
-                    <p className="text-slate-900 mt-1">{ticket.contactEmail || 'N/A'}</p>
+                    <p className="text-xs font-medium text-slate-600">Contact Email</p>
+                    <p className="mt-1 text-slate-900">{ticket.contactEmail || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-600 font-medium">Contact Phone</p>
-                    <p className="text-slate-900 mt-1">{ticket.contactPhone || 'N/A'}</p>
+                    <p className="text-xs font-medium text-slate-600">Contact Phone</p>
+                    <p className="mt-1 text-slate-900">{ticket.contactPhone || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-600 font-medium">Expected Date</p>
-                    <p className="text-slate-900 mt-1">
+                    <p className="text-xs font-medium text-slate-600">Expected Date</p>
+                    <p className="mt-1 text-slate-900">
                       {ticket.expectedDate ? new Date(ticket.expectedDate).toLocaleDateString() : 'Not set'}
                     </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-600">Current Status</p>
+                    <p className="mt-1 font-medium text-slate-900">{formatStatusLabel(ticket.status)}</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          <AssignTechnicianModal
+            isOpen={assignModalOpen}
+            ticketId={ticket.id}
+            ticketNumber={ticket.id}
+            currentAssignedTo={ticket.assignedTechnicianName}
+            onClose={() => setAssignModalOpen(false)}
+            onSuccess={handleAssignSuccess}
+          />
+
+          <FeedbackModal
+            isOpen={feedbackModalOpen}
+            onClose={() => setFeedbackModalOpen(false)}
+            onSubmit={handleFeedbackSubmit}
+            isSubmitting={addFeedbackMutation.isPending}
+            initialFeedback={ticket.adminFeedback || ''}
+            initialRating={ticket.adminRating || 0}
+          />
+
+          <RejectModal
+            isOpen={rejectModalOpen}
+            onClose={() => setRejectModalOpen(false)}
+            onSubmit={handleReject}
+            isSubmitting={updateStatusMutation.isPending}
+            actorLabel={isAdmin ? 'Reject Ticket' : 'Reject Assigned Ticket'}
+          />
         </main>
       </div>
     </div>

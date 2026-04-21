@@ -35,6 +35,10 @@ public class TicketAttachment {
     @Column
     private Long fileSize; // in bytes
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AttachmentCategory attachmentCategory;
+
     @Column(nullable = false)
     private Long uploadedBy;
 
