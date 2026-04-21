@@ -10,13 +10,12 @@ import TechnicianDashboard from './pages/TechnicianDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import StudentTicketsPage from './pages/StudentTicketsPage';
 import StudentResourcesPage from './pages/StudentResourcesPage';
+import AdminResourcesPage from './pages/AdminResourcesPage';
 import Tickets from './pages/Tickets';
 import TicketCreatePage from './pages/TicketCreatePage';
 import TicketDetailPage from './pages/TicketDetailPage';
 import EditTicketPage from './pages/EditTicketPage';
 import GoogleAuthSuccess from './pages/GoogleAuthSuccess';
-import FacilitiesPage from './pages/FacilitiesPage';
-import FacilityDetailPage from './pages/FacilityDetailPage';
 import BookingsPage from './pages/BookingsPage';
 import AdminBookingsPage from './pages/AdminBookingsPage';
 import ManageUsersPage from './pages/ManageUsersPage';
@@ -28,6 +27,13 @@ function BookingsRoute() {
   const { user } = useAuth();
   if (!user) return null;
   return user.role === 'ADMIN' ? <AdminBookingsPage /> : <BookingsPage />;
+}
+
+// Role-based resources route component
+function ResourcesRoute() {
+  const { user } = useAuth();
+  if (!user) return null;
+  return user.role === 'ADMIN' ? <AdminResourcesPage /> : <StudentResourcesPage />;
 }
 
 function App() {
@@ -130,15 +136,7 @@ function App() {
               path="/facilities"
               element={
                 <ProtectedRoute>
-                  <FacilitiesPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/facilities/:id"
-              element={
-                <ProtectedRoute>
-                  <FacilityDetailPage />
+                  <ResourcesRoute />
                 </ProtectedRoute>
               }
             />

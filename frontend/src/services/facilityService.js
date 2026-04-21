@@ -99,6 +99,20 @@ export const buildFilterParams = (filters) => {
   return params;
 };
 
+// Get 7-day occupancy data for a facility
+export const getWeeklyOccupancy = async (resourceId, startDate = null) => {
+  try {
+    const params = {};
+    if (startDate) {
+      params.startDate = startDate;
+    }
+    const response = await apiClient.get(`/resources/${resourceId}/weekly-occupancy`, { params });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to fetch occupancy data';
+  }
+};
+
 // Upload image file
 export const uploadImage = async (file) => {
   try {

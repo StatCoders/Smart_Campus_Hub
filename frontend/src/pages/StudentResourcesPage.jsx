@@ -4,6 +4,7 @@ import { Bell, User, Settings, LogOut, MapPin, Users, Clock, Check, X } from 'lu
 import { useAuth } from '../context/useAuth';
 import campusLogo from '../assets/campus-logo.png';
 import { getAllFacilities } from '../services/facilityService';
+import OccupancyChart from '../components/OccupancyChart';
 
 export default function StudentResourcesPage() {
   const navigate = useNavigate();
@@ -15,6 +16,8 @@ export default function StudentResourcesPage() {
   const [typeFilter, setTypeFilter] = useState('All');
   const [availabilityFilter, setAvailabilityFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFacility, setSelectedFacility] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -273,10 +276,34 @@ export default function StudentResourcesPage() {
                 key={facility.id}
                 className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition"
               >
+                {/* Image Section */}
+                <div className="relative h-48 bg-gray-200 overflow-hidden">
+                  {facility.imageUrl ? (
+                    <img 
+                      src={facility.imageUrl}
+                      alt={facility.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <span className="text-4xl">📦</span>
+                    </div>
+                  )}
+                </div>
+
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-                  <h3 className="text-lg font-semibold text-white">{facility.name}</h3>
-                  <p className="text-blue-100 text-sm mt-1">{facility.type}</p>
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-start justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">{facility.name}</h3>
+                    <p className="text-blue-100 text-sm mt-1">{facility.type}</p>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                    facility.status === 'ACTIVE' 
+                      ? 'bg-white/20 text-white border border-white/30' 
+                      : 'bg-white/10 text-white border border-white/20'
+                  }`}>
+                    {facility.status === 'ACTIVE' ? 'Active' : 'Out of Service'}
+                  </span>
                 </div>
 
                 {/* Content */}
@@ -287,7 +314,7 @@ export default function StudentResourcesPage() {
                     <div className="min-w-0">
                       <p className="text-sm text-gray-600">Location</p>
                       <p className="font-medium text-gray-900">
-                        {facility.building} - Floor {facility.floor}
+                        {facility.building} - {facility.floor?.includes('Floor') ? facility.floor : `Floor ${facility.floor}`}
                       </p>
                     </div>
                   </div>
@@ -335,7 +362,10 @@ export default function StudentResourcesPage() {
                 {/* Footer */}
                 <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
                   <button
-                    onClick={() => navigate(`/facilities/${facility.id}`)}
+                    onClick={() => {
+                      setSelectedFacility(facility);
+                      setIsModalOpen(true);
+                    }}
                     className="w-full text-center text-blue-600 hover:text-blue-700 font-medium text-sm py-2 rounded-lg hover:bg-blue-50 transition"
                   >
                     View Details
@@ -346,6 +376,119 @@ export default function StudentResourcesPage() {
           </div>
         )}
       </main>
+
+      {/* Resource Details Modal */}
+      {isModalOpen && selectedFacility && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Glass Effect Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={() => setIsModalOpen(false)}
+          ></div>
+          
+          {/* Modal */}
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Close Button */}
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 z-10 p-2 hover:bg-gray-100 rounded-full transition"
+            >
+              <X className="w-6 h-6 text-gray-600" />
+            </button>
+
+            {/* Image Section */}
+            <div className="relative h-64 bg-gray-200 overflow-hidden">
+              {selectedFacility.imageUrl ? (
+                <img 
+                  src={selectedFacility.imageUrl}
+                  alt={selectedFacility.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <span className="text-6xl">📦</span>
+                </div>
+              )}
+            </div>
+
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 pr-12">
+              <h2 className="text-2xl font-bold text-white">{selectedFacility.name}</h2>
+              <p className="text-blue-100 text-sm mt-2">{selectedFacility.type}</p>
+            </div>
+
+            {/* Content */}
+            <div className="p-8 space-y-6">
+              {/* Status Badge */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-600 font-medium">Booking Status:</span>
+                {getAvailabilityBadge(selectedFacility.bookingStatus)}
+              </div>
+
+              {/* Location */}
+              <div className="border-l-4 border-blue-600 pl-4">
+                <p className="text-sm text-gray-600 font-medium">Location</p>
+                <p className="text-gray-900 font-semibold mt-1">
+                  {selectedFacility.building} - Floor {selectedFacility.floor}
+                </p>
+              </div>
+
+              {/* Capacity */}
+              <div className="border-l-4 border-blue-600 pl-4">
+                <p className="text-sm text-gray-600 font-medium">Capacity</p>
+                <p className="text-gray-900 font-semibold mt-1">
+                  {selectedFacility.capacity ? `${selectedFacility.capacity} people` : 'N/A'}
+                </p>
+              </div>
+
+              {/* Availability Windows */}
+              {selectedFacility.availabilityWindows && (
+                <div className="border-l-4 border-blue-600 pl-4">
+                  <p className="text-sm text-gray-600 font-medium">Hours</p>
+                  <p className="text-gray-900 font-semibold mt-1">
+                    {selectedFacility.availabilityWindows}
+                  </p>
+                </div>
+              )}
+
+              {/* Features */}
+              {selectedFacility.features && selectedFacility.features.length > 0 && (
+                <div className="border-l-4 border-blue-600 pl-4">
+                  <p className="text-sm text-gray-600 font-medium mb-3">This Facility Includes</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedFacility.features.map((feature, idx) => (
+                      <span key={idx} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Occupancy Chart */}
+              <div className="border-l-4 border-blue-600 pl-4 bg-blue-50 p-4 rounded">
+                <OccupancyChart facilityId={selectedFacility.id} facility={selectedFacility} />
+              </div>
+
+              {/* Timestamps */}
+              <div className="pt-6 border-t border-gray-200 space-y-2 text-xs text-gray-500">
+                <p>Added: {new Date(selectedFacility.createdAt).toLocaleString()}</p>
+                <p>Updated: {new Date(selectedFacility.updatedAt).toLocaleString()}</p>
+              </div>
+            </div>
+
+            {/* Footer Button */}
+            <div className="bg-gray-50 px-8 py-4 border-t border-gray-200 rounded-b-2xl">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ package com.smartcampus.backend.controller.facility;
 import com.smartcampus.backend.dto.facility.FacilityCreateRequest;
 import com.smartcampus.backend.dto.facility.FacilityDto;
 import com.smartcampus.backend.dto.facility.FacilitySearchFilter;
+import com.smartcampus.backend.dto.facility.OccupancyDataDto;
 import com.smartcampus.backend.service.facility.FacilityService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/resources")
@@ -119,5 +122,24 @@ public class FacilityController {
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<?> searchByLocation(@RequestParam String location) {
         return ResponseEntity.ok(facilityService.searchByLocation(location));
+    }
+
+    /**
+     * Get 7-day occupancy data for a facility
+     * Shows approved bookings per day with user details and occupancy percentage
+     * Accessible by ADMIN and USER
+     */
+    @GetMapping("/{id}/weekly-occupancy")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<OccupancyDataDto> getWeeklyOccupancy(
+            @PathVariable Long id,
+            @RequestParam(required = false) String startDate) {
+        
+        LocalDate date = startDate != null && !startDate.isEmpty() 
+            ? LocalDate.parse(startDate) 
+            : LocalDate.now();
+        
+        OccupancyDataDto occupancy = facilityService.getWeeklyOccupancy(id, date);
+        return ResponseEntity.ok(occupancy);
     }
 }

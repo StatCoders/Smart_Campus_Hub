@@ -40,7 +40,7 @@ export default function StatusDistributionChart({ data, totalTickets }) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
-      <div className="relative min-w-0 h-72">
+      <div className="relative h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
