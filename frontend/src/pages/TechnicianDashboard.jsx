@@ -1,270 +1,666 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Activity,
+  ArrowRight,
+  BarChart3,
+  CheckCheck,
+  CheckCircle,
+  ClipboardList,
+  Clock,
+  FolderKanban,
+  RefreshCw,
+  TriangleAlert,
+} from 'lucide-react';
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import TopBar from '../components/TopBar';
+import TechnicianMaintenanceSidebar from '../components/TechnicianMaintenanceSidebar';
+import PriorityBreakdown from '../components/dashboard/PriorityBreakdown';
+import StatusDistributionChart from '../components/dashboard/StatusDistributionChart';
 import { useAuth } from '../context/useAuth';
 import { useSidebar } from '../context/SidebarContext';
-import { getAllTickets } from '../services/ticketService';
-import { BarChart3, Clock, AlertCircle, CheckCircle, ChevronLeft, ChevronRight, X, Wrench } from 'lucide-react';
-import campusLogo from '../assets/campus-logo.png';
+import { useTicketsByTechnician } from '../hooks/useTickets';
+
+const formatStatusLabel = (status) => String(status || '').replace(/_/g, ' ');
+
+const getStatusColor = (status) => {
+  const colors = {
+    OPEN: 'bg-red-100 text-red-800',
+    IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
+    RESOLVED: 'bg-green-100 text-green-800',
+    CLOSED: 'bg-slate-100 text-slate-800',
+    REJECTED: 'bg-rose-100 text-rose-800',
+  };
+
+  return colors[status] || 'bg-gray-100 text-gray-800';
+};
+
+const getPriorityColor = (priority) => {
+  const colors = {
+    LOW: 'bg-green-100 text-green-800',
+    MEDIUM: 'bg-yellow-100 text-yellow-800',
+    HIGH: 'bg-orange-100 text-orange-800',
+    URGENT: 'bg-red-100 text-red-800',
+  };
+
+  return colors[priority] || 'bg-gray-100 text-gray-800';
+};
+
+const getLocationLabel = (ticket) => {
+  const location = [ticket.building, ticket.roomNumber].filter(Boolean).join(' / ');
+  return location || ticket.resourceId || 'Campus Resource';
+};
+
+const formatExpectedDate = (value) => {
+  if (!value) {
+    return 'Not set';
+  }
+
+  return new Date(value).toLocaleDateString();
+};
+
+const formatCompactDate = (value) =>
+  new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(value));
+
+const getStatusSeries = (tickets) => {
+  const colors = {
+    OPEN: '#f43f5e',
+    IN_PROGRESS: '#f59e0b',
+    RESOLVED: '#10b981',
+    CLOSED: '#64748b',
+    REJECTED: '#dc2626',
+  };
+
+  return ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REJECTED']
+    .map((status) => {
+      const value = tickets.filter((ticket) => ticket.status === status).length;
+      const share = tickets.length ? Math.round((value / tickets.length) * 100) : 0;
+
+      return {
+        key: status,
+        name: formatStatusLabel(status),
+        value,
+        share,
+        color: colors[status],
+      };
+    })
+    .filter((item) => item.value > 0);
+};
+
+const getPrioritySeries = (tickets) =>
+  ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
+    .map((priority) => {
+      const count = tickets.filter((ticket) => ticket.priority === priority).length;
+      const share = tickets.length ? Math.round((count / tickets.length) * 100) : 0;
+
+      return { label: priority, count, share };
+    })
+    .filter((item) => item.count > 0);
+
+const getCategorySeries = (tickets) =>
+  Object.entries(
+    tickets.reduce((accumulator, ticket) => {
+      const key = ticket.category || 'Uncategorized';
+      accumulator[key] = (accumulator[key] || 0) + 1;
+      return accumulator;
+    }, {})
+  )
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 6)
+    .map(([name, total]) => ({ name, total }));
+
+const getTrendSeries = (tickets) => {
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const day = new Date();
+    day.setHours(0, 0, 0, 0);
+    day.setDate(day.getDate() - (6 - index));
+    return day;
+  });
+
+  return days.map((day) => {
+    const nextDay = new Date(day);
+    nextDay.setDate(nextDay.getDate() + 1);
+
+    const created = tickets.filter((ticket) => {
+      const createdAt = new Date(ticket.createdAt);
+      return createdAt >= day && createdAt < nextDay;
+    }).length;
+
+    const resolved = tickets.filter((ticket) => {
+      if (!['RESOLVED', 'CLOSED'].includes(ticket.status) || !ticket.updatedAt) {
+        return false;
+      }
+
+      const resolvedAt = new Date(ticket.updatedAt);
+      return resolvedAt >= day && resolvedAt < nextDay;
+    }).length;
+
+    return {
+      label: formatCompactDate(day),
+      created,
+      resolved,
+    };
+  });
+};
+
+function AnalysisTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-xl">
+      <p className="text-sm font-semibold text-slate-950">{label}</p>
+      <div className="mt-2 space-y-1.5">
+        {payload.map((entry) => (
+          <div key={entry.dataKey} className="flex items-center justify-between gap-4 text-xs">
+            <span className="font-medium text-slate-500" style={{ color: entry.color }}>
+              {entry.name}
+            </span>
+            <span className="font-semibold text-slate-900">{entry.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function TechnicianDashboard() {
-
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isCollapsed } = useSidebar();
   const [activeTab, setActiveTab] = useState('maintenance');
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const {
+    data: tickets = [],
+    isLoading: loading,
+    error,
+    refetch,
+    isFetching,
+  } = useTicketsByTechnician(user?.id, { enabled: !!user?.id });
 
-  // Fetch tickets
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const data = await getAllTickets();
-        setTickets(Array.isArray(data) ? data : []);
-      } catch (err) {
-        setError(err.message || 'Failed to fetch data');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const readyToStartTickets = tickets.filter((ticket) => ticket.status === 'OPEN');
+  const activeTickets = tickets.filter((ticket) => ticket.status === 'IN_PROGRESS');
+  const resolvedTickets = tickets.filter((ticket) => ['RESOLVED', 'CLOSED'].includes(ticket.status));
+  const elevatedTickets = tickets.filter(
+    (ticket) => ['HIGH', 'URGENT'].includes(ticket.priority) && !['RESOLVED', 'CLOSED'].includes(ticket.status)
+  );
+  const sortedTickets = [...tickets].sort(
+    (left, right) => new Date(right.updatedAt || right.createdAt) - new Date(left.updatedAt || left.createdAt)
+  );
 
-    fetchData();
-  }, []);
-
-  // Calculate statistics
   const stats = {
     totalTickets: tickets.length,
-    openTickets: tickets.filter(t => t.status === 'OPEN').length,
-    inProgress: tickets.filter(t => t.status === 'IN_PROGRESS').length,
-    resolved: tickets.filter(t => t.status === 'RESOLVED').length,
+    openTickets: readyToStartTickets.length,
+    inProgress: activeTickets.length,
+    resolved: resolvedTickets.length,
+    elevated: elevatedTickets.length,
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      'OPEN': 'bg-red-100 text-red-800',
-      'IN_PROGRESS': 'bg-yellow-100 text-yellow-800',
-      'RESOLVED': 'bg-green-100 text-green-800',
-      'CLOSED': 'bg-gray-100 text-gray-800',
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
-  };
-
-  const getPriorityColor = (priority) => {
-    const colors = {
-      'LOW': 'bg-green-100 text-green-800',
-      'MEDIUM': 'bg-yellow-100 text-yellow-800',
-      'HIGH': 'bg-orange-100 text-orange-800',
-      'URGENT': 'bg-red-100 text-red-800',
-    };
-    return colors[priority] || 'bg-gray-100 text-gray-800';
-  };
+  const completionRate = stats.totalTickets > 0 ? Math.round((stats.resolved / stats.totalTickets) * 100) : 0;
+  const statusDistribution = getStatusSeries(tickets);
+  const priorityBreakdown = getPrioritySeries(tickets);
+  const categoryBreakdown = getCategorySeries(tickets);
+  const workloadTrend = getTrendSeries(tickets);
+  const overdueTickets = tickets.filter(
+    (ticket) =>
+      ticket.expectedDate &&
+      new Date(ticket.expectedDate) < new Date() &&
+      !['RESOLVED', 'CLOSED'].includes(ticket.status)
+  ).length;
+  const feedbackCount = tickets.filter((ticket) => ticket.adminFeedback).length;
 
   return (
-    <div className="flex bg-gray-50 min-h-screen">
-      {/* Technician Sidebar - Only Maintenance Tabs */}
-      <TechnicianSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className="flex min-h-screen bg-gray-50">
+      <TechnicianMaintenanceSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Main Content */}
       <div className={`flex-1 transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:ml-24' : 'lg:ml-64'}`}>
-        {/* Top Bar */}
         <TopBar user={user} />
 
-        {/* Content Area */}
         <main className="p-8">
-          {/* Header Section */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Technician Dashboard</h1>
-            <p className="text-gray-600">Manage and analyze maintenance tickets</p>
+          <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h1 className="mb-2 text-4xl font-bold text-gray-900">Technician Dashboard</h1>
+              <p className="text-gray-600">Your assigned maintenance and incident workload</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-semibold text-blue-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              Refresh Queue
+            </button>
           </div>
 
-          {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-              {error}
+            <div className="mb-6 rounded-lg border border-red-400 bg-red-100 p-4 text-red-700">
+              {error.message || 'Failed to fetch data'}
             </div>
           )}
 
-          {/* Loading State */}
           {loading ? (
-            <div className="flex justify-center items-center h-64">
+            <div className="flex h-64 items-center justify-center">
               <p className="text-xl text-gray-600">Loading dashboard...</p>
             </div>
           ) : (
             <>
-              {/* Maintenance Tab */}
               {activeTab === 'maintenance' && (
                 <div className="space-y-6">
-                  {/* Statistics Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+                    <div className="rounded-lg border-l-4 border-blue-500 bg-white p-6 shadow">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-gray-600 text-sm font-medium">Total Tickets</p>
+                          <p className="text-sm font-medium text-gray-600">Assigned to Me</p>
                           <p className="text-3xl font-bold text-gray-900">{stats.totalTickets}</p>
                         </div>
-                        <AlertCircle className="w-12 h-12 text-blue-200" />
+                        <ClipboardList className="h-12 w-12 text-blue-200" />
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
+                    <div className="rounded-lg border-l-4 border-red-500 bg-white p-6 shadow">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-gray-600 text-sm font-medium">Open Tickets</p>
+                          <p className="text-sm font-medium text-gray-600">Ready to Start</p>
                           <p className="text-3xl font-bold text-gray-900">{stats.openTickets}</p>
                         </div>
-                        <AlertCircle className="w-12 h-12 text-red-200" />
+                        <TriangleAlert className="h-12 w-12 text-red-200" />
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-500">
+                    <div className="rounded-lg border-l-4 border-yellow-500 bg-white p-6 shadow">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-gray-600 text-sm font-medium">In Progress</p>
+                          <p className="text-sm font-medium text-gray-600">In Progress</p>
                           <p className="text-3xl font-bold text-gray-900">{stats.inProgress}</p>
                         </div>
-                        <Clock className="w-12 h-12 text-yellow-200" />
+                        <Clock className="h-12 w-12 text-yellow-200" />
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+                    <div className="rounded-lg border-l-4 border-green-500 bg-white p-6 shadow">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-gray-600 text-sm font-medium">Resolved</p>
+                          <p className="text-sm font-medium text-gray-600">Resolved / Closed</p>
                           <p className="text-3xl font-bold text-gray-900">{stats.resolved}</p>
                         </div>
-                        <CheckCircle className="w-12 h-12 text-green-200" />
+                        <CheckCircle className="h-12 w-12 text-green-200" />
                       </div>
                     </div>
                   </div>
 
-                  {/* Tickets Table */}
-                  <div className="bg-white rounded-lg shadow overflow-hidden">
-                    <div className="p-6 border-b border-gray-200">
-                      <h2 className="text-xl font-bold text-gray-900">Recent Tickets</h2>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">ID</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Category</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Description</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Priority</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Resource</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {tickets.length === 0 ? (
+                  <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.9fr)]">
+                    <div className="overflow-hidden rounded-lg bg-white shadow">
+                      <div className="border-b border-gray-200 p-6">
+                        <h2 className="text-xl font-bold text-gray-900">My Work Queue</h2>
+                        <p className="mt-1 text-sm text-gray-500">
+                          Tickets currently assigned to your technician account.
+                        </p>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="border-b border-gray-200 bg-gray-50">
                             <tr>
-                              <td colSpan="6" className="px-6 py-8 text-center text-gray-600">
-                                No tickets found
-                              </td>
+                              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Ticket</th>
+                              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Location</th>
+                              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Priority</th>
+                              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+                              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Expected Date</th>
+                              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Action</th>
                             </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {sortedTickets.length === 0 ? (
+                              <tr>
+                                <td colSpan="6" className="px-6 py-8 text-center text-gray-600">
+                                  No assigned tickets yet. New admin assignments will appear here automatically.
+                                </td>
+                              </tr>
+                            ) : (
+                              sortedTickets.map((ticket) => (
+                                <tr key={ticket.id} className="transition-colors hover:bg-gray-50">
+                                  <td className="px-6 py-4 align-top">
+                                    <p className="text-sm font-semibold text-gray-900">#{ticket.id}</p>
+                                    <p className="mt-1 text-xs text-gray-600">{ticket.category}</p>
+                                    {ticket.adminFeedback && (
+                                      <div className="mt-3 rounded-xl border border-sky-100 bg-sky-50 p-3">
+                                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-700">
+                                          Admin Feedback
+                                        </p>
+                                        <p className="mt-2 text-xs leading-5 text-slate-700">{ticket.adminFeedback}</p>
+                                        {ticket.adminRating ? (
+                                          <p className="mt-2 text-xs font-semibold text-amber-700">
+                                            Rating: {ticket.adminRating}/5
+                                          </p>
+                                        ) : null}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-4 align-top text-sm text-gray-700">
+                                    <p className="font-medium text-gray-900">{ticket.resourceId}</p>
+                                    <p className="mt-1 text-xs text-gray-500">{getLocationLabel(ticket)}</p>
+                                  </td>
+                                  <td className="px-6 py-4 align-top text-sm">
+                                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${getPriorityColor(ticket.priority)}`}>
+                                      {ticket.priority}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 align-top text-sm">
+                                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(ticket.status)}`}>
+                                      {formatStatusLabel(ticket.status)}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 align-top text-sm text-gray-700">{formatExpectedDate(ticket.expectedDate)}</td>
+                                  <td className="px-6 py-4 align-top text-sm">
+                                    <button
+                                      type="button"
+                                      onClick={() => navigate(`/tickets/${ticket.id}`)}
+                                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700"
+                                    >
+                                      Open Ticket
+                                      <ArrowRight className="h-3.5 w-3.5" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className="rounded-lg bg-white p-6 shadow">
+                        <h2 className="text-xl font-bold text-gray-900">Ready to Start</h2>
+                        <p className="mt-1 text-sm text-gray-500">
+                          Newly assigned tickets waiting for technician action.
+                        </p>
+                        <div className="mt-4 space-y-3">
+                          {readyToStartTickets.length === 0 ? (
+                            <p className="rounded-lg bg-gray-50 px-4 py-4 text-sm text-gray-600">
+                              No new tickets are waiting for pickup.
+                            </p>
                           ) : (
-                            tickets.slice(0, 10).map(ticket => (
-                              <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4 text-sm text-gray-900 font-medium">#{ticket.id}</td>
-                                <td className="px-6 py-4 text-sm text-gray-900">{ticket.category}</td>
-                                <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{ticket.description}</td>
-                                <td className="px-6 py-4 text-sm">
-                                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(ticket.priority)}`}>
+                            readyToStartTickets.slice(0, 4).map((ticket) => (
+                              <button
+                                key={ticket.id}
+                                type="button"
+                                onClick={() => navigate(`/tickets/${ticket.id}`)}
+                                className="w-full rounded-lg border border-red-100 bg-red-50 px-4 py-4 text-left transition hover:border-red-200 hover:bg-red-100"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="font-semibold text-gray-900">
+                                      #{ticket.id} - {ticket.category}
+                                    </p>
+                                    <p className="mt-1 text-sm text-gray-600">{getLocationLabel(ticket)}</p>
+                                  </div>
+                                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${getPriorityColor(ticket.priority)}`}>
                                     {ticket.priority}
                                   </span>
-                                </td>
-                                <td className="px-6 py-4 text-sm">
-                                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(ticket.status)}`}>
-                                    {ticket.status.replace('_', ' ')}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 text-sm text-gray-900">{ticket.resourceId}</td>
-                              </tr>
+                                </div>
+                              </button>
                             ))
                           )}
-                        </tbody>
-                      </table>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg bg-white p-6 shadow">
+                        <h2 className="text-xl font-bold text-gray-900">Active Work</h2>
+                        <p className="mt-1 text-sm text-gray-500">
+                          Jobs you are currently progressing through the maintenance workflow.
+                        </p>
+                        <div className="mt-4 space-y-3">
+                          {activeTickets.length === 0 ? (
+                            <p className="rounded-lg bg-gray-50 px-4 py-4 text-sm text-gray-600">
+                              No tickets are currently in progress.
+                            </p>
+                          ) : (
+                            activeTickets.slice(0, 4).map((ticket) => (
+                              <button
+                                key={ticket.id}
+                                type="button"
+                                onClick={() => navigate(`/tickets/${ticket.id}`)}
+                                className="w-full rounded-lg border border-yellow-100 bg-yellow-50 px-4 py-4 text-left transition hover:border-yellow-200 hover:bg-yellow-100"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="font-semibold text-gray-900">#{ticket.id} - {ticket.resourceId}</p>
+                                    <p className="mt-1 text-sm text-gray-600">
+                                      Due: {formatExpectedDate(ticket.expectedDate)}
+                                    </p>
+                                    {ticket.adminFeedback ? (
+                                      <p className="mt-2 text-xs font-medium text-blue-700">Feedback available from admin review</p>
+                                    ) : null}
+                                  </div>
+                                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${getPriorityColor(ticket.priority)}`}>
+                                    {ticket.priority}
+                                  </span>
+                                </div>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg bg-white p-6 shadow">
+                        <h2 className="text-xl font-bold text-gray-900">Attention Needed</h2>
+                        <p className="mt-1 text-sm text-gray-500">
+                          Higher-priority work currently assigned to you.
+                        </p>
+                        <div className="mt-4 space-y-3">
+                          {elevatedTickets.length === 0 ? (
+                            <p className="rounded-lg bg-gray-50 px-4 py-4 text-sm text-gray-600">
+                              No high-priority tickets need attention right now.
+                            </p>
+                          ) : (
+                            elevatedTickets.slice(0, 4).map((ticket) => (
+                              <button
+                                key={ticket.id}
+                                type="button"
+                                onClick={() => navigate(`/tickets/${ticket.id}`)}
+                                className="w-full rounded-lg border border-orange-100 bg-orange-50 px-4 py-4 text-left transition hover:border-orange-200 hover:bg-orange-100"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="font-semibold text-gray-900">#{ticket.id} - {ticket.resourceId}</p>
+                                    <p className="mt-1 text-sm text-gray-600">{ticket.description}</p>
+                                  </div>
+                                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${getPriorityColor(ticket.priority)}`}>
+                                    {ticket.priority}
+                                  </span>
+                                </div>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Analysis Tab */}
               {activeTab === 'analysis' && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Status Distribution */}
-                    <div className="bg-white rounded-lg shadow p-6">
-                      <div className="flex items-center gap-3 mb-6">
-                        <BarChart3 className="w-6 h-6 text-blue-600" />
-                        <h2 className="text-xl font-bold text-gray-900">Status Distribution</h2>
-                      </div>
+                  <section className="overflow-hidden rounded-[32px] border border-sky-100 bg-gradient-to-br from-[#0F172A] via-[#0b245a] to-[#1E40AF] p-8 text-white shadow-[0_30px_90px_-40px_rgba(15,23,42,0.75)]">
+                    <div className="grid gap-8 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] xl:items-start">
                       <div className="space-y-4">
-                        {[
-                          { label: 'Open', count: stats.openTickets, color: 'bg-red-500' },
-                          { label: 'In Progress', count: stats.inProgress, color: 'bg-yellow-500' },
-                          { label: 'Resolved', count: stats.resolved, color: 'bg-green-500' },
-                        ].map(item => (
-                          <div key={item.label}>
-                            <div className="flex justify-between mb-2">
-                              <span className="text-sm font-medium text-gray-900">{item.label}</span>
-                              <span className="text-sm font-bold text-gray-900">{item.count}</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div
-                                className={`${item.color} h-2 rounded-full`}
-                                style={{ width: `${(item.count / stats.totalTickets) * 100 || 0}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        ))}
+                        <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-sky-100">
+                          <BarChart3 className="h-4 w-4" />
+                          Maintenance Analysis
+                        </div>
+                        <div>
+                          <h2 className="text-3xl font-semibold tracking-tight">Technician performance snapshot</h2>
+                          <p className="mt-2 max-w-2xl text-sm leading-7 text-sky-50/85">
+                            Visualize your assigned maintenance flow, active workload, and service completion rhythm in one place.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-[26px] border border-white/10 bg-white/10 p-5 backdrop-blur">
+                          <p className="text-xs uppercase tracking-[0.2em] text-sky-100/75">Completion Rate</p>
+                          <p className="mt-3 text-4xl font-semibold text-white">{completionRate}%</p>
+                        </div>
+                        <div className="rounded-[26px] border border-white/10 bg-white/10 p-5 backdrop-blur">
+                          <p className="text-xs uppercase tracking-[0.2em] text-sky-100/75">Feedback Logged</p>
+                          <p className="mt-3 text-4xl font-semibold text-white">{feedbackCount}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-[28px] border border-sky-100 bg-white p-6 shadow-[0_20px_50px_-35px_rgba(15,23,42,0.45)]">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-500">Completion Rate</p>
+                          <p className="mt-3 text-3xl font-bold text-blue-600">{completionRate}%</p>
+                        </div>
+                        <CheckCheck className="h-11 w-11 rounded-2xl bg-blue-50 p-2.5 text-blue-600" />
                       </div>
                     </div>
 
-                    {/* Priority Distribution */}
-                    <div className="bg-white rounded-lg shadow p-6">
-                      <div className="flex items-center gap-3 mb-6">
-                        <BarChart3 className="w-6 h-6 text-blue-600" />
-                        <h2 className="text-xl font-bold text-gray-900">Priority Distribution</h2>
-                      </div>
-                      <div className="space-y-4">
-                        {[
-                          { label: 'Low', count: tickets.filter(t => t.priority === 'LOW').length },
-                          { label: 'Medium', count: tickets.filter(t => t.priority === 'MEDIUM').length },
-                          { label: 'High', count: tickets.filter(t => t.priority === 'HIGH').length },
-                          { label: 'Urgent', count: tickets.filter(t => t.priority === 'URGENT').length },
-                        ].map(item => (
-                          <div key={item.label} className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-900">{item.label}</span>
-                            <span className="px-3 py-1 bg-gray-100 text-gray-900 rounded-full text-sm font-bold">
-                              {item.count}
-                            </span>
-                          </div>
-                        ))}
+                    <div className="rounded-[28px] border border-sky-100 bg-white p-6 shadow-[0_20px_50px_-35px_rgba(15,23,42,0.45)]">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-500">Active Tickets</p>
+                          <p className="mt-3 text-3xl font-bold text-amber-600">{stats.inProgress}</p>
+                        </div>
+                        <Activity className="h-11 w-11 rounded-2xl bg-amber-50 p-2.5 text-amber-600" />
                       </div>
                     </div>
-                  </div>
 
-                  {/* Summary Card */}
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">Summary</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="text-center">
-                        <p className="text-gray-600 text-sm mb-2">Completion Rate</p>
-                        <p className="text-3xl font-bold text-blue-600">
-                          {stats.totalTickets > 0 ? Math.round((stats.resolved / stats.totalTickets) * 100) : 0}%
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-gray-600 text-sm mb-2">Active Tickets</p>
-                        <p className="text-3xl font-bold text-yellow-600">{stats.inProgress}</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-gray-600 text-sm mb-2">Pending</p>
-                        <p className="text-3xl font-bold text-red-600">{stats.openTickets}</p>
+                    <div className="rounded-[28px] border border-sky-100 bg-white p-6 shadow-[0_20px_50px_-35px_rgba(15,23,42,0.45)]">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-500">Pending Start</p>
+                          <p className="mt-3 text-3xl font-bold text-rose-600">{stats.openTickets}</p>
+                        </div>
+                        <TriangleAlert className="h-11 w-11 rounded-2xl bg-rose-50 p-2.5 text-rose-600" />
                       </div>
                     </div>
-                  </div>
+
+                    <div className="rounded-[28px] border border-sky-100 bg-white p-6 shadow-[0_20px_50px_-35px_rgba(15,23,42,0.45)]">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-500">Overdue / Escalated</p>
+                          <p className="mt-3 text-3xl font-bold text-orange-600">{overdueTickets + stats.elevated}</p>
+                        </div>
+                        <FolderKanban className="h-11 w-11 rounded-2xl bg-orange-50 p-2.5 text-orange-600" />
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+                    <div className="rounded-[30px] border border-sky-100 bg-white/95 p-6 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.45)] sm:p-8">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">Status Distribution</p>
+                      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Assigned queue composition</h2>
+                      <p className="mt-1 text-sm text-slate-500">
+                        See how your workload is spread across open, active, resolved, and rejected tickets.
+                      </p>
+                      <div className="mt-6">
+                        <StatusDistributionChart data={statusDistribution} totalTickets={stats.totalTickets} />
+                      </div>
+                    </div>
+
+                    <div className="rounded-[30px] border border-sky-100 bg-white/95 p-6 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.45)] sm:p-8">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">Priority Mix</p>
+                      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Urgency profile</h2>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Higher-priority work is highlighted here so urgent campus issues never get buried.
+                      </p>
+                      <div className="mt-6">
+                        <PriorityBreakdown items={priorityBreakdown} />
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+                    <div className="rounded-[30px] border border-sky-100 bg-white/95 p-6 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.45)] sm:p-8">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">Category Load</p>
+                      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Workload by maintenance area</h2>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Identify which request categories are creating the most technician demand.
+                      </p>
+                      {categoryBreakdown.length === 0 ? (
+                        <div className="mt-6 flex min-h-72 items-center justify-center rounded-[28px] border border-dashed border-sky-100 bg-sky-50/40 px-6 text-center">
+                          <div className="space-y-2">
+                            <p className="text-lg font-semibold text-slate-950">No category data yet</p>
+                            <p className="text-sm leading-6 text-slate-500">
+                              Category analysis will appear here as tickets are assigned to your queue.
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-6 h-80">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={categoryBreakdown} margin={{ top: 8, right: 16, left: -16, bottom: 8 }}>
+                              <CartesianGrid vertical={false} stroke="#e2e8f0" />
+                              <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={12} />
+                              <YAxis allowDecimals={false} tickLine={false} axisLine={false} fontSize={12} />
+                              <Tooltip content={<AnalysisTooltip />} />
+                              <Bar dataKey="total" name="Tickets" radius={[10, 10, 0, 0]} fill="#2563eb" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-[30px] border border-sky-100 bg-white/95 p-6 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.45)] sm:p-8">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">7-Day Trend</p>
+                      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Recent workflow movement</h2>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Compare new assigned work against recently resolved output over the last week.
+                      </p>
+                      <div className="mt-6 h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={workloadTrend} margin={{ top: 8, right: 8, left: -24, bottom: 8 }}>
+                            <defs>
+                              <linearGradient id="createdGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="#2563eb" stopOpacity={0.05} />
+                              </linearGradient>
+                              <linearGradient id="resolvedGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.28} />
+                                <stop offset="95%" stopColor="#10b981" stopOpacity={0.05} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid vertical={false} stroke="#e2e8f0" />
+                            <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={12} />
+                            <YAxis allowDecimals={false} tickLine={false} axisLine={false} fontSize={12} />
+                            <Tooltip content={<AnalysisTooltip />} />
+                            <Area
+                              type="monotone"
+                              dataKey="created"
+                              name="Created"
+                              stroke="#2563eb"
+                              fill="url(#createdGradient)"
+                              strokeWidth={3}
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="resolved"
+                              name="Resolved"
+                              stroke="#10b981"
+                              fill="url(#resolvedGradient)"
+                              strokeWidth={3}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </section>
                 </div>
               )}
             </>
@@ -272,96 +668,5 @@ export default function TechnicianDashboard() {
         </main>
       </div>
     </div>
-  );
-}
-
-// Technician-specific Sidebar with only Maintenance tabs
-function TechnicianSidebar({ activeTab, setActiveTab }) {
-  const { isCollapsed, isMobileOpen, toggleCollapsed, closeMobile } = useSidebar();
-
-  const menuItems = [
-    { id: 'maintenance', label: 'Maintenance', Icon: Wrench },
-    { id: 'analysis', label: 'Maintenance Analysis', Icon: BarChart3 },
-  ];
-
-  const handleTabChange = (itemId) => {
-    setActiveTab(itemId);
-    closeMobile();
-  };
-
-  return (
-    <>
-      <div
-        onClick={closeMobile}
-        className={`fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-sm transition lg:hidden ${
-          isMobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
-        }`}
-      />
-
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col border-r border-white/10 bg-gradient-to-b from-[#0F172A] via-[#0B245A] to-[#1E40AF] text-slate-100 shadow-2xl transition-all duration-300 ease-out ${
-          isCollapsed ? 'lg:w-24' : 'lg:w-64'
-        } ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} w-[18.5rem] lg:translate-x-0`}
-      >
-        <div className={`border-b border-white/10 p-5 ${isCollapsed ? 'lg:px-4' : ''}`}>
-          <div className="flex items-center justify-between gap-3">
-            <div className={`flex items-center gap-3 ${isCollapsed ? 'lg:justify-center lg:w-full' : ''}`}>
-              <img src={campusLogo} alt="Winterfall Northern University" className="h-11 w-11 rounded-2xl shadow-lg shadow-slate-950/20" />
-              {!isCollapsed && (
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-100/75">
-                    Winterfall Northern
-                  </p>
-                  <h1 className="truncate text-lg font-semibold text-white">University</h1>
-                </div>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={closeMobile}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 text-slate-200 transition hover:bg-white/10 lg:hidden"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        <nav className="flex-1 space-y-2 px-3 py-6">
-          {menuItems.map((item) => {
-            const { Icon } = item;
-            const isActive = activeTab === item.id;
-
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleTabChange(item.id)}
-                className={`group relative flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${
-                  isActive
-                    ? 'bg-white text-slate-950 shadow-lg shadow-slate-950/20'
-                    : 'text-slate-200 hover:bg-white/10 hover:text-white'
-                } ${isCollapsed ? 'lg:justify-center lg:px-2' : ''}`}
-              >
-                <Icon className="h-5 w-5 flex-shrink-0" />
-                {!isCollapsed && <span className="truncate">{item.label}</span>}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className={`border-t border-white/10 p-4 ${isCollapsed ? 'lg:flex lg:justify-center' : ''}`}>
-          <button
-            type="button"
-            onClick={toggleCollapsed}
-            className={`hidden items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:bg-white/10 lg:flex ${
-              isCollapsed ? 'h-11 w-11 p-0' : 'w-full gap-2 px-4 py-3'
-            }`}
-          >
-            {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-            {!isCollapsed && <span className="text-sm font-medium">Collapse</span>}
-          </button>
-        </div>
-      </aside>
-    </>
   );
 }
