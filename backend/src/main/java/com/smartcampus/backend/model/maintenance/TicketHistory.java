@@ -7,13 +7,13 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "ticket_attachments")
+@Table(name = "ticket_history")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TicketAttachment {
+public class TicketHistory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,21 +24,21 @@ public class TicketAttachment {
     private Ticket ticket;
 
     @Column(nullable = false)
-    private String fileName;
+    private Long userId;
 
     @Column(nullable = false)
-    private String fileUrl; // Supabase Storage URL
-
-    @Column(nullable = false)
-    private String fileType; // e.g., "image/jpeg", "application/pdf"
+    private String action; // e.g., "STATUS_CHANGE", "ASSIGNMENT", "COMMENT_ADDED"
 
     @Column
-    private Long fileSize; // in bytes
+    private String oldValue;
 
-    @Column(nullable = false)
-    private Long uploadedBy;
+    @Column
+    private String newValue;
+
+    @Column(columnDefinition = "TEXT")
+    private String details;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
-    private LocalDateTime uploadedAt;
+    private LocalDateTime createdAt;
 }

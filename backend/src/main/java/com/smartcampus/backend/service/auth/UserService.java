@@ -166,6 +166,11 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+    }
+
     public AuthResponse googleOAuthLogin(GoogleTokenInfo tokenInfo) {
         String email = tokenInfo.getEmail();
         String fullName = tokenInfo.getName() != null

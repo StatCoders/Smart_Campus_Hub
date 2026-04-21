@@ -35,4 +35,8 @@ public class TicketCreateRequest {
 
     @NotNull(message = "Priority is required")
     private Priority priority;
+    
+    private String contactEmail;
+    
+    private String contactPhone;
 }
