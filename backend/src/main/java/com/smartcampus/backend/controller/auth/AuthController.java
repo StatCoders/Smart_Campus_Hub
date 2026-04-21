@@ -6,6 +6,9 @@ import com.smartcampus.backend.dto.auth.GoogleTokenInfo;
 import com.smartcampus.backend.dto.auth.GoogleTokenRequest;
 import com.smartcampus.backend.dto.auth.LoginRequest;
 import com.smartcampus.backend.dto.auth.SignupRequest;
+import com.smartcampus.backend.dto.auth.UpdateRoleRequest;
+import com.smartcampus.backend.dto.auth.UpdateStatusRequest;
+import com.smartcampus.backend.dto.auth.UpdateUserRequest;
 import com.smartcampus.backend.dto.auth.UserResponse;
 import com.smartcampus.backend.service.auth.GoogleOAuthService;
 import com.smartcampus.backend.service.auth.UserService;
@@ -160,6 +163,108 @@ public class AuthController {
                     .data(null)
                     .build(),
                 HttpStatus.CREATED
+            );
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                AuthResponse.builder()
+                    .success(false)
+                    .message(e.getMessage())
+                    .build(),
+                HttpStatus.BAD_REQUEST
+            );
+        }
+    }
+
+    @PutMapping("/users/{userId}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateUserRole(
+            @PathVariable Long userId,
+            @Valid @RequestBody UpdateRoleRequest request) {
+        try {
+            UserResponse user = userService.updateUserRole(userId, request.getRole());
+            return new ResponseEntity<>(
+                AuthResponse.builder()
+                    .success(true)
+                    .message("User role updated successfully")
+                    .data(null)
+                    .build(),
+                HttpStatus.OK
+            );
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(
+                AuthResponse.builder()
+                    .success(false)
+                    .message(e.getMessage())
+                    .build(),
+                HttpStatus.NOT_FOUND
+            );
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                AuthResponse.builder()
+                    .success(false)
+                    .message(e.getMessage())
+                    .build(),
+                HttpStatus.BAD_REQUEST
+            );
+        }
+    }
+
+    @PutMapping("/users/{userId}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateUserStatus(
+            @PathVariable Long userId,
+            @Valid @RequestBody UpdateStatusRequest request) {
+        try {
+            UserResponse user = userService.updateUserStatus(userId, request.getIsActive());
+            return new ResponseEntity<>(
+                AuthResponse.builder()
+                    .success(true)
+                    .message("User status updated successfully")
+                    .data(null)
+                    .build(),
+                HttpStatus.OK
+            );
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(
+                AuthResponse.builder()
+                    .success(false)
+                    .message(e.getMessage())
+                    .build(),
+                HttpStatus.NOT_FOUND
+            );
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                AuthResponse.builder()
+                    .success(false)
+                    .message(e.getMessage())
+                    .build(),
+                HttpStatus.BAD_REQUEST
+            );
+        }
+    }
+
+    @PutMapping("/users/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateUser(
+            @PathVariable Long userId,
+            @Valid @RequestBody UpdateUserRequest request) {
+        try {
+            UserResponse user = userService.updateUserByAdmin(userId, request);
+            return new ResponseEntity<>(
+                AuthResponse.builder()
+                    .success(true)
+                    .message("User updated successfully")
+                    .data(null)
+                    .build(),
+                HttpStatus.OK
+            );
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(
+                AuthResponse.builder()
+                    .success(false)
+                    .message(e.getMessage())
+                    .build(),
+                HttpStatus.NOT_FOUND
             );
         } catch (Exception e) {
             return new ResponseEntity<>(

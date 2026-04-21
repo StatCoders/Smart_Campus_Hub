@@ -301,4 +301,77 @@ public class UserService {
             .updatedAt(user.getUpdatedAt())
             .build();
     }
+
+    public UserResponse updateUserRole(Long userId, Role newRole) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        user.setRole(newRole);
+        user = userRepository.save(user);
+
+        return UserResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .role(user.getRole())
+            .emailVerified(user.getEmailVerified())
+            .isActive(user.getIsActive())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .build();
+    }
+
+    public UserResponse updateUserStatus(Long userId, Boolean isActive) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        user.setIsActive(isActive);
+        user = userRepository.save(user);
+
+        return UserResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .role(user.getRole())
+            .emailVerified(user.getEmailVerified())
+            .isActive(user.getIsActive())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .build();
+    }
+
+    public UserResponse updateUserByAdmin(Long userId, UpdateUserRequest request) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // Update user details
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setFullName(request.getFirstName() + " " + request.getLastName());
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setRole(request.getRole());
+        user.setIsActive(request.getIsActive());
+        
+        user = userRepository.save(user);
+
+        return UserResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .role(user.getRole())
+            .emailVerified(user.getEmailVerified())
+            .isActive(user.getIsActive())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .build();
+    }
 }

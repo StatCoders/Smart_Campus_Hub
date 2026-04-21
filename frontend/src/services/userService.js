@@ -32,3 +32,38 @@ export const createUser = async (userData) => {
     throw error;
   }
 };
+
+// Update user role (admin only)
+export const updateUserRole = async (userId, role) => {
+  try {
+    const response = await apiClient.put(`/auth/users/${userId}/role`, { role });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    throw error;
+  }
+};
+
+// Update user status (admin only)
+export const updateUserStatus = async (userId, isActive) => {
+  try {
+    const response = await apiClient.put(`/auth/users/${userId}/status`, { isActive });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating user status:', error);
+    throw error;
+  }
+};
+
+// Update user details (admin only)
+export const updateUser = async (userId, userData) => {
+  try {
+    const response = await apiClient.put(`/auth/users/${userId}`, userData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating user:', error);
+    throw error;
+  }
+};
+
+
