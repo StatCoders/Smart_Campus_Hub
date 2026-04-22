@@ -1,9 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { ArrowRight, Settings, User } from 'lucide-react';
+import { normalizeRole } from '../utils/roleRedirect';
 
 export default function UserMenu({ user, isOpen, onClose, onLogout }) {
   const menuRef = useRef(null);
-  const isAdminOrTech = user?.role === 'ADMIN' || user?.role === 'TECHNICIAN';
+  const role = normalizeRole(user?.role);
+  const isAdminOrTech = role === 'ADMIN' || role === 'TECHNICIAN';
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -46,7 +48,7 @@ export default function UserMenu({ user, isOpen, onClose, onLogout }) {
             </div>
             <div className="mt-3">
               <span className="inline-block rounded-full px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-purple-500 to-pink-500 shadow-md">
-                {user?.role || 'ADMIN'}
+                {role || 'USER'}
               </span>
             </div>
           </div>
@@ -98,7 +100,7 @@ export default function UserMenu({ user, isOpen, onClose, onLogout }) {
         <p className="text-xs text-gray-500 mt-0.5">{user?.email || 'user@university.edu'}</p>
         <div className="mt-2.5">
           <span className="inline-block rounded px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100">
-            {user?.role || 'USER'}
+            {role || 'USER'}
           </span>
         </div>
       </div>

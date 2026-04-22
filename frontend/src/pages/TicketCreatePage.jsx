@@ -6,7 +6,7 @@ import TopBar from '../components/TopBar';
 import CreateTicket from '../components/CreateTicket';
 import UserMenu from '../components/UserMenu';
 import { useAuth } from '../context/useAuth';
-import { useSidebar } from '../context/SidebarContext';
+import { useSidebar } from '../context/useSidebar';
 import campusLogo from '../assets/campus-logo.png';
 
 export default function TicketCreatePage() {

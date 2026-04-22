@@ -20,7 +20,7 @@ import StatusDistributionChart from '../components/dashboard/StatusDistributionC
 import PriorityBreakdown from '../components/dashboard/PriorityBreakdown';
 import { getAllTickets } from '../services/ticketService';
 import { useAuth } from '../context/useAuth';
-import { useSidebar } from '../context/SidebarContext';
+import { useSidebar } from '../context/useSidebar';
 import { formatRelativeTime } from '../utils/dateFormatter';
 
 const STATUS_LABELS = {

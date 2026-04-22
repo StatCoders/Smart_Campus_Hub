@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import { getAllTickets } from '../services/ticketService';
 import { useAuth } from '../context/useAuth';
-import { useSidebar } from '../context/SidebarContext';
+import { useSidebar } from '../context/useSidebar';
 
 export default function Tickets() {
   const navigate = useNavigate();

@@ -61,4 +61,9 @@ public class NotificationService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Notification not found with id: " + notificationId));
     }
+
+    public void deleteNotification(Long notificationId) {
+        Notification notification = findNotificationById(notificationId);
+        notificationRepository.delete(notification);
+    }
 }

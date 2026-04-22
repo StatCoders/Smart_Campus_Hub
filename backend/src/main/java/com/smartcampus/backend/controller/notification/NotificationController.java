@@ -51,14 +51,13 @@ public class NotificationController {
                 ));
     }
 
-    @GetMapping("/user/{userId}")
+    @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<List<NotificationDto>>> getUserNotifications(
-            @PathVariable @Positive(message = "User ID must be a positive number") Long userId) {
+    public ResponseEntity<ApiResponse<List<NotificationDto>>> getUserNotifications() {
 
-        validateCurrentUserAccess(userId);
+        User currentUser = userService.getCurrentUser();
 
-        List<NotificationDto> notifications = notificationService.getUserNotifications(userId)
+        List<NotificationDto> notifications = notificationService.getUserNotifications(currentUser.getId())
                 .stream()
                 .map(this::mapToDto)
                 .toList();
@@ -71,7 +70,7 @@ public class NotificationController {
         ));
     }
 
-    @PutMapping("/{id}/read")
+    @PatchMapping("/{id}/read")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<NotificationDto>> markAsRead(
             @PathVariable @Positive(message = "Notification ID must be a positive number") Long id) {
@@ -86,6 +85,24 @@ public class NotificationController {
                 HttpStatus.OK.value(),
                 "Notification marked as read",
                 mapToDto(updatedNotification)
+        ));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>> deleteNotification(
+            @PathVariable @Positive(message = "Notification ID must be a positive number") Long id) {
+
+        Notification existingNotification = notificationService.getNotificationById(id);
+        validateCurrentUserAccess(existingNotification.getUserId());
+
+        notificationService.deleteNotification(id);
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                HttpStatus.OK.value(),
+                "Notification deleted successfully",
+                null
         ));
     }
 

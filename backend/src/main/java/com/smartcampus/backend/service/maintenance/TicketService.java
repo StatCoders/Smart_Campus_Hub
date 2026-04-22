@@ -23,6 +23,8 @@ import com.smartcampus.backend.repository.maintenance.TicketHistoryRepository;
 import com.smartcampus.backend.repository.maintenance.TicketRepository;
 import com.smartcampus.backend.service.FileUploadService;
 import com.smartcampus.backend.service.auth.UserService;
+import com.smartcampus.backend.service.notification.NotificationService;
+import com.smartcampus.backend.model.notification.NotificationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -50,6 +52,7 @@ public class TicketService {
     private final TicketAttachmentRepository attachmentRepository;
     private final UserService userService;
     private final FileUploadService fileUploadService;
+    private final NotificationService notificationService;
 
     public TicketDto createTicket(TicketCreateRequest request) {
         User currentUser = userService.getCurrentUser();
@@ -213,6 +216,17 @@ public class TicketService {
         }
         createHistoryEntry(updatedTicket, currentUser.getId(), "STATUS_CHANGE", oldStatus.toString(), newStatus.toString(), details);
 
+        // Notify user about status change
+        if (newStatus == Status.IN_PROGRESS && oldStatus == Status.OPEN) {
+            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " is now IN_PROGRESS", NotificationType.TICKET);
+        } else if (newStatus == Status.RESOLVED && oldStatus == Status.IN_PROGRESS) {
+            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " is now RESOLVED", NotificationType.TICKET);
+        } else if (newStatus == Status.CLOSED && oldStatus == Status.RESOLVED) {
+            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " is now CLOSED", NotificationType.TICKET);
+        } else if (newStatus == Status.REJECTED) {
+            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " has been REJECTED", NotificationType.TICKET);
+        }
+
         return mapToDetailDto(updatedTicket, currentUser);
     }
 
@@ -259,6 +273,13 @@ public class TicketService {
                 oldTechnicianId != null ? oldTechnicianId.toString() : "UNASSIGNED",
                 request.getTechnicianId().toString(),
                 details
+        );
+
+        // Notify assigned technician
+        notificationService.createNotification(
+                request.getTechnicianId(),
+                "You have been assigned to ticket #" + ticket.getId(),
+                NotificationType.TICKET
         );
 
         return mapToDetailDto(updatedTicket, currentUser);

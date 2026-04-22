@@ -5,6 +5,7 @@ import { useAuth } from '../context/useAuth';
 import Toast from './Toast';
 import { useNavigate } from 'react-router-dom';
 import campusLogo from '../assets/campus-logo.png';
+import NotificationDropdown from './NotificationDropdown';
 
 const SYSTEM_NAME = 'Winterfall Northern University';
 const CAMPUS_NAME = 'Winterfall Northern University';
@@ -43,6 +44,7 @@ export default function StudentStaffDashboard() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('tickets');
+  const [showNotifications, setShowNotifications] = useState(false);
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
@@ -125,9 +127,12 @@ export default function StudentStaffDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <button className="p-2 hover:bg-slate-100 rounded-lg transition">
-                <Bell className="w-5 h-5 text-slate-600" />
-              </button>
+              <NotificationDropdown
+                userId={user?.id}
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+                onToggle={() => setShowNotifications((current) => !current)}
+              />
               <div className="text-right">
                 <p className="text-sm font-medium text-slate-900">{user?.email || 'User'}</p>
                 <p className="text-xs text-slate-500">Student</p>
