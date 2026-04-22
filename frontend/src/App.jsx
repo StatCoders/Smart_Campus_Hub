@@ -5,7 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import HomePage from './pages/HomePage';
-import Dashboard from './pages/Dashboard';
+import AdminDashboard from './pages/AdminDashboard';
 import TechnicianDashboard from './pages/TechnicianDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import StudentTicketsPage from './pages/StudentTicketsPage';
@@ -70,7 +70,7 @@ function App() {
               path="/dashboard"
               element={
                 <ProtectedRoute allowedRoles={['ADMIN']}>
-                  <Dashboard />
+                  <AdminDashboard />
                 </ProtectedRoute>
               }
             />
