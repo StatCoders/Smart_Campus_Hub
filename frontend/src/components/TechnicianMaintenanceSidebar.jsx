@@ -1,6 +1,6 @@
 import React from 'react';
 import { BarChart3, ChevronLeft, ChevronRight, Wrench, X } from 'lucide-react';
-import { useSidebar } from '../context/SidebarContext';
+import { useSidebar } from '../context/useSidebar';
 import campusLogo from '../assets/campus-logo.png';
 
 export default function TechnicianMaintenanceSidebar({ activeTab, setActiveTab }) {

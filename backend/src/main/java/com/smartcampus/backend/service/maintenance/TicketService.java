@@ -23,6 +23,8 @@ import com.smartcampus.backend.repository.maintenance.TicketHistoryRepository;
 import com.smartcampus.backend.repository.maintenance.TicketRepository;
 import com.smartcampus.backend.service.FileUploadService;
 import com.smartcampus.backend.service.auth.UserService;
+import com.smartcampus.backend.service.notification.NotificationService;
+import com.smartcampus.backend.model.notification.NotificationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -50,6 +52,7 @@ public class TicketService {
     private final TicketAttachmentRepository attachmentRepository;
     private final UserService userService;
     private final FileUploadService fileUploadService;
+    private final NotificationService notificationService;
 
     public TicketDto createTicket(TicketCreateRequest request) {
         User currentUser = userService.getCurrentUser();
@@ -213,6 +216,17 @@ public class TicketService {
         }
         createHistoryEntry(updatedTicket, currentUser.getId(), "STATUS_CHANGE", oldStatus.toString(), newStatus.toString(), details);
 
+        // Notify user about status change
+        if (newStatus == Status.IN_PROGRESS && oldStatus == Status.OPEN) {
+            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " is now IN_PROGRESS", NotificationType.TICKET);
+        } else if (newStatus == Status.RESOLVED && oldStatus == Status.IN_PROGRESS) {
+            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " is now RESOLVED", NotificationType.TICKET);
+        } else if (newStatus == Status.CLOSED && oldStatus == Status.RESOLVED) {
+            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " is now CLOSED", NotificationType.TICKET);
+        } else if (newStatus == Status.REJECTED) {
+            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " has been REJECTED", NotificationType.TICKET);
+        }
+
         return mapToDetailDto(updatedTicket, currentUser);
     }
 
@@ -221,7 +235,7 @@ public class TicketService {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket not found"));
 
-        User technician = userService.getUserById(request.getTechnicianId());
+        User technician = userService.getUser(request.getTechnicianId());
         if (technician.getRole() != Role.TECHNICIAN) {
             throw new IllegalArgumentException("User must have TECHNICIAN role");
         }
@@ -259,6 +273,13 @@ public class TicketService {
                 oldTechnicianId != null ? oldTechnicianId.toString() : "UNASSIGNED",
                 request.getTechnicianId().toString(),
                 details
+        );
+
+        // Notify assigned technician
+        notificationService.createNotification(
+                request.getTechnicianId(),
+                "You have been assigned to ticket #" + ticket.getId(),
+                NotificationType.TICKET
         );
 
         return mapToDetailDto(updatedTicket, currentUser);
@@ -448,7 +469,7 @@ public class TicketService {
         String assignedTechnicianName = null;
         if (ticket.getAssignedTechnicianId() != null) {
             try {
-                User assignedTech = userService.getUserById(ticket.getAssignedTechnicianId());
+                User assignedTech = userService.getUser(ticket.getAssignedTechnicianId());
                 assignedTechnicianName = assignedTech.getFirstName() + " " + assignedTech.getLastName();
             } catch (Exception ignored) {
                 assignedTechnicianName = null;
@@ -480,10 +501,10 @@ public class TicketService {
 
     private TicketDetailDto mapToDetailDto(Ticket ticket, User viewer) {
         User assignedTech = ticket.getAssignedTechnicianId() != null
-                ? userService.getUserById(ticket.getAssignedTechnicianId())
+                ? userService.getUser(ticket.getAssignedTechnicianId())
                 : null;
-        User creator = userService.getUserById(ticket.getUserId());
-        User feedbackAdmin = ticket.getAdminFeedbackBy() != null ? userService.getUserById(ticket.getAdminFeedbackBy()) : null;
+        User creator = userService.getUser(ticket.getUserId());
+        User feedbackAdmin = ticket.getAdminFeedbackBy() != null ? userService.getUser(ticket.getAdminFeedbackBy()) : null;
 
         Long minutesToFirstResponse = ticket.getFirstResponseAt() != null
                 ? ChronoUnit.MINUTES.between(ticket.getCreatedAt(), ticket.getFirstResponseAt())
@@ -570,7 +591,7 @@ public class TicketService {
     }
 
     private TicketCommentDto mapCommentToDto(com.smartcampus.backend.model.maintenance.TicketComment comment, User viewer) {
-        User commentUser = userService.getUserById(comment.getUserId());
+        User commentUser = userService.getUser(comment.getUserId());
         boolean isEditable = comment.getUserId().equals(viewer.getId()) || viewer.getRole() == Role.ADMIN;
 
         return TicketCommentDto.builder()
@@ -587,7 +608,7 @@ public class TicketService {
     }
 
     private TicketAttachmentDto mapAttachmentToDto(TicketAttachment attachment) {
-        User uploader = userService.getUserById(attachment.getUploadedBy());
+        User uploader = userService.getUser(attachment.getUploadedBy());
         return TicketAttachmentDto.builder()
                 .id(attachment.getId())
                 .ticketId(attachment.getTicket().getId())
@@ -603,7 +624,7 @@ public class TicketService {
     }
 
     private TicketHistoryDto mapHistoryToDto(TicketHistory history) {
-        User historyUser = userService.getUserById(history.getUserId());
+        User historyUser = userService.getUser(history.getUserId());
         return TicketHistoryDto.builder()
                 .id(history.getId())
                 .ticketId(history.getTicket().getId())

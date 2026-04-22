@@ -10,6 +10,7 @@ import com.smartcampus.backend.model.maintenance.TicketComment;
 import com.smartcampus.backend.repository.maintenance.TicketCommentRepository;
 import com.smartcampus.backend.repository.maintenance.TicketRepository;
 import com.smartcampus.backend.service.auth.UserService;
+import com.smartcampus.backend.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ public class CommentService {
     private final TicketCommentRepository commentRepository;
     private final TicketRepository ticketRepository;
     private final UserService userService;
+    private final NotificationService notificationService;
 
     public TicketCommentDto addComment(Long ticketId, CommentCreateRequest request) {
         User currentUser = userService.getCurrentUser();
@@ -41,13 +43,24 @@ public class CommentService {
                 .build();
 
         TicketComment savedComment = commentRepository.save(comment);
+
+        // Notify ticket owner if commenter is someone else
+        if (!ticket.getUserId().equals(currentUser.getId())) {
+            notificationService.createNotification(
+                    ticket.getUserId(),
+                    "New comment added to your ticket #" + ticket.getId(),
+                    com.smartcampus.backend.model.notification.NotificationType.COMMENT
+            );
+        }
+
         return mapToDto(savedComment, currentUser);
     }
 
     @Transactional(readOnly = true)
     public List<TicketCommentDto> getCommentsByTicketId(Long ticketId) {
         User currentUser = userService.getCurrentUser();
-        Ticket ticket = ticketRepository.findById(ticketId)
+        // Verify ticket exists
+        ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket not found"));
         
         // All authenticated users can view comments (transparency)
@@ -87,7 +100,7 @@ public class CommentService {
     }
 
     private TicketCommentDto mapToDto(TicketComment comment, User currentUser) {
-        User commentUser = userService.getUserById(comment.getUserId());
+        User commentUser = userService.getUser(comment.getUserId());
         boolean isEditable = comment.getUserId().equals(currentUser.getId()) || currentUser.getRole().equals(Role.ADMIN);
 
         return TicketCommentDto.builder()

@@ -18,22 +18,22 @@ import EditTicketPage from './pages/EditTicketPage';
 import GoogleAuthSuccess from './pages/GoogleAuthSuccess';
 import BookingsPage from './pages/BookingsPage';
 import AdminBookingsPage from './pages/AdminBookingsPage';
+import ManageUsersPage from './pages/ManageUsersPage';
 import { useAuth } from './context/useAuth';
-import { getDefaultRouteForRole } from './utils/roleRedirect';
-import 'tailwindcss';
+import { getDefaultRouteForRole, normalizeRole } from './utils/roleRedirect';
 
 // Role-based bookings route component
 function BookingsRoute() {
   const { user } = useAuth();
   if (!user) return null;
-  return user.role === 'ADMIN' ? <AdminBookingsPage /> : <BookingsPage />;
+  return normalizeRole(user.role) === 'ADMIN' ? <AdminBookingsPage /> : <BookingsPage />;
 }
 
 // Role-based resources route component
 function ResourcesRoute() {
   const { user } = useAuth();
   if (!user) return null;
-  return user.role === 'ADMIN' ? <AdminResourcesPage /> : <StudentResourcesPage />;
+  return normalizeRole(user.role) === 'ADMIN' ? <AdminResourcesPage /> : <StudentResourcesPage />;
 }
 
 function RootRedirect() {
@@ -159,6 +159,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <BookingsRoute />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/manage-users"
+              element={
+                <ProtectedRoute>
+                  <ManageUsersPage />
                 </ProtectedRoute>
               }
             />

@@ -28,7 +28,7 @@ import TechnicianMaintenanceSidebar from '../components/TechnicianMaintenanceSid
 import PriorityBreakdown from '../components/dashboard/PriorityBreakdown';
 import StatusDistributionChart from '../components/dashboard/StatusDistributionChart';
 import { useAuth } from '../context/useAuth';
-import { useSidebar } from '../context/SidebarContext';
+import { useSidebar } from '../context/useSidebar';
 import { useTicketsByTechnician } from '../hooks/useTickets';
 
 const formatStatusLabel = (status) => String(status || '').replace(/_/g, ' ');
