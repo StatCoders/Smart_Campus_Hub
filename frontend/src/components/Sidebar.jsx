@@ -8,13 +8,16 @@ import {
   LayoutDashboard,
   Package,
   Ticket,
+  Users,
   X,
 } from 'lucide-react';
 import { useSidebar } from '../context/SidebarContext';
+import { useAuth } from '../context/useAuth';
 import campusLogo from '../assets/campus-logo.png';
 
 export default function Sidebar({ activeTab, setActiveTab }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { isCollapsed, isMobileOpen, toggleCollapsed, closeMobile } = useSidebar();
 
   const menuItems = [
@@ -24,6 +27,11 @@ export default function Sidebar({ activeTab, setActiveTab }) {
     { id: 'tickets', label: 'Maintenance', Icon: Ticket },
     { id: 'notifications', label: 'Notifications', Icon: Bell },
   ];
+
+  // Add Manage Users for admins only
+  if (user?.role === 'ADMIN') {
+    menuItems.splice(4, 0, { id: 'manage-users', label: 'Manage Users', Icon: Users });
+  }
 
   const handleNavigation = (itemId) => {
     setActiveTab(itemId);
@@ -41,6 +49,9 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         break;
       case 'bookings':
         navigate('/bookings');
+        break;
+      case 'manage-users':
+        navigate('/manage-users');
         break;
       case 'notifications':
         break;

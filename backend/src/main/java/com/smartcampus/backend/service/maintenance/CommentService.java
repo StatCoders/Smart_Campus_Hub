@@ -47,7 +47,8 @@ public class CommentService {
     @Transactional(readOnly = true)
     public List<TicketCommentDto> getCommentsByTicketId(Long ticketId) {
         User currentUser = userService.getCurrentUser();
-        Ticket ticket = ticketRepository.findById(ticketId)
+        // Verify ticket exists
+        ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket not found"));
         
         // All authenticated users can view comments (transparency)
@@ -87,7 +88,7 @@ public class CommentService {
     }
 
     private TicketCommentDto mapToDto(TicketComment comment, User currentUser) {
-        User commentUser = userService.getUserById(comment.getUserId());
+        User commentUser = userService.getUser(comment.getUserId());
         boolean isEditable = comment.getUserId().equals(currentUser.getId()) || currentUser.getRole().equals(Role.ADMIN);
 
         return TicketCommentDto.builder()

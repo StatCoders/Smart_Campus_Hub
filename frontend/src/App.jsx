@@ -18,6 +18,7 @@ import EditTicketPage from './pages/EditTicketPage';
 import GoogleAuthSuccess from './pages/GoogleAuthSuccess';
 import BookingsPage from './pages/BookingsPage';
 import AdminBookingsPage from './pages/AdminBookingsPage';
+import ManageUsersPage from './pages/ManageUsersPage';
 import { useAuth } from './context/useAuth';
 import { getDefaultRouteForRole } from './utils/roleRedirect';
 import 'tailwindcss';
@@ -159,6 +160,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <BookingsRoute />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/manage-users"
+              element={
+                <ProtectedRoute>
+                  <ManageUsersPage />
                 </ProtectedRoute>
               }
             />

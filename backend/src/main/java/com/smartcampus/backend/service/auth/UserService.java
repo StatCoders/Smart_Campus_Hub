@@ -169,11 +169,6 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
-    public User getUserById(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
-    }
-
     public AuthResponse googleOAuthLogin(GoogleTokenInfo tokenInfo) {
         String email = tokenInfo.getEmail();
         String fullName = tokenInfo.getName() != null
@@ -224,6 +219,166 @@ public class UserService {
                 .token(token)
                 .refreshToken(refreshToken)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findAll().stream()
+            .map(user -> UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .fullName(user.getFullName())
+                .phoneNumber(user.getPhoneNumber())
+                .role(user.getRole())
+                .emailVerified(user.getEmailVerified())
+                .isActive(user.getIsActive())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build())
+            .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public UserResponse getUserById(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        
+        return UserResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .role(user.getRole())
+            .emailVerified(user.getEmailVerified())
+            .isActive(user.getIsActive())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .build();
+    }
+
+    public User getUser(Long userId) {
+        return userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+    }
+
+    public UserResponse createUserByAdmin(CreateUserRequest request) {
+        // Check if user already exists
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new ConflictException("Email already registered");
+        }
+
+        // Create new user with admin-specified role
+        String fullName = request.getFirstName() + " " + request.getLastName();
+        User user = User.builder()
+            .email(request.getEmail())
+            .firstName(request.getFirstName())
+            .lastName(request.getLastName())
+            .fullName(fullName)
+            .phoneNumber(request.getPhoneNumber())
+            .password(passwordEncoder.encode(request.getPassword()))
+            .provider(AuthProvider.LOCAL)
+            .role(request.getRole())
+            .emailVerified(false)
+            .isActive(request.getIsActive() != null ? request.getIsActive() : true)
+            .build();
+
+        // Defensive check: prevent null provider before persisting
+        if (user.getProvider() == null) {
+            user.setProvider(AuthProvider.LOCAL);
+        }
+
+        user = userRepository.save(user);
+
+        return UserResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .role(user.getRole())
+            .emailVerified(user.getEmailVerified())
+            .isActive(user.getIsActive())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .build();
+    }
+
+    public UserResponse updateUserRole(Long userId, Role newRole) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        user.setRole(newRole);
+        user = userRepository.save(user);
+
+        return UserResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .role(user.getRole())
+            .emailVerified(user.getEmailVerified())
+            .isActive(user.getIsActive())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .build();
+    }
+
+    public UserResponse updateUserStatus(Long userId, Boolean isActive) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        user.setIsActive(isActive);
+        user = userRepository.save(user);
+
+        return UserResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .role(user.getRole())
+            .emailVerified(user.getEmailVerified())
+            .isActive(user.getIsActive())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .build();
+    }
+
+    public UserResponse updateUserByAdmin(Long userId, UpdateUserRequest request) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // Update user details
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setFullName(request.getFirstName() + " " + request.getLastName());
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setRole(request.getRole());
+        user.setIsActive(request.getIsActive());
+        
+        user = userRepository.save(user);
+
+        return UserResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .role(user.getRole())
+            .emailVerified(user.getEmailVerified())
+            .isActive(user.getIsActive())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .build();
     }
 
     /**

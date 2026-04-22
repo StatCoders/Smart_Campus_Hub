@@ -2,7 +2,6 @@ package com.smartcampus.backend.controller.auth;
 
 import com.smartcampus.backend.dto.UserSummaryDto;
 import com.smartcampus.backend.model.auth.Role;
-import com.smartcampus.backend.model.auth.User;
 import com.smartcampus.backend.service.auth.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -11,7 +10,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
