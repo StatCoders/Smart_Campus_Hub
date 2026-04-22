@@ -1,5 +1,6 @@
 package com.smartcampus.backend.dto.maintenance;
 
+import com.smartcampus.backend.model.auth.Role;
 import com.smartcampus.backend.model.maintenance.Priority;
 import com.smartcampus.backend.model.maintenance.Status;
 import lombok.AllArgsConstructor;
@@ -29,6 +30,15 @@ public class TicketDto {
     private Priority priority;
     private Status status;
     private LocalDate expectedDate;
+    
+    // Technician assignment
+    private Long assignedTechnicianId;
+    private String assignedTechnicianName;
+    private String rejectionReason;
+    private Role rejectedByRole;
+    private String adminFeedback;
+    private Integer adminRating;
+    
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

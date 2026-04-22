@@ -4,6 +4,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/useAuth';
 import authService from '../services/authService';
 import campusLogo from '../assets/campus-logo.png';
+import { getDefaultRouteForRole } from '../utils/roleRedirect';
 
 const roleOptions = [
   {
@@ -31,7 +32,7 @@ const roleOptions = [
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, error: authError, isAuthenticated, setAuthenticatedUser } = useAuth();
+  const { login, error: authError, isAuthenticated, setAuthenticatedUser, user } = useAuth();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,12 +49,8 @@ export default function Login() {
       return;
     }
 
-    // Role-based redirect: USER → home, ADMIN → dashboard, TECHNICIAN → technician-dashboard
-    let dashboardPath = '/home';
-    if (selectedRole === 'ADMIN') dashboardPath = '/dashboard';
-    else if (selectedRole === 'TECHNICIAN') dashboardPath = '/technician-dashboard';
-    navigate(dashboardPath, { replace: true });
-  }, [isAuthenticated, navigate, selectedRole]);
+    navigate(getDefaultRouteForRole(user?.role), { replace: true });
+  }, [isAuthenticated, navigate, user?.role]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -71,12 +68,8 @@ export default function Login() {
 
     try {
       setLoading(true);
-      await login(formData.email.trim().toLowerCase(), formData.password);
-      // Role-based redirect: USER → home, ADMIN → dashboard, TECHNICIAN → technician-dashboard
-      let dashboardPath = '/home';
-      if (selectedRole === 'ADMIN') dashboardPath = '/dashboard';
-      else if (selectedRole === 'TECHNICIAN') dashboardPath = '/technician-dashboard';
-      navigate(dashboardPath);
+      const authenticatedUser = await login(formData.email.trim().toLowerCase(), formData.password);
+      navigate(getDefaultRouteForRole(authenticatedUser?.role), { replace: true });
     } catch (err) {
       let errorMessage = 'Login failed. Please try again.';
 
@@ -141,7 +134,7 @@ export default function Login() {
         {!selectedRole ? (
           <div className="space-y-6 rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-xl shadow-slate-200/60 backdrop-blur sm:p-8">
             <div className="space-y-2">
-              <img src={campusLogo} alt="Winterfall Northern University" className="h-24 w-24 mx-auto mb-4" />
+              <img src={campusLogo} alt="Winterfall Northern University" className="mx-auto mb-4 h-24 w-24" />
               <p className="text-sm font-medium uppercase tracking-widest text-slate-500">Winterfall Northern University</p>
               <h2 className="text-4xl font-semibold tracking-tight text-slate-900">Welcome back</h2>
               <p className="text-lg text-slate-600">Sign in to manage your campus operations</p>
@@ -194,7 +187,7 @@ export default function Login() {
               ))}
             </div>
 
-            <p className="text-center text-sm text-slate-600 pt-1">
+            <p className="pt-1 text-center text-sm text-slate-600">
               Do not have an account?{' '}
               <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
                 Sign up
@@ -202,7 +195,10 @@ export default function Login() {
             </p>
           </div>
         ) : (
-          <form className="space-y-6 rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60" onSubmit={handleSubmit}>
+          <form
+            className="space-y-6 rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60"
+            onSubmit={handleSubmit}
+          >
             <div className="flex items-center justify-between">
               <h2 className="text-3xl font-semibold text-slate-900">
                 Sign in as {selectedRoleMeta?.title || selectedRole}
@@ -227,7 +223,7 @@ export default function Login() {
               </div>
             )}
 
-            <div className="rounded-md shadow-sm -space-y-px">
+            <div className="-space-y-px rounded-md shadow-sm">
               <div>
                 <label htmlFor="email" className="sr-only">
                   Email address
@@ -238,7 +234,7 @@ export default function Login() {
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  className="relative block w-full appearance-none rounded-none rounded-t-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
                   placeholder="Email address"
                   disabled={loading}
                 />
@@ -254,7 +250,7 @@ export default function Login() {
                   type="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  className="relative block w-full appearance-none rounded-none rounded-b-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
                   placeholder="Password"
                   disabled={loading}
                 />
