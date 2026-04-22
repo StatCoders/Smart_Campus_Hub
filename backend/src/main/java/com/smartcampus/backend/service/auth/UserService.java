@@ -9,8 +9,10 @@ import com.smartcampus.backend.exception.UnauthorizedException;
 import com.smartcampus.backend.model.auth.AuthProvider;
 import com.smartcampus.backend.model.auth.Role;
 import com.smartcampus.backend.model.auth.User;
+import com.smartcampus.backend.model.notification.NotificationType;
 import com.smartcampus.backend.repository.auth.UserRepository;
 import com.smartcampus.backend.security.JwtUtil;
+import com.smartcampus.backend.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,6 +31,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final NotificationService notificationService;
 
     public AuthResponse signup(SignupRequest request) {
         // Validate that passwords match
@@ -169,11 +172,6 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
-    public User getUserById(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
-    }
-
     public AuthResponse googleOAuthLogin(GoogleTokenInfo tokenInfo) {
         String email = tokenInfo.getEmail();
         String fullName = tokenInfo.getName() != null
@@ -226,6 +224,175 @@ public class UserService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findAll().stream()
+            .map(user -> UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .fullName(user.getFullName())
+                .phoneNumber(user.getPhoneNumber())
+                .role(user.getRole())
+                .emailVerified(user.getEmailVerified())
+                .isActive(user.getIsActive())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build())
+            .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public UserResponse getUserById(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        
+        return UserResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .role(user.getRole())
+            .emailVerified(user.getEmailVerified())
+            .isActive(user.getIsActive())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .build();
+    }
+
+    public User getUser(Long userId) {
+        return userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+    }
+
+    public UserResponse createUserByAdmin(CreateUserRequest request) {
+        // Check if user already exists
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new ConflictException("Email already registered");
+        }
+
+        // Create new user with admin-specified role
+        String fullName = request.getFirstName() + " " + request.getLastName();
+        User user = User.builder()
+            .email(request.getEmail())
+            .firstName(request.getFirstName())
+            .lastName(request.getLastName())
+            .fullName(fullName)
+            .phoneNumber(request.getPhoneNumber())
+            .password(passwordEncoder.encode(request.getPassword()))
+            .provider(AuthProvider.LOCAL)
+            .role(request.getRole())
+            .emailVerified(false)
+            .isActive(request.getIsActive() != null ? request.getIsActive() : true)
+            .build();
+
+        // Defensive check: prevent null provider before persisting
+        if (user.getProvider() == null) {
+            user.setProvider(AuthProvider.LOCAL);
+        }
+
+        user = userRepository.save(user);
+
+        return UserResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .role(user.getRole())
+            .emailVerified(user.getEmailVerified())
+            .isActive(user.getIsActive())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .build();
+    }
+
+    public UserResponse updateUserRole(Long userId, Role newRole) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Role previousRole = user.getRole();
+        user.setRole(newRole);
+        user = userRepository.save(user);
+        notifyRoleChangeIfNeeded(user, previousRole);
+
+        return UserResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .role(user.getRole())
+            .emailVerified(user.getEmailVerified())
+            .isActive(user.getIsActive())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .build();
+    }
+
+    public UserResponse updateUserStatus(Long userId, Boolean isActive) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Boolean previousStatus = user.getIsActive();
+        user.setIsActive(isActive);
+        user = userRepository.save(user);
+        notifyStatusChangeIfNeeded(user, previousStatus);
+
+        return UserResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .role(user.getRole())
+            .emailVerified(user.getEmailVerified())
+            .isActive(user.getIsActive())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .build();
+    }
+
+    public UserResponse updateUserByAdmin(Long userId, UpdateUserRequest request) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Role previousRole = user.getRole();
+        Boolean previousStatus = user.getIsActive();
+
+        // Update user details
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setFullName(request.getFirstName() + " " + request.getLastName());
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setRole(request.getRole());
+        user.setIsActive(request.getIsActive());
+        
+        user = userRepository.save(user);
+        notifyRoleChangeIfNeeded(user, previousRole);
+        notifyStatusChangeIfNeeded(user, previousStatus);
+
+        return UserResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .fullName(user.getFullName())
+            .phoneNumber(user.getPhoneNumber())
+            .role(user.getRole())
+            .emailVerified(user.getEmailVerified())
+            .isActive(user.getIsActive())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .build();
+    }
+
     /**
      * Get all users filtered by role as UserSummaryDto
      * @param role The role to filter by
@@ -261,5 +428,33 @@ public class UserService {
                 .lastName(user.getLastName())
                 .email(user.getEmail())
                 .build();
+    }
+
+    private void notifyRoleChangeIfNeeded(User user, Role previousRole) {
+        if (previousRole == user.getRole()) {
+            return;
+        }
+
+        notificationService.createNotification(
+                user.getId(),
+                "Your role has been updated to " + user.getRole(),
+                NotificationType.SYSTEM
+        );
+    }
+
+    private void notifyStatusChangeIfNeeded(User user, Boolean previousStatus) {
+        if (previousStatus != null && previousStatus.equals(user.getIsActive())) {
+            return;
+        }
+
+        String message = Boolean.TRUE.equals(user.getIsActive())
+                ? "Your account has been enabled"
+                : "Your account has been disabled";
+
+        notificationService.createNotification(
+                user.getId(),
+                message,
+                NotificationType.SYSTEM
+        );
     }
 }

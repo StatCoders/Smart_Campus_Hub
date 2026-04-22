@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import campusLogo from '../assets/campus-logo.png';
+import { getDefaultRouteForRole } from '../utils/roleRedirect';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -76,8 +77,8 @@ export default function Signup() {
       };
       
       console.log('Signing up with data:', signupData);
-      await signup(signupData);
-      navigate('/dashboard');
+      const authenticatedUser = await signup(signupData);
+      navigate(getDefaultRouteForRole(authenticatedUser?.role), { replace: true });
     } catch (err) {
       console.error('Signup error:', err);
       

@@ -3,7 +3,7 @@ import { Plus, Edit, Trash2, X, Check } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import { useAuth } from '../context/useAuth';
-import { useSidebar } from '../context/SidebarContext';
+import { useSidebar } from '../context/useSidebar';
 import { getAllFacilities, deleteFacility } from '../services/facilityService';
 import OccupancyChart from '../components/OccupancyChart';
 import AddFacilityModal from '../components/AddFacilityModal';

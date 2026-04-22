@@ -7,16 +7,19 @@ import com.smartcampus.backend.dto.booking.BookingResponseDto;
 import com.smartcampus.backend.exception.ConflictException;
 import com.smartcampus.backend.exception.ResourceNotFoundException;
 import com.smartcampus.backend.exception.UnauthorizedException;
+import com.smartcampus.backend.model.auth.Role;
 import com.smartcampus.backend.model.booking.Booking;
 import com.smartcampus.backend.model.booking.BookingStatus;
 import com.smartcampus.backend.model.auth.User;
 import com.smartcampus.backend.model.facility.Facility;
+import com.smartcampus.backend.model.notification.NotificationType;
 import com.smartcampus.backend.model.outbox.OutboxEvent;
 import com.smartcampus.backend.model.outbox.OutboxStatus;
 import com.smartcampus.backend.repository.booking.BookingRepository;
 import com.smartcampus.backend.repository.auth.UserRepository;
 import com.smartcampus.backend.repository.facility.FacilityRepository;
 import com.smartcampus.backend.repository.outbox.OutboxEventRepository;
+import com.smartcampus.backend.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -37,6 +40,7 @@ public class BookingService {
     private final FacilityRepository facilityRepository;
     private final OutboxEventRepository outboxEventRepository;
     private final ObjectMapper objectMapper;
+    private final NotificationService notificationService;
 
     // -------------------------------------------------------------------------
     // Helper – resolve the currently authenticated user
@@ -141,7 +145,7 @@ public class BookingService {
 
         booking = bookingRepository.save(booking);
 
-        // Outbox event – same transaction
+        // Outbox event - same transaction
         writeOutboxEvent("BOOKING_CREATED", Map.of(
                 "bookingId", booking.getId(),
                 "userId", currentUser.getId(),
@@ -150,6 +154,15 @@ public class BookingService {
                 "startTime", booking.getStartTime().toString(),
                 "endTime", booking.getEndTime().toString()
         ));
+
+        // Notify Admins
+        userRepository.findByRoleAndIsActiveTrueOrderByFirstName(Role.ADMIN).forEach(admin -> {
+            notificationService.createNotification(
+                    admin.getId(),
+                    "New booking request received for " + facility.getName(),
+                    NotificationType.BOOKING
+            );
+        });
 
         log.info("Booking {} created by user {}", booking.getId(), currentUser.getId());
         return toDto(booking);
@@ -212,6 +225,12 @@ public class BookingService {
                 "resourceId", booking.getResource().getId()
         ));
 
+        notificationService.createNotification(
+                booking.getUser().getId(),
+                "Your booking for " + booking.getResource().getName() + " has been approved",
+                NotificationType.BOOKING
+        );
+
         log.info("Booking {} approved by admin {}", booking.getId(), admin.getId());
         return toDto(booking);
     }
@@ -242,6 +261,12 @@ public class BookingService {
                 "reviewedBy", admin.getId(),
                 "reason", reason
         ));
+
+        notificationService.createNotification(
+                booking.getUser().getId(),
+                "Your booking for " + booking.getResource().getName() + " has been rejected",
+                NotificationType.BOOKING
+        );
 
         log.info("Booking {} rejected by admin {} — reason: {}", booking.getId(), admin.getId(), reason);
         return toDto(booking);

@@ -8,7 +8,7 @@ import FacilityCard from '../components/FacilityCard';
 import FacilityFilters from '../components/FacilityFilters';
 import AddFacilityModal from '../components/AddFacilityModal';
 import Toast from '../components/Toast';
-import { useSidebar } from '../context/SidebarContext';
+import { useSidebar } from '../context/useSidebar';
 import '../facilities.css';
 
 export default function FacilitiesPage() {

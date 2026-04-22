@@ -101,6 +101,12 @@ public class JwtUtil {
     }
 
     public String extractRole(String token) {
-        return (String) extractAllClaims(token).get("role");
+        Object role = extractAllClaims(token).get("role");
+        if (role == null) {
+            return "USER";
+        }
+
+        String value = String.valueOf(role).trim();
+        return value.isEmpty() ? "USER" : value;
     }
 }
