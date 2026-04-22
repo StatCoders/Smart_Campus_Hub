@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
-import { useSidebar } from '../context/SidebarContext';
+import { useSidebar } from '../context/useSidebar';
+import NotificationDropdown from './NotificationDropdown';
 import UserMenu from './UserMenu';
 import campusLogo from '../assets/campus-logo.png';
+import { normalizeRole } from '../utils/roleRedirect';
 
 export default function TopBar({ user }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const { logout } = useAuth();
   const { toggleMobile } = useSidebar();
   const navigate = useNavigate();
@@ -19,8 +22,7 @@ export default function TopBar({ user }) {
     'Operations User';
   const initials = `${user?.firstName?.[0] || 'O'}${user?.lastName?.[0] || 'U'}`.toUpperCase();
   
-  // Get role - handle both string and enum formats from backend
-  const roleDisplay = user?.role ? String(user.role).toUpperCase() : 'ADMIN';
+  const roleDisplay = normalizeRole(user?.role) || 'USER';
 
   const handleLogout = async () => {
     await logout();
@@ -46,18 +48,23 @@ export default function TopBar({ user }) {
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4">
-          <button
-            type="button"
-            className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:border-sky-200 hover:bg-sky-50"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-sky-500" />
-          </button>
+          <NotificationDropdown
+            userId={user?.id}
+            isOpen={showNotifications}
+            onClose={() => setShowNotifications(false)}
+            onToggle={() => {
+              setShowNotifications((current) => !current);
+              setShowUserMenu(false);
+            }}
+          />
 
           <div className="relative">
             <button
               type="button"
-              onClick={() => setShowUserMenu((current) => !current)}
+              onClick={() => {
+                setShowUserMenu((current) => !current);
+                setShowNotifications(false);
+              }}
               className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 transition hover:border-sky-200 hover:bg-sky-50"
             >
               <div>

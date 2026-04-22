@@ -6,7 +6,7 @@ import TechnicianMaintenanceSidebar from '../components/TechnicianMaintenanceSid
 import TopBar from '../components/TopBar';
 import EditTicket from '../components/EditTicket';
 import { useAuth } from '../context/useAuth';
-import { useSidebar } from '../context/SidebarContext';
+import { useSidebar } from '../context/useSidebar';
 import campusLogo from '../assets/campus-logo.png';
 
 export default function EditTicketPage() {

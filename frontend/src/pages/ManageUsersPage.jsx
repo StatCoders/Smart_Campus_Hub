@@ -3,7 +3,7 @@ import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import ManageUsers from '../components/ManageUsers';
 import { useAuth } from '../context/useAuth';
-import { useSidebar } from '../context/SidebarContext';
+import { useSidebar } from '../context/useSidebar';
 
 export default function ManageUsersPage() {
   const { user } = useAuth();

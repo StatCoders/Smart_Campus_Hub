@@ -11,9 +11,10 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { useSidebar } from '../context/SidebarContext';
+import { useSidebar } from '../context/useSidebar';
 import { useAuth } from '../context/useAuth';
 import campusLogo from '../assets/campus-logo.png';
+import { getDefaultRouteForRole } from '../utils/roleRedirect';
 
 export default function Sidebar({ activeTab, setActiveTab }) {
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
 
     switch (itemId) {
       case 'dashboard':
-        navigate('/dashboard');
+        navigate(getDefaultRouteForRole(user?.role));
         break;
       case 'tickets':
         navigate('/tickets');

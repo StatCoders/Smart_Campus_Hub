@@ -9,8 +9,10 @@ import com.smartcampus.backend.exception.UnauthorizedException;
 import com.smartcampus.backend.model.auth.AuthProvider;
 import com.smartcampus.backend.model.auth.Role;
 import com.smartcampus.backend.model.auth.User;
+import com.smartcampus.backend.model.notification.NotificationType;
 import com.smartcampus.backend.repository.auth.UserRepository;
 import com.smartcampus.backend.security.JwtUtil;
+import com.smartcampus.backend.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,6 +31,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final NotificationService notificationService;
 
     public AuthResponse signup(SignupRequest request) {
         // Validate that passwords match
@@ -312,8 +315,10 @@ public class UserService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
+        Role previousRole = user.getRole();
         user.setRole(newRole);
         user = userRepository.save(user);
+        notifyRoleChangeIfNeeded(user, previousRole);
 
         return UserResponse.builder()
             .id(user.getId())
@@ -334,8 +339,10 @@ public class UserService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
+        Boolean previousStatus = user.getIsActive();
         user.setIsActive(isActive);
         user = userRepository.save(user);
+        notifyStatusChangeIfNeeded(user, previousStatus);
 
         return UserResponse.builder()
             .id(user.getId())
@@ -356,6 +363,9 @@ public class UserService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
+        Role previousRole = user.getRole();
+        Boolean previousStatus = user.getIsActive();
+
         // Update user details
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
@@ -365,6 +375,8 @@ public class UserService {
         user.setIsActive(request.getIsActive());
         
         user = userRepository.save(user);
+        notifyRoleChangeIfNeeded(user, previousRole);
+        notifyStatusChangeIfNeeded(user, previousStatus);
 
         return UserResponse.builder()
             .id(user.getId())
@@ -416,5 +428,33 @@ public class UserService {
                 .lastName(user.getLastName())
                 .email(user.getEmail())
                 .build();
+    }
+
+    private void notifyRoleChangeIfNeeded(User user, Role previousRole) {
+        if (previousRole == user.getRole()) {
+            return;
+        }
+
+        notificationService.createNotification(
+                user.getId(),
+                "Your role has been updated to " + user.getRole(),
+                NotificationType.SYSTEM
+        );
+    }
+
+    private void notifyStatusChangeIfNeeded(User user, Boolean previousStatus) {
+        if (previousStatus != null && previousStatus.equals(user.getIsActive())) {
+            return;
+        }
+
+        String message = Boolean.TRUE.equals(user.getIsActive())
+                ? "Your account has been enabled"
+                : "Your account has been disabled";
+
+        notificationService.createNotification(
+                user.getId(),
+                message,
+                NotificationType.SYSTEM
+        );
     }
 }

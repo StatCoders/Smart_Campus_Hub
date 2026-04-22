@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import { getFacilityById, deleteFacility } from '../services/facilityService';
 import { useAuth } from '../context/useAuth';
-import { useSidebar } from '../context/SidebarContext';
+import { useSidebar } from '../context/useSidebar';
 import AddFacilityModal from '../components/AddFacilityModal';
 import OccupancyChart from '../components/OccupancyChart';
 

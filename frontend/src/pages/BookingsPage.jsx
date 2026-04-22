@@ -7,6 +7,7 @@ import Toast from '../components/Toast';
 import { getMyBookings } from '../services/bookingService';
 import { useAuth } from '../context/useAuth';
 import campusLogo from '../assets/campus-logo.png';
+import NotificationDropdown from '../components/NotificationDropdown';
 
 const STATUS_OPTIONS = ['All', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
 
@@ -160,6 +161,7 @@ export default function BookingsPage() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [toast, setToast] = useState(null);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -243,9 +245,12 @@ export default function BookingsPage() {
 
             {/* User Menu */}
             <div className="flex items-center gap-3 relative">
-              <button className="p-2 hover:bg-blue-50 rounded-lg transition">
-                <Bell className="w-5 h-5 text-blue-600" />
-              </button>
+              <NotificationDropdown
+                userId={user?.id}
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+                onToggle={() => setShowNotifications((current) => !current)}
+              />
               
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}

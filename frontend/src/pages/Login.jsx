@@ -37,20 +37,24 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
+  const [hasRedirected, setHasRedirected] = useState(false);
   const selectedRoleMeta = roleOptions.find((option) => option.role === selectedRole);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || hasRedirected) return;
 
     const postLoginRedirect = sessionStorage.getItem('postLoginRedirect');
     if (postLoginRedirect === 'google-success') {
       sessionStorage.removeItem('postLoginRedirect');
+      setHasRedirected(true);
       navigate('/google-success', { replace: true });
       return;
     }
 
-    navigate(getDefaultRouteForRole(user?.role), { replace: true });
-  }, [isAuthenticated, navigate, user?.role]);
+    const redirectPath = getDefaultRouteForRole(user?.role);
+    setHasRedirected(true);
+    navigate(redirectPath, { replace: true });
+  }, [isAuthenticated, navigate, user?.role, hasRedirected]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -69,7 +73,10 @@ export default function Login() {
     try {
       setLoading(true);
       const authenticatedUser = await login(formData.email.trim().toLowerCase(), formData.password);
-      navigate(getDefaultRouteForRole(authenticatedUser?.role), { replace: true });
+      const redirectPath = getDefaultRouteForRole(authenticatedUser?.role);
+
+      setHasRedirected(true);
+      navigate(redirectPath, { replace: true });
     } catch (err) {
       let errorMessage = 'Login failed. Please try again.';
 
