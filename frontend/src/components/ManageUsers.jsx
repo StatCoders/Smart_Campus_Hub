@@ -68,7 +68,7 @@ const ManageUsers = () => {
   // Apply filters whenever filters or data changes
   useEffect(() => {
     applyFilters();
-  }, [allUsers, searchTerm, roleFilter, statusFilter]);
+  }, [applyFilters]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -91,7 +91,7 @@ const ManageUsers = () => {
     }
   };
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = allUsers;
 
     // Search filter
@@ -118,7 +118,7 @@ const ManageUsers = () => {
     }
 
     setFilteredUsers(filtered);
-  };
+  }, [allUsers, searchTerm, roleFilter, statusFilter]);
 
   const getPaginatedUsers = () => {
     const startIdx = (currentPage - 1) * pageSize;

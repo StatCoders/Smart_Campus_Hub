@@ -1,6 +1,7 @@
 package com.smartcampus.backend.service.auth;
 
 import com.smartcampus.backend.dto.auth.*;
+import com.smartcampus.backend.dto.UserSummaryDto;
 import com.smartcampus.backend.exception.ConflictException;
 import com.smartcampus.backend.exception.GoogleAccountLoginException;
 import com.smartcampus.backend.exception.MissingPasswordException;
@@ -259,6 +260,11 @@ public class UserService {
             .build();
     }
 
+    public User getUser(Long userId) {
+        return userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
+    }
+
     public UserResponse createUserByAdmin(CreateUserRequest request) {
         // Check if user already exists
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -373,5 +379,42 @@ public class UserService {
             .createdAt(user.getCreatedAt())
             .updatedAt(user.getUpdatedAt())
             .build();
+    }
+
+    /**
+     * Get all users filtered by role as UserSummaryDto
+     * @param role The role to filter by
+     * @return List of UserSummaryDto for users with the given role
+     */
+    @Transactional(readOnly = true)
+    public List<UserSummaryDto> getUsersByRole(Role role) {
+        return userRepository.findByRoleAndIsActiveTrueOrderByFirstName(role)
+                .stream()
+                .map(this::mapToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get all active users as UserSummaryDto
+     * @return List of all active users
+     */
+    @Transactional(readOnly = true)
+    public List<UserSummaryDto> getAllActiveUsers() {
+        return userRepository.findByIsActiveTrueOrderByFirstName()
+                .stream()
+                .map(this::mapToSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Map User entity to UserSummaryDto
+     */
+    private UserSummaryDto mapToSummaryDto(User user) {
+        return UserSummaryDto.builder()
+                .id(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .build();
     }
 }

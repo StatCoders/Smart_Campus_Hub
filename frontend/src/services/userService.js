@@ -66,4 +66,15 @@ export const updateUser = async (userId, userData) => {
   }
 };
 
+// Get all technicians
+export const getTechnicians = async () => {
+  try {
+    const response = await apiClient.get('/auth/users/role/TECHNICIAN');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching technicians:', error);
+    throw error;
+  }
+};
+
 

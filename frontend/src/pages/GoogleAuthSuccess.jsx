@@ -1,15 +1,25 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { useEffect } from 'react';
 
 export default function GoogleAuthSuccess() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  useEffect(() => {
+    // Auto-redirect to home page after 1 second
+    const timer = setTimeout(() => {
+      navigate('/home');
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-lg w-full bg-white shadow rounded-lg p-8 text-center">
         <h1 className="text-2xl font-bold text-green-700">Google Login Successful</h1>
-        <p className="mt-3 text-gray-600">Your account is authenticated and tokens are active.</p>
+        <p className="mt-3 text-gray-600">Redirecting to home page...</p>
 
         <div className="mt-6 text-left bg-gray-50 rounded-md p-4">
           <p className="text-sm text-gray-700"><strong>Name:</strong> {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'N/A'}</p>
@@ -20,10 +30,10 @@ export default function GoogleAuthSuccess() {
 
         <div className="mt-6 flex gap-3 justify-center">
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/home')}
             className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
           >
-            Go to Dashboard
+            Go to Home
           </button>
           <button
             onClick={() => navigate('/login')}

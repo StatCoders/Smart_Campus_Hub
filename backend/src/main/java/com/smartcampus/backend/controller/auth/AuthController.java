@@ -138,8 +138,14 @@ public class AuthController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getUserById(@PathVariable Long userId) {
         try {
-            UserResponse user = userService.getUserById(userId);
-            return new ResponseEntity<>(user, HttpStatus.OK);
+            userService.getUserById(userId);
+            return new ResponseEntity<>(
+                AuthResponse.builder()
+                    .success(true)
+                    .message("User retrieved successfully")
+                    .data(null)
+                    .build(),
+                HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(
                 AuthResponse.builder()
@@ -155,7 +161,7 @@ public class AuthController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createUser(@Valid @RequestBody CreateUserRequest request) {
         try {
-            UserResponse user = userService.createUserByAdmin(request);
+            userService.createUserByAdmin(request);
             return new ResponseEntity<>(
                 AuthResponse.builder()
                     .success(true)
@@ -181,7 +187,7 @@ public class AuthController {
             @PathVariable Long userId,
             @Valid @RequestBody UpdateRoleRequest request) {
         try {
-            UserResponse user = userService.updateUserRole(userId, request.getRole());
+            userService.updateUserRole(userId, request.getRole());
             return new ResponseEntity<>(
                 AuthResponse.builder()
                     .success(true)
@@ -215,7 +221,7 @@ public class AuthController {
             @PathVariable Long userId,
             @Valid @RequestBody UpdateStatusRequest request) {
         try {
-            UserResponse user = userService.updateUserStatus(userId, request.getIsActive());
+            userService.updateUserStatus(userId, request.getIsActive());
             return new ResponseEntity<>(
                 AuthResponse.builder()
                     .success(true)
@@ -249,7 +255,7 @@ public class AuthController {
             @PathVariable Long userId,
             @Valid @RequestBody UpdateUserRequest request) {
         try {
-            UserResponse user = userService.updateUserByAdmin(userId, request);
+            userService.updateUserByAdmin(userId, request);
             return new ResponseEntity<>(
                 AuthResponse.builder()
                     .success(true)

@@ -20,6 +20,7 @@ import BookingsPage from './pages/BookingsPage';
 import AdminBookingsPage from './pages/AdminBookingsPage';
 import ManageUsersPage from './pages/ManageUsersPage';
 import { useAuth } from './context/useAuth';
+import { getDefaultRouteForRole } from './utils/roleRedirect';
 import 'tailwindcss';
 
 // Role-based bookings route component
@@ -36,6 +37,20 @@ function ResourcesRoute() {
   return user.role === 'ADMIN' ? <AdminResourcesPage /> : <StudentResourcesPage />;
 }
 
+function RootRedirect() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return null;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Navigate to={getDefaultRouteForRole(user.role)} replace />;
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -47,7 +62,7 @@ function App() {
             <Route
               path="/home"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['USER']}>
                   <HomePage />
                 </ProtectedRoute>
               }
@@ -55,7 +70,7 @@ function App() {
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['ADMIN']}>
                   <Dashboard />
                 </ProtectedRoute>
               }
@@ -63,7 +78,7 @@ function App() {
             <Route
               path="/technician-dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['TECHNICIAN']}>
                   <TechnicianDashboard />
                 </ProtectedRoute>
               }
@@ -71,7 +86,7 @@ function App() {
             <Route
               path="/student-dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['USER']}>
                   <StudentDashboard />
                 </ProtectedRoute>
               }
@@ -79,7 +94,7 @@ function App() {
             <Route
               path="/student-tickets"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['USER']}>
                   <StudentTicketsPage />
                 </ProtectedRoute>
               }
@@ -87,7 +102,7 @@ function App() {
             <Route
               path="/student-resources"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['USER']}>
                   <StudentResourcesPage />
                 </ProtectedRoute>
               }
@@ -95,7 +110,7 @@ function App() {
             <Route
               path="/student-bookings"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['USER']}>
                   <BookingsPage />
                 </ProtectedRoute>
               }
@@ -160,7 +175,7 @@ function App() {
               path="/google-success"
               element={<GoogleAuthSuccess />}
             />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<RootRedirect />} />
           </Routes>
         </SidebarProvider>
       </AuthProvider>
