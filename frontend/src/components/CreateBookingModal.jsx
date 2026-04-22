@@ -44,9 +44,10 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
       try {
         const data = await getAllFacilities();
         const list = Array.isArray(data) ? data : data.content ?? [];
-        setResources(list);
-        if (list.length > 0) {
-          setFormData((prev) => ({ ...prev, resourceId: String(list[0].id) }));
+        const bookableResources = list.filter(r => r.bookingStatus === 'CAN_BOOK_NOW');
+        setResources(bookableResources);
+        if (bookableResources.length > 0) {
+          setFormData((prev) => ({ ...prev, resourceId: String(bookableResources[0].id) }));
         }
       } catch {
         setResources([]);
@@ -70,6 +71,13 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
     if (!formData.endTime) return 'Please select an end time.';
     if (formData.startTime >= formData.endTime) return 'End time must be after start time.';
     if (!formData.attendees || Number(formData.attendees) < 1) return 'Attendees must be at least 1.';
+    
+    // Capacity validation
+    const selectedResource = resources.find(r => String(r.id) === String(formData.resourceId));
+    if (selectedResource && Number(formData.attendees) > selectedResource.capacity) {
+      return `Number of attendees (${formData.attendees}) exceeds the resource capacity.`;
+    }
+
     if (!formData.purpose.trim()) return 'Please provide a purpose for the booking.';
     return '';
   };
@@ -158,7 +166,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
                 {resources.length === 0 && <option value="">No resources available</option>}
                 {resources.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.name} {r.building ? `– ${r.building}` : ''}
+                    {r.name} {r.building ? `– ${r.building}` : ''} (Cap: {r.capacity})
                   </option>
                 ))}
               </select>
@@ -219,9 +227,16 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
 
           {/* Attendees */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              Number of Attendees *
-            </label>
+            <div className="flex justify-between mb-1.5">
+              <label className="block text-sm font-medium text-slate-700">
+                Number of Attendees *
+              </label>
+              {formData.resourceId && (
+                <span className="text-xs font-medium text-indigo-600">
+                  Max Capacity: {resources.find(r => String(r.id) === String(formData.resourceId))?.capacity || 0}
+                </span>
+              )}
+            </div>
             <input
               type="number"
               name="attendees"

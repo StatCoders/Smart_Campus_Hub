@@ -109,6 +109,11 @@ public class BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Resource not found with id: " + dto.getResourceId()));
 
+        if (dto.getExpectedAttendees() > facility.getCapacity()) {
+            throw new IllegalArgumentException("Number of attendees (" + dto.getExpectedAttendees() + 
+                ") exceeds the resource capacity");
+        }
+
         // Conflict check – use -1L as excludeId so no existing booking is skipped
         List<Booking> conflicts = bookingRepository.findConflictingBookings(
                 facility.getId(),
