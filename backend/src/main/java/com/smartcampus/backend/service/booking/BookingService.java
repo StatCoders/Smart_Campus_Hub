@@ -2,6 +2,7 @@ package com.smartcampus.backend.service.booking;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.smartcampus.backend.dto.booking.AvailabilitySlotDto;
 import com.smartcampus.backend.dto.booking.BookingRequestDto;
 import com.smartcampus.backend.dto.booking.BookingResponseDto;
 import com.smartcampus.backend.exception.ConflictException;
@@ -26,6 +27,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -113,18 +117,35 @@ public class BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Resource not found with id: " + dto.getResourceId()));
 
-        // Conflict check – use -1L as excludeId so no existing booking is skipped
-        List<Booking> conflicts = bookingRepository.findConflictingBookings(
+        if (dto.getExpectedAttendees() > facility.getCapacity()) {
+            throw new IllegalArgumentException("Number of attendees (" + dto.getExpectedAttendees() + 
+                ") exceeds the resource capacity");
+        }
+
+        // ── Capacity check (partial-capacity aware) ──────────────────────────────
+        // Sum expectedAttendees of all APPROVED bookings that overlap the requested
+        // time window.  We allow multiple bookings in the same slot as long as
+        // total attendees do not exceed the resource's physical capacity.
+        //
+        // Example: capacity=30, booking1=10 attendees already approved.
+        //   new request = 21 → total 31 > 30 → reject with 409.
+        //   new request = 19 → total 29 ≤ 30 → allow.
+        Integer alreadyBooked = bookingRepository.sumBookedAttendees(
                 facility.getId(),
                 dto.getBookingDate(),
                 dto.getStartTime(),
-                dto.getEndTime(),
-                -1L
+                dto.getEndTime()
         );
 
-        if (!conflicts.isEmpty()) {
+        int bookedSoFar      = (alreadyBooked != null ? alreadyBooked : 0);
+        int totalAfterBooking = bookedSoFar + dto.getExpectedAttendees();
+
+        if (totalAfterBooking > facility.getCapacity()) {
+            int remaining = facility.getCapacity() - bookedSoFar;
             throw new ConflictException(
-                    "This resource is already booked for the selected date and time slot");
+                    "Not enough capacity. Only " + remaining
+                    + " seat" + (remaining == 1 ? "" : "s")
+                    + " remaining for this time slot.");
         }
 
         Booking booking = Booking.builder()
@@ -287,10 +308,146 @@ public class BookingService {
             throw new IllegalArgumentException("Booking is already cancelled");
         }
 
+        if (booking.getStatus() == BookingStatus.REJECTED) {
+            throw new IllegalArgumentException("Cannot cancel a booking that has already been rejected");
+        }
+
+        BookingStatus oldStatus = booking.getStatus();
         booking.setStatus(BookingStatus.CANCELLED);
+        final Booking cancelledBooking = bookingRepository.save(booking);
+
+        // Outbox event
+        writeOutboxEvent("BOOKING_CANCELLED", Map.of(
+                "bookingId", cancelledBooking.getId(),
+                "userId", currentUser.getId(),
+                "resourceId", cancelledBooking.getResource().getId(),
+                "previousStatus", oldStatus.name()
+        ));
+
+        // If it was already APPROVED, notify admins about the cancellation
+        if (oldStatus == BookingStatus.APPROVED) {
+            userRepository.findByRoleAndIsActiveTrueOrderByFirstName(Role.ADMIN).forEach(admin -> {
+                notificationService.createNotification(
+                        admin.getId(),
+                        "An approved booking for " + cancelledBooking.getResource().getName() + " was cancelled by the user",
+                        NotificationType.BOOKING
+                );
+            });
+        }
+
+        log.info("Booking {} cancelled by user {}. Previous status: {}", cancelledBooking.getId(), currentUser.getId(), oldStatus);
+        return toDto(cancelledBooking);
+    }
+
+    // =========================================================================
+    // updateBooking  (booking owner, PENDING only)
+    // =========================================================================
+    @Transactional
+    public BookingResponseDto updateBooking(Long id, BookingRequestDto dto) {
+        User currentUser = getCurrentUser();
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
+
+        // Ownership check
+        if (!booking.getUser().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedException("You are not permitted to edit this booking");
+        }
+
+        // Status check
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new ConflictException("Only PENDING bookings can be edited");
+        }
+
+        if (!dto.getEndTime().isAfter(dto.getStartTime())) {
+            throw new IllegalArgumentException("End time must be after start time");
+        }
+
+        Facility facility = facilityRepository.findById(dto.getResourceId())
+                .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + dto.getResourceId()));
+
+        if (dto.getExpectedAttendees() > facility.getCapacity()) {
+            throw new IllegalArgumentException("Number of attendees (" + dto.getExpectedAttendees() +
+                ") exceeds the resource capacity (" + facility.getCapacity() + ")");
+        }
+
+        // Capacity check (excluding current booking)
+        Integer alreadyBooked = bookingRepository.sumBookedAttendeesExcluding(
+                facility.getId(),
+                dto.getBookingDate(),
+                dto.getStartTime(),
+                dto.getEndTime(),
+                id
+        );
+
+        int bookedSoFar = (alreadyBooked != null ? alreadyBooked : 0);
+        int totalAfterBooking = bookedSoFar + dto.getExpectedAttendees();
+
+        if (totalAfterBooking > facility.getCapacity()) {
+            int remaining = facility.getCapacity() - bookedSoFar;
+            throw new ConflictException("Not enough capacity. Only " + remaining + " seats remaining.");
+        }
+
+        booking.setResource(facility);
+        booking.setBookingDate(dto.getBookingDate());
+        booking.setStartTime(dto.getStartTime());
+        booking.setEndTime(dto.getEndTime());
+        booking.setPurpose(dto.getPurpose());
+        booking.setExpectedAttendees(dto.getExpectedAttendees());
+
         booking = bookingRepository.save(booking);
 
-        log.info("Booking {} cancelled by user {}", booking.getId(), currentUser.getId());
+        log.info("Booking {} updated by user {}", id, currentUser.getId());
         return toDto(booking);
+    }
+
+    // =========================================================================
+    // getAvailability  (student) — 15-min slot availability for a resource/date
+    // =========================================================================
+    @Transactional(readOnly = true)
+    public List<AvailabilitySlotDto> getAvailability(Long resourceId, LocalDate date) {
+
+        Facility facility = facilityRepository.findById(resourceId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Resource not found with id: " + resourceId));
+
+        int totalCapacity = facility.getCapacity();
+
+        // Fetch only APPROVED bookings for this resource on this date
+        List<Booking> approvedBookings =
+                bookingRepository.findApprovedBookingsForResourceOnDate(resourceId, date);
+
+        // Generate 15-minute slots from 08:00 to 20:00 (exclusive upper bound)
+        // e.g. 08:00-08:15, 08:15-08:30, ... 19:45-20:00
+        List<AvailabilitySlotDto> slots = new ArrayList<>();
+        LocalTime cursor = LocalTime.of(8, 0);
+        LocalTime dayEnd  = LocalTime.of(20, 0);
+
+        while (cursor.isBefore(dayEnd)) {
+            LocalTime slotEnd = cursor.plusMinutes(15);
+
+            final LocalTime slotStart = cursor; // effectively final for lambda
+
+            // Sum expectedAttendees of bookings that overlap this slot.
+            // Overlap condition: booking.start < slotEnd AND booking.end > slotStart
+            int booked = approvedBookings.stream()
+                    .filter(b -> b.getStartTime().isBefore(slotEnd)
+                              && b.getEndTime().isAfter(slotStart))
+                    .mapToInt(b -> b.getExpectedAttendees() == null ? 0 : b.getExpectedAttendees())
+                    .sum();
+
+            int remaining = Math.max(0, totalCapacity - booked);
+
+            slots.add(AvailabilitySlotDto.builder()
+                    .startTime(slotStart)
+                    .endTime(slotEnd)
+                    .bookedCapacity(booked)
+                    .remainingCapacity(remaining)
+                    .isAvailable(remaining > 0)
+                    .build());
+
+            cursor = slotEnd;
+        }
+
+        return slots;
     }
 }

@@ -78,4 +78,80 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
+
+    /**
+     * Fetch all APPROVED bookings for a specific resource on a specific date.
+     * Used by the availability endpoint to let the frontend compute per-slot
+     * remaining capacity and colour the time dropdowns accordingly.
+     *
+     * @param resourceId the resource/facility ID
+     * @param date       the date to check
+     * @return List of approved bookings ordered by start time
+     *
+     * NOTE: Only APPROVED bookings count toward capacity.
+     * This method does NOT modify or affect any other booking queries.
+     */
+    @Query("""
+            SELECT b FROM Booking b
+            WHERE b.resource.id = :resourceId
+              AND b.status = com.smartcampus.backend.model.booking.BookingStatus.APPROVED
+              AND b.bookingDate = :date
+            ORDER BY b.startTime ASC
+            """)
+    List<Booking> findApprovedBookingsForResourceOnDate(
+            @Param("resourceId") Long resourceId,
+            @Param("date") LocalDate date
+    );
+
+    /**
+     * Sum the expectedAttendees of all APPROVED bookings for a resource on a
+     * specific date whose time window overlaps [startTime, endTime).
+     *
+     * Overlap condition (standard interval test):
+     *   existing.startTime < :endTime  AND  existing.endTime > :startTime
+     *
+     * Used by createBooking() to enforce partial-capacity enforcement:
+     *   if (alreadyBooked + newAttendees > capacity) → reject with 409.
+     *
+     * Returns 0 via COALESCE when no overlapping approved bookings exist.
+     *
+     * NOTE: Only modifies the booking module. Does not touch any other module.
+     */
+    @Query("""
+            SELECT COALESCE(SUM(b.expectedAttendees), 0)
+            FROM Booking b
+            WHERE b.resource.id = :resourceId
+              AND b.bookingDate = :date
+              AND b.status = com.smartcampus.backend.model.booking.BookingStatus.APPROVED
+              AND b.startTime < :endTime
+              AND b.endTime > :startTime
+            """)
+    Integer sumBookedAttendees(
+            @Param("resourceId") Long resourceId,
+            @Param("date") LocalDate date,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime
+    );
+
+    /**
+     * Same as sumBookedAttendees but excludes a specific booking ID.
+     * Useful when EDITING an existing booking to avoid self-conflict.
+     */
+    @Query("""
+            SELECT COALESCE(SUM(b.expectedAttendees), 0)
+            FROM Booking b
+            WHERE b.resource.id = :resourceId
+              AND b.bookingDate = :date
+              AND b.status = com.smartcampus.backend.model.booking.BookingStatus.APPROVED
+              AND b.startTime < :endTime
+              AND b.endTime > :startTime
+              AND b.id <> :excludeId
+            """)
+    Integer sumBookedAttendeesExcluding(
+            @Param("resourceId") Long resourceId,
+            @Param("date") LocalDate date,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime,
+            @Param("excludeId") Long excludeId
+    );
 }
