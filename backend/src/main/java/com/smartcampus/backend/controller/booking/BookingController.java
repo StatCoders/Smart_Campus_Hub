@@ -103,6 +103,20 @@ public class BookingController {
     }
 
     // -------------------------------------------------------------------------
+    // PUT /api/bookings/{id}  — update a booking (USER / owner)
+    // -------------------------------------------------------------------------
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<BookingResponseDto>> updateBooking(
+            @PathVariable Long id,
+            @Valid @RequestBody BookingRequestDto dto) {
+
+        BookingResponseDto updated = bookingService.updateBooking(id, dto);
+        return ResponseEntity.ok(new ApiResponse<>(true, HttpStatus.OK.value(),
+                "Booking updated successfully", updated));
+    }
+
+    // -------------------------------------------------------------------------
     // GET /api/bookings/availability?resourceId={id}&date={date}  (USER)
     // Returns all 15-minute slots for the day with booked/remaining capacity.
     // The frontend uses this list to colour and disable individual time options.

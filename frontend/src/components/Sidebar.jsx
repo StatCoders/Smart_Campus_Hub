@@ -49,7 +49,11 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         navigate('/facilities');
         break;
       case 'bookings':
-        navigate('/bookings');
+        if (normalizeRole(user?.role) === 'ADMIN') {
+          navigate('/bookings');
+        } else {
+          navigate('/student-bookings');
+        }
         break;
       case 'manage-users':
         navigate('/manage-users');

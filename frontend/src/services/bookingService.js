@@ -122,3 +122,11 @@ export const getAvailability = async (resourceId, date) => {
     throw normalizeBookingError(error, 'Failed to fetch availability');
   }
 };
+export const updateBooking = async (id, bookingData) => {
+  try {
+    const response = await apiClient.put(`/bookings/${id}`, bookingData);
+    return response.data.data || response.data;
+  } catch (error) {
+    throw normalizeBookingError(error, 'Failed to update booking');
+  }
+};

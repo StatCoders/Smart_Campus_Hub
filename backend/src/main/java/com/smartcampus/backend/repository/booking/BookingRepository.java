@@ -132,4 +132,26 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("startTime") LocalTime startTime,
             @Param("endTime") LocalTime endTime
     );
+
+    /**
+     * Same as sumBookedAttendees but excludes a specific booking ID.
+     * Useful when EDITING an existing booking to avoid self-conflict.
+     */
+    @Query("""
+            SELECT COALESCE(SUM(b.expectedAttendees), 0)
+            FROM Booking b
+            WHERE b.resource.id = :resourceId
+              AND b.bookingDate = :date
+              AND b.status = com.smartcampus.backend.model.booking.BookingStatus.APPROVED
+              AND b.startTime < :endTime
+              AND b.endTime > :startTime
+              AND b.id <> :excludeId
+            """)
+    Integer sumBookedAttendeesExcluding(
+            @Param("resourceId") Long resourceId,
+            @Param("date") LocalDate date,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime,
+            @Param("excludeId") Long excludeId
+    );
 }

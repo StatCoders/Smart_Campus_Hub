@@ -1,57 +1,70 @@
 import React, { useState } from 'react';
-// eslint-disable-next-line no-unused-vars
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Calendar, 
+  Clock, 
+  MapPin, 
+  Users, 
+  FileText, 
+  MoreHorizontal, 
+  XCircle, 
+  CheckCircle, 
+  AlertCircle,
+  ChevronRight,
+  Trash2,
+  Info,
+  BookOpen,
+  Edit3
+} from 'lucide-react';
 import { cancelBooking } from '../services/bookingService';
 
 // Status configuration
 const STATUS_CONFIG = {
   APPROVED: {
-    borderColor: 'border-emerald-500',
-    badgeBg: 'bg-emerald-100',
+    borderColor: 'border-l-emerald-500',
+    badgeBg: 'bg-emerald-50',
     badgeText: 'text-emerald-700',
+    badgeIcon: CheckCircle,
     label: 'Approved',
+    accentColor: 'text-emerald-600',
   },
   PENDING: {
-    borderColor: 'border-amber-500',
-    badgeBg: 'bg-amber-100',
+    borderColor: 'border-l-amber-500',
+    badgeBg: 'bg-amber-50',
     badgeText: 'text-amber-700',
+    badgeIcon: AlertCircle,
     label: 'Pending',
+    accentColor: 'text-amber-600',
   },
   REJECTED: {
-    borderColor: 'border-rose-500',
-    badgeBg: 'bg-rose-100',
+    borderColor: 'border-l-rose-500',
+    badgeBg: 'bg-rose-50',
     badgeText: 'text-rose-700',
+    badgeIcon: XCircle,
     label: 'Rejected',
+    accentColor: 'text-rose-600',
   },
   CANCELLED: {
-    borderColor: 'border-slate-400',
-    badgeBg: 'bg-slate-100',
+    borderColor: 'border-l-slate-400',
+    badgeBg: 'bg-slate-50',
     badgeText: 'text-slate-600',
+    badgeIcon: XCircle,
     label: 'Cancelled',
+    accentColor: 'text-slate-500',
   },
 };
 
-// BookingResponseDto fields:
-//   id, resourceId, resourceName, userId, userFullName,
-//   bookingDate (LocalDate → "2026-04-13"),
-//   startTime   (LocalTime → "08:00:00"),
-//   endTime     (LocalTime → "09:00:00"),
-//   purpose, expectedAttendees, status,
-//   adminReason, reviewedBy (Long), createdAt
-
 function formatBookingDate(dateStr) {
-  // dateStr is "2026-04-13"
-  if (!dateStr) return { month: '—', day: '—', weekday: '' };
-  const d = new Date(`${dateStr}T00:00:00`); // force local time parse
-  return {
-    month: d.toLocaleDateString('en-US', { month: 'short' }),
-    day: d.getDate(),
-    weekday: d.toLocaleDateString('en-US', { weekday: 'short' }),
-  };
+  if (!dateStr) return '—';
+  const d = new Date(`${dateStr}T00:00:00`);
+  return d.toLocaleDateString('en-US', { 
+    weekday: 'short', 
+    month: 'short', 
+    day: 'numeric' 
+  }).toUpperCase();
 }
 
 function formatLocalTime(timeStr) {
-  // timeStr is "08:00:00" or "09:30:00"
   if (!timeStr) return '—';
   const [h, m] = timeStr.split(':');
   const hour = parseInt(h, 10);
@@ -60,26 +73,29 @@ function formatLocalTime(timeStr) {
   return `${h12}:${m} ${ampm}`;
 }
 
-export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin = false }) {
+export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin = false, onEdit }) {
   const [cancelling, setCancelling] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [cancelError, setCancelError] = useState('');
 
   const status = booking.status || 'PENDING';
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING;
+  const StatusIcon = config.badgeIcon;
 
-  // Only show Cancel button to the booking owner when status allows it
+  const canEdit = !isAdmin && status === 'PENDING';
+
   const canCancel =
     !isAdmin &&
     (status === 'APPROVED' || status === 'PENDING') &&
     (currentUserId == null || booking.userId === currentUserId);
 
   const handleCancel = async () => {
-    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
     setCancelling(true);
     setCancelError('');
     try {
       await cancelBooking(booking.id);
       onRefresh?.();
+      setShowConfirm(false);
     } catch (err) {
       setCancelError(typeof err === 'string' ? err : 'Failed to cancel booking');
     } finally {
@@ -87,74 +103,168 @@ export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin
     }
   };
 
-  const { month, day, weekday } = formatBookingDate(booking.bookingDate);
-  const timeRange = `${formatLocalTime(booking.startTime)} – ${formatLocalTime(booking.endTime)}`;
+  const bookingDate = formatBookingDate(booking.bookingDate);
+  const startTime = formatLocalTime(booking.startTime);
+  const endTime = formatLocalTime(booking.endTime);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className={`bg-white rounded-2xl shadow-sm border border-slate-200 border-l-4 ${config.borderColor} flex items-stretch overflow-hidden`}
+      exit={{ opacity: 0, scale: 0.95 }}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      className={`relative bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md border-l-4 ${config.borderColor}`}
     >
-      {/* Left – Date column */}
-      <div className="flex flex-col items-center justify-center px-5 py-4 min-w-[88px] bg-slate-50 border-r border-slate-100">
-        <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">{month}</span>
-        <span className="text-3xl font-bold text-indigo-600 leading-none">{day}</span>
-        <span className="text-xs text-slate-500 mt-0.5">{weekday}</span>
-        <span className="text-[11px] text-slate-400 mt-2 text-center leading-tight">{timeRange}</span>
-      </div>
-
-      {/* Middle – Details */}
-      <div className="flex-1 px-5 py-4 flex flex-col justify-center gap-1 min-w-0">
-        <p className="font-semibold text-slate-800 truncate text-base">{booking.purpose || '(No purpose)'}</p>
-
-        <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
-          {booking.resourceName && (
-            <span className="text-sm text-slate-500 flex items-center gap-1">
-              <span>📦</span> {booking.resourceName}
-            </span>
-          )}
-          {booking.expectedAttendees != null && (
-            <span className="text-sm text-slate-500 flex items-center gap-1">
-              <span>👥</span> {booking.expectedAttendees} attendees
-            </span>
-          )}
+      {/* Top Header - Date & Status */}
+      <div className="px-5 py-4 flex items-center justify-between border-b border-slate-100 bg-slate-50/50">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-lg bg-white shadow-sm ${config.accentColor}`}>
+            <Calendar className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
+              {bookingDate}
+            </p>
+            <p className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-slate-400" />
+              {startTime} — {endTime}
+            </p>
+          </div>
         </div>
 
-        {/* Rejection reason */}
-        {status === 'REJECTED' && booking.adminReason && (
-          <p className="text-xs text-rose-600 mt-1 italic">Reason: {booking.adminReason}</p>
-        )}
-
-        {/* Admin view – show requester's full name */}
-        {isAdmin && booking.userFullName && (
-          <p className="text-xs text-slate-500 mt-0.5">
-            Requested by: <span className="font-medium text-slate-700">{booking.userFullName}</span>
-          </p>
-        )}
-
-        {cancelError && <p className="text-xs text-rose-500 mt-1">{cancelError}</p>}
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${config.badgeBg} ${config.badgeText} text-[11px] font-bold uppercase tracking-wider shadow-sm`}>
+          <StatusIcon className="w-3.5 h-3.5" />
+          {config.label}
+        </div>
       </div>
 
-      {/* Right – Status badge + actions */}
-      <div className="flex flex-col items-end justify-center px-5 py-4 gap-2 shrink-0">
-        <span
-          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${config.badgeBg} ${config.badgeText}`}
-        >
-          {config.label}
-        </span>
+      {/* Middle Content */}
+      <div className="p-5 flex-1 space-y-4">
+        {/* Resource Name & Location */}
+        <div className="space-y-1">
+          <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 group">
+            <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+              <BookOpen className="w-4 h-4" />
+            </div>
+            {booking.resourceName || 'Unnamed Resource'}
+          </h3>
+          <div className="flex items-center gap-2 text-sm text-slate-500 pl-10">
+            <MapPin className="w-4 h-4 text-slate-400" />
+            <span>{booking.location || 'Main Campus'}</span>
+          </div>
+        </div>
 
-        {canCancel && (
+        {/* Details Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-10">
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-md bg-slate-50 flex items-center justify-center text-slate-400">
+              <Users className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Attendees</p>
+              <p className="text-sm font-semibold text-slate-700">{booking.expectedAttendees || '0'} People</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-md bg-slate-50 flex items-center justify-center text-slate-400">
+              <FileText className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Purpose</p>
+              <p className="text-sm font-semibold text-slate-700 truncate" title={booking.purpose}>
+                {booking.purpose || 'No purpose stated'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Admin Rejection Reason */}
+        {status === 'REJECTED' && booking.adminReason && (
+          <div className="mt-4 p-3 bg-rose-50 border border-rose-100 rounded-xl flex gap-3">
+            <Info className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-[10px] font-bold text-rose-700 uppercase tracking-wider mb-1">Reason for Rejection</p>
+              <p className="text-sm text-rose-800 leading-relaxed font-medium">
+                {booking.adminReason}
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {cancelError && (
+          <div className="mt-2 text-xs text-rose-600 font-medium flex items-center gap-1.5 bg-rose-50 p-2 rounded-lg border border-rose-100">
+            <AlertCircle className="w-3.5 h-3.5" />
+            {cancelError}
+          </div>
+        )}
+      </div>
+
+      {/* Footer Actions */}
+      <div className="px-5 py-4 bg-slate-50/30 border-t border-slate-100 flex items-center justify-end gap-3">
+        {canEdit && (
           <button
-            onClick={handleCancel}
-            disabled={cancelling}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors disabled:opacity-60"
+            onClick={() => onEdit?.(booking)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-indigo-600 hover:bg-indigo-50 transition-all border border-transparent hover:border-indigo-100"
           >
-            {cancelling ? 'Cancelling…' : 'Cancel'}
+            <Edit3 className="w-4 h-4" />
+            Edit
           </button>
         )}
+        {canCancel && !showConfirm && (
+          <button
+            onClick={() => setShowConfirm(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-rose-600 hover:bg-rose-50 transition-all border border-transparent hover:border-rose-100"
+          >
+            <Trash2 className="w-4 h-4" />
+            Cancel Booking
+          </button>
+        )}
+
+        <button
+          onClick={() => {/* View detail logic could go here */}}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-sm hover:shadow-md group"
+        >
+          View Details
+          <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+        </button>
       </div>
+
+      {/* Cancel Confirmation Overlay */}
+      <AnimatePresence>
+        {showConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-10 bg-white/95 backdrop-blur-sm p-6 flex flex-col items-center justify-center text-center"
+          >
+            <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
+              <AlertCircle className="w-8 h-8" />
+            </div>
+            <h4 className="text-lg font-bold text-slate-900 mb-2">Cancel Reservation?</h4>
+            <p className="text-sm text-slate-500 mb-6 max-w-[240px]">
+              This action cannot be undone. Are you sure you want to cancel your booking?
+            </p>
+            <div className="flex gap-3 w-full max-w-[280px]">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+              >
+                No, Keep it
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={cancelling}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-sm disabled:opacity-50"
+              >
+                {cancelling ? 'Cancelling...' : 'Yes, Cancel'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
+
+
