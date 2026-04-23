@@ -4,31 +4,9 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/useAuth';
 import authService from '../services/authService';
 import campusLogo from '../assets/campus-logo.png';
+import universityBg from '../assets/university-bg.jpg';
 import { getDefaultRouteForRole } from '../utils/roleRedirect';
-
-const roleOptions = [
-  {
-    id: 'student-staff',
-    role: 'USER',
-    title: 'Student / Staff',
-    description: 'Book resources and report issues',
-    accent: 'from-cyan-500 to-teal-500',
-  },
-  {
-    id: 'administrator',
-    role: 'ADMIN',
-    title: 'Administrator',
-    description: 'Manage campus operations',
-    accent: 'from-rose-500 to-orange-500',
-  },
-  {
-    id: 'technician',
-    role: 'TECHNICIAN',
-    title: 'Technician',
-    description: 'Handle maintenance tickets',
-    accent: 'from-indigo-500 to-blue-500',
-  },
-];
+import { LogIn, Mail, Lock, ArrowRight } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -36,9 +14,7 @@ export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(null);
   const [hasRedirected, setHasRedirected] = useState(false);
-  const selectedRoleMeta = roleOptions.find((option) => option.role === selectedRole);
 
   useEffect(() => {
     if (!isAuthenticated || hasRedirected) return;
@@ -133,133 +109,69 @@ export default function Login() {
   });
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-100 px-4 py-10 sm:px-6 lg:px-8">
-      <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-cyan-200/50 blur-3xl" />
-      <div className="pointer-events-none absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-amber-200/40 blur-3xl" />
+    <div 
+      className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-fixed px-4"
+      style={{ backgroundImage: `url(${universityBg})` }}
+    >
+      {/* Dark Overlay */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
-      <div className="relative mx-auto w-full max-w-3xl">
-        {!selectedRole ? (
-          <div className="space-y-6 rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-xl shadow-slate-200/60 backdrop-blur sm:p-8">
-            <div className="space-y-2">
-              <img src={campusLogo} alt="Winterfall Northern University" className="mx-auto mb-4 h-24 w-24" />
-              <p className="text-sm font-medium uppercase tracking-widest text-slate-500">Winterfall Northern University</p>
-              <h2 className="text-4xl font-semibold tracking-tight text-slate-900">Welcome back</h2>
-              <p className="text-lg text-slate-600">Sign in to manage your campus operations</p>
+      <div className="relative w-full max-w-lg">
+        {/* Glassmorphic Login Card */}
+        <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-8 sm:p-12 shadow-2xl overflow-hidden">
+          {/* Logo and Header */}
+          <div className="text-center mb-10">
+            <div className="inline-block p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 mb-4">
+              <img src={campusLogo} alt="Logo" className="h-16 w-16" />
             </div>
-
-            {error && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={() => googleSignIn()}
-              disabled={loading}
-              className="group flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-4 text-lg font-semibold text-slate-900 transition hover:bg-white hover:shadow-sm disabled:bg-slate-100"
-            >
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white text-sm font-bold text-slate-700 shadow-sm">G</span>
-              Continue with Google
-            </button>
-
-            <div className="flex items-center gap-4 text-slate-500">
-              <div className="h-px flex-1 bg-slate-300" />
-              <span className="text-sm">Or sign in as a role</span>
-              <div className="h-px flex-1 bg-slate-300" />
-            </div>
-
-            <div className="grid gap-3">
-              {roleOptions.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedRole(option.role);
-                    setError('');
-                  }}
-                  className="group w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-left transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-start gap-3">
-                      <span className={`mt-1 h-8 w-1.5 rounded-full bg-gradient-to-b ${option.accent}`} />
-                      <div>
-                        <p className="text-xl font-semibold text-slate-900">{option.title}</p>
-                        <p className="mt-0.5 text-sm text-slate-600">{option.description}</p>
-                      </div>
-                    </div>
-                    <span className="text-xl text-slate-400 transition group-hover:translate-x-1 group-hover:text-slate-600">&gt;</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <p className="pt-1 text-center text-sm text-slate-600">
-              Do not have an account?{' '}
-              <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign up
-              </Link>
-            </p>
+            <h1 className="text-3xl font-bold text-white tracking-tight">Welcome Back</h1>
+            <p className="text-blue-100/80 mt-2">Sign in to your Winterfall Hub account</p>
           </div>
-        ) : (
-          <form
-            className="space-y-6 rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60"
-            onSubmit={handleSubmit}
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-3xl font-semibold text-slate-900">
-                Sign in as {selectedRoleMeta?.title || selectedRole}
-              </h2>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedRole(null);
-                  setError('');
-                }}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-              >
-                Back
-              </button>
+
+          {error && (
+            <div className="mb-6 p-4 rounded-xl bg-red-500/20 border border-red-500/30 backdrop-blur-md">
+              <p className="text-sm text-red-100 text-center">{error}</p>
             </div>
+          )}
 
-            <p className="text-sm text-slate-600">Enter your credentials to continue.</p>
-
-            {error && (
-              <div className="rounded-md bg-red-50 p-4">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            )}
-
-            <div className="-space-y-px rounded-md shadow-sm">
-              <div>
-                <label htmlFor="email" className="sr-only">
-                  Email address
-                </label>
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-blue-50 ml-1">Email Address</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-blue-200/60 group-focus-within:text-white transition-colors" />
+                </div>
                 <input
-                  id="email"
-                  name="email"
                   type="email"
+                  name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="relative block w-full appearance-none rounded-none rounded-t-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  placeholder="Email address"
+                  className="block w-full pl-11 pr-4 py-3.5 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-blue-100/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/20 transition-all"
+                  placeholder="name@university.edu"
                   disabled={loading}
+                  required
                 />
               </div>
+            </div>
 
-              <div>
-                <label htmlFor="password" className="sr-only">
-                  Password
-                </label>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center ml-1">
+                <label className="text-sm font-medium text-blue-50">Password</label>
+              </div>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-blue-200/60 group-focus-within:text-white transition-colors" />
+                </div>
                 <input
-                  id="password"
-                  name="password"
                   type="password"
+                  name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="relative block w-full appearance-none rounded-none rounded-b-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  placeholder="Password"
+                  className="block w-full pl-11 pr-4 py-3.5 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-blue-100/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/20 transition-all"
+                  placeholder="••••••••"
                   disabled={loading}
+                  required
                 />
               </div>
             </div>
@@ -267,19 +179,71 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative flex w-full justify-center rounded-xl border border-transparent bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 disabled:bg-slate-400"
+              className="w-full group flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-4 rounded-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 shadow-lg shadow-blue-600/20"
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? (
+                <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <LogIn className="h-5 w-5" />
+                  Sign In
+                </>
+              )}
             </button>
-
-            <p className="text-center text-sm text-gray-600">
-              Do not have an account?{' '}
-              <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign up
-              </Link>
-            </p>
           </form>
-        )}
+
+          {/* Divider */}
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/10"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-transparent text-blue-100/60 backdrop-blur-xl">Or continue with</span>
+            </div>
+          </div>
+
+          {/* Social Logins */}
+          <button
+            type="button"
+            onClick={() => googleSignIn()}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-900 font-semibold py-3.5 rounded-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-xl"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24">
+              <path
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                fill="#4285F4"
+              />
+              <path
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                fill="#34A853"
+              />
+              <path
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                fill="#FBBC05"
+              />
+              <path
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                fill="#EA4335"
+              />
+            </svg>
+            Continue with Google
+          </button>
+
+          <p className="mt-8 text-center text-blue-100/60">
+            Don't have an account?{' '}
+            <Link to="/signup" className="text-white font-semibold hover:underline decoration-blue-400 underline-offset-4">
+              Create Account
+            </Link>
+          </p>
+        </div>
+
+        {/* Footer Info */}
+        <div className="mt-8 flex justify-center gap-6 text-xs text-blue-100/40 font-medium">
+          <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+          <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+          <a href="#" className="hover:text-white transition-colors">Help Center</a>
+        </div>
       </div>
     </div>
   );
