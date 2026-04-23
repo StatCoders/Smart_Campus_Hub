@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar, 
   Clock, 
@@ -108,7 +108,7 @@ export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin
   const endTime = formatLocalTime(booking.endTime);
 
   return (
-    <motion.div
+    <Motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -232,7 +232,7 @@ export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin
       {/* Cancel Confirmation Overlay */}
       <AnimatePresence>
         {showConfirm && (
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -260,10 +260,10 @@ export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin
                 {cancelling ? 'Cancelling...' : 'Yes, Cancel'}
               </button>
             </div>
-          </motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </Motion.div>
   );
 }
 

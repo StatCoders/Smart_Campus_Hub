@@ -6,7 +6,7 @@ import {
   AlertCircle, XCircle, Loader2, Calendar,
   Edit3, Sparkles, ChevronRight, Info
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 
 // ─────────────────────────────────────────────────────────────
 // Time-slot helpers — 15-minute intervals 08:00 → 20:00
@@ -71,7 +71,7 @@ function buildBookingRows(slotMap) {
   return rows;
 }
 
-function BookingSummaryCard({ slotMap, startTime, endTime, rangeRemaining, totalCapacity, availLoading }) {
+function BookingSummaryCard({ slotMap, startTime, endTime, rangeRemaining, availLoading }) {
   if (availLoading) {
     return (
       <div className="rounded-2xl border border-indigo-100 bg-indigo-50/30 px-4 py-4 flex items-center gap-3 text-indigo-600 text-sm font-medium animate-pulse">
@@ -231,7 +231,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, preSele
       };
       fetchResources();
     }
-  }, [isOpen, preSelectedResource, editBooking, isEdit]);
+  }, [isOpen, preSelectedResource, editBooking, isEdit, formData.resourceId]);
 
   const fetchAvailability = useCallback(async (resourceId, date) => {
     if (!resourceId || !date) return;
@@ -321,7 +321,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, preSele
           .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; scroll-behavior: smooth; }
         `}} />
 
-        <motion.div 
+        <Motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -329,7 +329,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, preSele
           onClick={onClose}
         />
 
-        <motion.div 
+        <Motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -365,9 +365,9 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, preSele
             <form onSubmit={handleSubmit} className="space-y-8">
               <AnimatePresence>
                 {error && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-700 text-sm font-bold">
+                  <Motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-700 text-sm font-bold">
                     <AlertCircle className="w-5 h-5 flex-shrink-0" /> {error}
-                  </motion.div>
+                  </Motion.div>
                 )}
               </AnimatePresence>
 
@@ -429,7 +429,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, preSele
                   </div>
                 </div>
 
-                <BookingSummaryCard slotMap={slotMap} startTime={formData.startTime} endTime={formData.endTime} rangeRemaining={rangeRemaining} totalCapacity={activeResource?.capacity} availLoading={availLoading} />
+                <BookingSummaryCard slotMap={slotMap} startTime={formData.startTime} endTime={formData.endTime} rangeRemaining={rangeRemaining} availLoading={availLoading} />
               </div>
 
               {/* Purpose Section */}
@@ -450,7 +450,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, preSele
               </div>
             </form>
           </div>
-        </motion.div>
+        </Motion.div>
       </div>
     </AnimatePresence>
   );

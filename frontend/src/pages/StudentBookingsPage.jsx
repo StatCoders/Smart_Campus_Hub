@@ -8,7 +8,7 @@ import {
   Calendar, List, Inbox, RefreshCw,
   Info, CalendarDays
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/useAuth';
 import campusLogo from '../assets/campus-logo.png';
 import { getAllFacilities } from '../services/facilityService';
@@ -66,7 +66,7 @@ function ResourceCard({ resource, onBook }) {
   const meta = getTypeMeta(resource.type);
 
   return (
-    <motion.div 
+    <Motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4 }}
@@ -143,7 +143,7 @@ function ResourceCard({ resource, onBook }) {
           <ChevronRight className="w-4 h-4 opacity-60" />
         </button>
       </div>
-    </motion.div>
+    </Motion.div>
   );
 }
 

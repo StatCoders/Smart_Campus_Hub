@@ -4,31 +4,9 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/useAuth';
 import authService from '../services/authService';
 import campusLogo from '../assets/campus-logo.png';
+import universityBg from '../assets/university-bg.jpg';
 import { getDefaultRouteForRole } from '../utils/roleRedirect';
-
-const roleOptions = [
-  {
-    id: 'student-staff',
-    role: 'USER',
-    title: 'Student / Staff',
-    description: 'Book resources and report issues',
-    accent: 'from-cyan-500 to-teal-500',
-  },
-  {
-    id: 'administrator',
-    role: 'ADMIN',
-    title: 'Administrator',
-    description: 'Manage campus operations',
-    accent: 'from-rose-500 to-orange-500',
-  },
-  {
-    id: 'technician',
-    role: 'TECHNICIAN',
-    title: 'Technician',
-    description: 'Handle maintenance tickets',
-    accent: 'from-indigo-500 to-blue-500',
-  },
-];
+import { Mail, Lock, ArrowRight, Globe } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -36,20 +14,10 @@ export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(null);
   const [hasRedirected, setHasRedirected] = useState(false);
-  const selectedRoleMeta = roleOptions.find((option) => option.role === selectedRole);
 
   useEffect(() => {
     if (!isAuthenticated || hasRedirected) return;
-
-    const postLoginRedirect = sessionStorage.getItem('postLoginRedirect');
-    if (postLoginRedirect === 'google-success') {
-      sessionStorage.removeItem('postLoginRedirect');
-      setHasRedirected(true);
-      navigate('/google-success', { replace: true });
-      return;
-    }
 
     const redirectPath = getDefaultRouteForRole(user?.role);
     setHasRedirected(true);
@@ -109,8 +77,7 @@ export default function Login() {
         localStorage.setItem('refreshToken', response.refreshToken);
         setAuthenticatedUser(response);
 
-        sessionStorage.setItem('postLoginRedirect', 'google-success');
-        navigate('/google-success', { replace: true });
+        navigate('/home', { replace: true });
       } catch (err) {
         let errorMessage = 'Google login failed. Please try again.';
 
@@ -133,153 +100,130 @@ export default function Login() {
   });
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-100 px-4 py-10 sm:px-6 lg:px-8">
-      <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-cyan-200/50 blur-3xl" />
-      <div className="pointer-events-none absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-amber-200/40 blur-3xl" />
+    <div 
+      className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat px-4"
+      style={{ backgroundImage: `url(${universityBg})` }}
+    >
+      {/* Dark Overlay */}
+      <div className="absolute inset-0 bg-black/40" />
 
-      <div className="relative mx-auto w-full max-w-3xl">
-        {!selectedRole ? (
-          <div className="space-y-6 rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-xl shadow-slate-200/60 backdrop-blur sm:p-8">
-            <div className="space-y-2">
-              <img src={campusLogo} alt="Winterfall Northern University" className="mx-auto mb-4 h-24 w-24" />
-              <p className="text-sm font-medium uppercase tracking-widest text-slate-500">Winterfall Northern University</p>
-              <h2 className="text-4xl font-semibold tracking-tight text-slate-900">Welcome back</h2>
-              <p className="text-lg text-slate-600">Sign in to manage your campus operations</p>
+      <div className="relative w-full max-w-md">
+        {/* Glassmorphic Card */}
+        <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-8 shadow-2xl overflow-hidden">
+          {/* Top subtle glow */}
+          <div className="absolute -top-24 -left-24 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="relative space-y-8">
+            {/* Header */}
+            <div className="text-center space-y-2">
+              <div className="inline-flex p-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/20 mb-2">
+                <img src={campusLogo} alt="Logo" className="h-12 w-12" />
+              </div>
+              <h1 className="text-3xl font-bold text-white tracking-tight">Welcome Back</h1>
+              <p className="text-blue-100/80 text-sm">Sign in to your campus account</p>
             </div>
 
+            {/* Error Message */}
             {error && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-                <p className="text-sm text-red-700">{error}</p>
+              <div className="bg-red-500/20 border border-red-500/30 backdrop-blur-md rounded-xl p-4 text-center">
+                <p className="text-red-100 text-sm font-medium">{error}</p>
               </div>
             )}
 
+            {/* Google Login */}
             <button
               type="button"
               onClick={() => googleSignIn()}
               disabled={loading}
-              className="group flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-4 text-lg font-semibold text-slate-900 transition hover:bg-white hover:shadow-sm disabled:bg-slate-100"
+              className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-6 py-3.5 text-sm font-semibold text-slate-900 transition-all hover:bg-slate-50 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
             >
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white text-sm font-bold text-slate-700 shadow-sm">G</span>
+              <Globe className="w-5 h-5 text-blue-600" />
               Continue with Google
             </button>
 
-            <div className="flex items-center gap-4 text-slate-500">
-              <div className="h-px flex-1 bg-slate-300" />
-              <span className="text-sm">Or sign in as a role</span>
-              <div className="h-px flex-1 bg-slate-300" />
+            {/* Divider */}
+            <div className="flex items-center gap-4 py-1">
+              <div className="h-px flex-1 bg-white/10" />
+              <span className="text-xs font-medium text-white/40 uppercase tracking-widest">Or login with email</span>
+              <div className="h-px flex-1 bg-white/10" />
             </div>
 
-            <div className="grid gap-3">
-              {roleOptions.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedRole(option.role);
-                    setError('');
-                  }}
-                  className="group w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-left transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-start gap-3">
-                      <span className={`mt-1 h-8 w-1.5 rounded-full bg-gradient-to-b ${option.accent}`} />
-                      <div>
-                        <p className="text-xl font-semibold text-slate-900">{option.title}</p>
-                        <p className="mt-0.5 text-sm text-slate-600">{option.description}</p>
-                      </div>
-                    </div>
-                    <span className="text-xl text-slate-400 transition group-hover:translate-x-1 group-hover:text-slate-600">&gt;</span>
+            {/* Login Form */}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-4">
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40 group-focus-within:text-blue-400 transition-colors">
+                    <Mail className="w-5 h-5" />
                   </div>
-                </button>
-              ))}
-            </div>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
+                    disabled={loading}
+                    className="block w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+                    placeholder="University Email"
+                  />
+                </div>
 
-            <p className="pt-1 text-center text-sm text-slate-600">
-              Do not have an account?{' '}
-              <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign up
-              </Link>
-            </p>
-          </div>
-        ) : (
-          <form
-            className="space-y-6 rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60"
-            onSubmit={handleSubmit}
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-3xl font-semibold text-slate-900">
-                Sign in as {selectedRoleMeta?.title || selectedRole}
-              </h2>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-white/40 group-focus-within:text-blue-400 transition-colors">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    value={formData.password}
+                    onChange={handleChange}
+                    disabled={loading}
+                    className="block w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all text-sm"
+                    placeholder="Password"
+                  />
+                </div>
+              </div>
+
               <button
-                type="button"
-                onClick={() => {
-                  setSelectedRole(null);
-                  setError('');
-                }}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                type="submit"
+                disabled={loading}
+                className="group relative flex w-full justify-center items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white transition-all hover:bg-blue-500 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:hover:scale-100"
               >
-                Back
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Authenticating...
+                  </span>
+                ) : (
+                  <>
+                    Sign In
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
               </button>
+            </form>
+
+            {/* Footer */}
+            <div className="text-center">
+              <p className="text-sm text-blue-100/60">
+                Don't have an account?{' '}
+                <Link to="/signup" className="font-semibold text-white hover:text-blue-300 transition-colors">
+                  Create one now
+                </Link>
+              </p>
             </div>
+          </div>
+        </div>
 
-            <p className="text-sm text-slate-600">Enter your credentials to continue.</p>
-
-            {error && (
-              <div className="rounded-md bg-red-50 p-4">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            )}
-
-            <div className="-space-y-px rounded-md shadow-sm">
-              <div>
-                <label htmlFor="email" className="sr-only">
-                  Email address
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="relative block w-full appearance-none rounded-none rounded-t-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  placeholder="Email address"
-                  disabled={loading}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="password" className="sr-only">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="relative block w-full appearance-none rounded-none rounded-b-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  placeholder="Password"
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative flex w-full justify-center rounded-xl border border-transparent bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 disabled:bg-slate-400"
-            >
-              {loading ? 'Logging in...' : 'Login'}
-            </button>
-
-            <p className="text-center text-sm text-gray-600">
-              Do not have an account?{' '}
-              <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign up
-              </Link>
-            </p>
-          </form>
-        )}
+        {/* Bottom footer text */}
+        <p className="mt-8 text-center text-xs text-white/30 uppercase tracking-widest">
+          ┬© 2024 Winterfall Northern University
+        </p>
       </div>
     </div>
   );
