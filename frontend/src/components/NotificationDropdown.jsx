@@ -1,13 +1,17 @@
-import React, { useEffect, useRef } from 'react';
-import { CheckCheck, AlertCircle, Inbox } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { CheckCheck, AlertCircle, Inbox, Settings, Filter, Flag } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import NotificationBell from './NotificationBell';
 import { formatRelativeTime } from '../utils/dateFormatter';
 import { useNavigate } from 'react-router-dom';
+import NotificationSettingsModal from './NotificationSettingsModal';
 
 export default function NotificationDropdown({ userId, isOpen, onClose, onToggle }) {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
   const {
     notifications,
     unreadCount,
@@ -15,6 +19,8 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
     error,
     markingIds,
     markingAll,
+    priorityFilter,
+    setPriorityFilter,
     loadNotifications,
     markNotificationAsRead,
     markAllNotificationsAsRead,
@@ -57,7 +63,7 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
 
     // Navigate based on type
     if (notification.type === 'BOOKING') {
-      navigate('/dashboard'); // or wherever bookings are shown
+      navigate('/dashboard'); 
     } else if (notification.type === 'TICKET' || notification.type === 'COMMENT') {
       navigate('/tickets');
     }
@@ -77,6 +83,15 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
     }
   };
 
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'HIGH': return 'text-rose-600 bg-rose-50 border-rose-100';
+      case 'MEDIUM': return 'text-amber-600 bg-amber-50 border-amber-100';
+      case 'LOW': return 'text-slate-500 bg-slate-50 border-slate-100';
+      default: return 'text-slate-500 bg-slate-50 border-slate-100';
+    }
+  };
+
   const isProcessing = markingAll || markingIds.size > 0;
 
   return (
@@ -89,79 +104,108 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
       />
 
       {isOpen && (
-        <div className="absolute right-0 top-full z-50 mt-3 w-[22rem] overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)] animate-in fade-in zoom-in-95 duration-200">
+        <div className="absolute right-0 top-full z-50 mt-3 w-[24rem] overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.16)] animate-in fade-in zoom-in-95 duration-200">
           {/* Header */}
           <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-sky-50 px-5 py-4">
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start justify-between gap-3 mb-3">
               <div>
-                <p className="text-sm font-semibold text-slate-950">Notifications</p>
-                <p className="mt-1 text-xs text-slate-500 transition-all duration-300">
-                  {loading ? (
-                    <span className="flex items-center gap-1">
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400 animate-pulse" />
-                      Loading...
-                    </span>
-                  ) : unreadCount > 0 ? (
-                    `${unreadCount} unread update${unreadCount > 1 ? 's' : ''}`
-                  ) : (
-                    'All caught up!'
-                  )}
+                <p className="text-sm font-bold text-slate-950">Notifications</p>
+                <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  {loading ? 'Refreshing...' : unreadCount > 0 ? `${unreadCount} New Updates` : 'All Caught Up'}
                 </p>
               </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-white rounded-lg transition-all"
+                  title="Notification Settings"
+                >
+                  <Settings className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`p-1.5 rounded-lg transition-all ${showFilters || priorityFilter !== 'ALL' ? 'text-sky-600 bg-sky-50' : 'text-slate-400 hover:text-slate-600 hover:bg-white'}`}
+                  title="Filter by Priority"
+                >
+                  <Filter className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+              {showFilters ? (
+                <div className="flex gap-1 animate-in slide-in-from-top-2 duration-200">
+                  {['ALL', 'HIGH', 'MEDIUM', 'LOW'].map(p => (
+                    <button
+                      key={p}
+                      onClick={() => {
+                        setPriorityFilter(p);
+                        setShowFilters(false);
+                      }}
+                      className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all ${
+                        priorityFilter === p 
+                          ? 'bg-slate-900 text-white shadow-md' 
+                          : 'bg-white text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex-1" />
+              )}
 
               <button
                 type="button"
                 onClick={handleMarkAllAsRead}
                 disabled={markingAll || unreadCount === 0 || loading}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-all duration-200 hover:border-sky-200 hover:text-sky-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-slate-200 disabled:hover:text-slate-700 active:scale-95"
+                className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1.5 text-[10px] font-bold text-white transition-all hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 shadow-lg shadow-slate-200"
               >
-                {markingAll && (
-                  <span className="inline-block h-3 w-3 rounded-full border-2 border-slate-300 border-t-sky-600 animate-spin" />
+                {markingAll ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <CheckCheck className="h-3 w-3" />
                 )}
-                {!markingAll && <CheckCheck className="h-3.5 w-3.5" />}
                 <span>Mark all read</span>
               </button>
             </div>
           </div>
 
           {/* Content */}
-          <div className="max-h-96 overflow-y-auto bg-white">
+          <div className="max-h-[32rem] overflow-y-auto bg-white p-2">
             {loading && (
-              <div className="flex flex-col items-center justify-center px-5 py-12">
-                <div className="relative h-12 w-12">
-                  <div className="absolute inset-0 rounded-full border-2 border-slate-200" />
-                  <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-sky-500 border-r-sky-500 animate-spin" />
-                </div>
-                <p className="mt-4 text-sm text-slate-500 font-medium">Fetching notifications...</p>
+              <div className="flex flex-col items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-sky-500 mb-3" />
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Syncing...</p>
               </div>
             )}
 
             {!loading && error && (
-              <div className="px-5 py-6">
-                <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4">
-                  <AlertCircle className="h-5 w-5 flex-shrink-0 text-rose-600 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-rose-900 text-sm">Failed to load notifications</p>
-                    <p className="text-rose-700 text-xs mt-1">{error}</p>
-                  </div>
+              <div className="p-4">
+                <div className="flex items-start gap-3 rounded-2xl border border-rose-100 bg-rose-50/50 p-4">
+                  <AlertCircle className="h-5 w-5 text-rose-600" />
+                  <p className="text-xs font-medium text-rose-900">{error}</p>
                 </div>
               </div>
             )}
 
             {!loading && !error && notifications.length === 0 && (
-              <div className="px-5 py-12 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-slate-100 to-slate-50 text-slate-400">
-                  <Inbox className="h-6 w-6" />
+              <div className="py-16 text-center">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[2rem] bg-slate-50 text-slate-300">
+                  <Inbox className="h-8 w-8" />
                 </div>
-                <p className="mt-4 text-sm font-semibold text-slate-900">No notifications</p>
-                <p className="mt-1.5 text-xs text-slate-500">You're all caught up! New updates will appear here.</p>
+                <p className="mt-4 text-sm font-bold text-slate-900">No {priorityFilter !== 'ALL' ? priorityFilter.toLowerCase() : ''} notifications</p>
+                <p className="mt-1 text-xs text-slate-400">Everything is up to date.</p>
               </div>
             )}
 
             {!loading && !error && notifications.length > 0 && (
-              <div className="p-2">
+              <div className="space-y-2">
                 {notifications.map((notification) => {
                   const isMarking = markingIds.has(notification.id);
+                  const pColor = getPriorityColor(notification.priority);
                   
                   return (
                     <button
@@ -169,46 +213,38 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
                       type="button"
                       onClick={() => handleNotificationClick(notification)}
                       disabled={isMarking || isProcessing}
-                      className={`mb-2 w-full rounded-2xl border px-4 py-3 text-left transition-all duration-200 last:mb-0 ${
+                      className={`group w-full rounded-2xl border p-4 text-left transition-all duration-300 ${
                         notification.isRead
-                          ? 'border-transparent bg-slate-50 text-slate-600 hover:bg-slate-100 disabled:opacity-60'
-                          : 'border-sky-100 bg-sky-50/80 text-slate-800 shadow-sm hover:border-sky-200 hover:bg-sky-50 disabled:opacity-70 disabled:hover:bg-sky-50'
-                      } ${isMarking ? 'opacity-75' : ''} active:scale-95`}
+                          ? 'border-transparent bg-slate-50 text-slate-500 hover:bg-slate-100'
+                          : 'border-sky-100 bg-white shadow-sm hover:border-sky-200 hover:shadow-md'
+                      } active:scale-[0.98]`}
                     >
                       <div className="flex items-start gap-3">
-                        {/* Status Indicator with Animation */}
                         <div className="relative mt-1 flex-shrink-0">
-                          {isMarking ? (
-                            <span className="flex h-2.5 w-2.5 items-center justify-center">
-                              <span className="inline-block h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
-                            </span>
-                          ) : (
-                            <span
-                              className={`block h-2.5 w-2.5 rounded-full transition-all duration-300 ${
-                                notification.isRead ? 'bg-slate-300' : 'bg-sky-500'
-                              }`}
-                            />
-                          )}
+                          <span
+                            className={`block h-2 w-2 rounded-full transition-all duration-500 ${
+                              notification.isRead ? 'bg-slate-200' : 'bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.5)]'
+                            } ${!notification.isRead && 'animate-pulse'}`}
+                          />
                         </div>
 
-                        {/* Message Content */}
                         <div className="min-w-0 flex-1">
-                          <p className={`text-sm leading-5 transition-all duration-200 ${
-                            notification.isRead ? 'font-medium text-slate-600' : 'font-semibold text-slate-900'
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-tighter ${pColor}`}>
+                              <Flag className="h-2 w-2" />
+                              {notification.priority || 'NORMAL'}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-400">
+                              {formatRelativeTime(notification.createdAt)}
+                            </span>
+                          </div>
+                          
+                          <p className={`text-sm leading-snug ${
+                            notification.isRead ? 'font-medium text-slate-500' : 'font-bold text-slate-900'
                           }`}>
                             {notification.message}
                           </p>
-                          <p className="mt-1 text-xs text-slate-500 transition-colors duration-200">
-                            {formatRelativeTime(notification.createdAt)}
-                          </p>
                         </div>
-
-                        {/* Loading Indicator while Marking */}
-                        {isMarking && (
-                          <span className="mt-0.5 flex-shrink-0">
-                            <span className="inline-block h-3 w-3 rounded-full border-2 border-sky-300 border-t-sky-600 animate-spin" />
-                          </span>
-                        )}
                       </div>
                     </button>
                   );
@@ -218,6 +254,31 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
           </div>
         </div>
       )}
+
+      <NotificationSettingsModal 
+        userId={userId}
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
+  );
+}
+
+function Loader2(props) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
   );
 }

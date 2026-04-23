@@ -28,6 +28,11 @@ public class Notification {
     @Column(nullable = false)
     private NotificationType type;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "VARCHAR(255) DEFAULT 'LOW'")
+    @Builder.Default
+    private NotificationPriority priority = NotificationPriority.LOW;
+
     @Builder.Default
     @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;

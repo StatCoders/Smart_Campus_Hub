@@ -15,7 +15,7 @@ import Tickets from './pages/Tickets';
 import TicketCreatePage from './pages/TicketCreatePage';
 import TicketDetailPage from './pages/TicketDetailPage';
 import EditTicketPage from './pages/EditTicketPage';
-import GoogleAuthSuccess from './pages/GoogleAuthSuccess';
+
 import BookingsPage from './pages/BookingsPage';
 import AdminBookingsPage from './pages/AdminBookingsPage';
 import ManageUsersPage from './pages/ManageUsersPage';
@@ -170,10 +170,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/google-success"
-              element={<GoogleAuthSuccess />}
-            />
+
             <Route path="/" element={<RootRedirect />} />
           </Routes>
         </SidebarProvider>

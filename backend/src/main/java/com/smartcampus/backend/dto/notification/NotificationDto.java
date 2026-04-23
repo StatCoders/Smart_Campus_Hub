@@ -1,5 +1,6 @@
 package com.smartcampus.backend.dto.notification;
 
+import com.smartcampus.backend.model.notification.NotificationPriority;
 import com.smartcampus.backend.model.notification.NotificationType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,6 +21,7 @@ public class NotificationDto {
     private Long userId;
     private String message;
     private NotificationType type;
+    private NotificationPriority priority;
     private Boolean isRead;
     private LocalDateTime createdAt;
 }

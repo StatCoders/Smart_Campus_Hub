@@ -19,14 +19,6 @@ export default function Login() {
   useEffect(() => {
     if (!isAuthenticated || hasRedirected) return;
 
-    const postLoginRedirect = sessionStorage.getItem('postLoginRedirect');
-    if (postLoginRedirect === 'google-success') {
-      sessionStorage.removeItem('postLoginRedirect');
-      setHasRedirected(true);
-      navigate('/google-success', { replace: true });
-      return;
-    }
-
     const redirectPath = getDefaultRouteForRole(user?.role);
     setHasRedirected(true);
     navigate(redirectPath, { replace: true });
@@ -85,8 +77,8 @@ export default function Login() {
         localStorage.setItem('refreshToken', response.refreshToken);
         setAuthenticatedUser(response);
 
-        sessionStorage.setItem('postLoginRedirect', 'google-success');
-        navigate('/google-success', { replace: true });
+        const redirectPath = getDefaultRouteForRole(response?.role);
+        navigate(redirectPath, { replace: true });
       } catch (err) {
         let errorMessage = 'Google login failed. Please try again.';
 

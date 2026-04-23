@@ -156,6 +156,7 @@ public class NotificationController {
                 .userId(notification.getUserId())
                 .message(notification.getMessage())
                 .type(notification.getType())
+                .priority(notification.getPriority())
                 .isRead(notification.getIsRead())
                 .createdAt(notification.getCreatedAt())
                 .build();

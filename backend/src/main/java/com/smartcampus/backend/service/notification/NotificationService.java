@@ -2,13 +2,17 @@ package com.smartcampus.backend.service.notification;
 
 import com.smartcampus.backend.exception.ResourceNotFoundException;
 import com.smartcampus.backend.model.notification.Notification;
+import com.smartcampus.backend.model.notification.NotificationPriority;
 import com.smartcampus.backend.model.notification.NotificationType;
+import com.smartcampus.backend.model.notification.NotificationPreference;
 import com.smartcampus.backend.repository.notification.NotificationRepository;
+import com.smartcampus.backend.repository.notification.NotificationPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -16,12 +20,38 @@ import java.util.List;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final NotificationPreferenceRepository preferenceRepository;
 
     public Notification createNotification(Long userId, String message, NotificationType type) {
+        // Check preferences
+        Optional<NotificationPreference> prefsOpt = preferenceRepository.findByUserId(userId);
+        if (prefsOpt.isPresent()) {
+            NotificationPreference prefs = prefsOpt.get();
+            if (prefs.isMuteAll()) return null;
+
+            boolean enabled = switch (type) {
+                case BOOKING -> prefs.isBookingEnabled();
+                case TICKET -> prefs.isTicketEnabled();
+                case SYSTEM -> prefs.isSystemEnabled();
+                case COMMENT -> prefs.isTicketEnabled();
+            };
+
+            if (!enabled) return null;
+        }
+
+        // Assign priority based on type
+        NotificationPriority priority = switch (type) {
+            case TICKET -> NotificationPriority.HIGH;
+            case BOOKING -> NotificationPriority.MEDIUM;
+            case SYSTEM -> NotificationPriority.LOW;
+            case COMMENT -> NotificationPriority.MEDIUM;
+        };
+
         Notification notification = Notification.builder()
                 .userId(userId)
                 .message(message)
                 .type(type)
+                .priority(priority)
                 .isRead(false)
                 .build();
 

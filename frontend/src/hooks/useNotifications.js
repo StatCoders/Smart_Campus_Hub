@@ -8,6 +8,7 @@ export function useNotifications(userId) {
   const [error, setError] = useState('');
   const [markingIds, setMarkingIds] = useState(new Set());
   const [markingAll, setMarkingAll] = useState(false);
+  const [priorityFilter, setPriorityFilter] = useState('ALL'); // ALL, HIGH, MEDIUM, LOW
 
   // Load unread count
   const loadUnreadCount = useCallback(async () => {
@@ -47,6 +48,10 @@ export function useNotifications(userId) {
       setLoading(false);
     }
   }, [userId]);
+
+  const filteredNotifications = notifications.filter(n => 
+    priorityFilter === 'ALL' || n.priority === priorityFilter
+  );
 
   // Mark single notification as read
   const markNotificationAsRead = useCallback(async (notificationId) => {
@@ -110,12 +115,15 @@ export function useNotifications(userId) {
   }, [userId, unreadCount, notifications]);
 
   return {
-    notifications,
+    notifications: filteredNotifications,
+    allNotifications: notifications,
     unreadCount,
     loading,
     error,
     markingIds,
     markingAll,
+    priorityFilter,
+    setPriorityFilter,
     loadUnreadCount,
     loadNotifications,
     markNotificationAsRead,
