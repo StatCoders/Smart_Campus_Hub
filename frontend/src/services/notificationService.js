@@ -58,11 +58,31 @@ export const getUnreadCount = async (userId) => {
   }
 };
 
+export const getPreferences = async (userId) => {
+  try {
+    const response = await apiClient.get(`/preferences/${userId}`);
+    return unwrapResponseData(response);
+  } catch (error) {
+    throw normalizeNotificationError(error, 'Failed to fetch notification preferences');
+  }
+};
+
+export const updatePreferences = async (userId, preferences) => {
+  try {
+    const response = await apiClient.put(`/preferences/${userId}`, preferences);
+    return unwrapResponseData(response);
+  } catch (error) {
+    throw normalizeNotificationError(error, 'Failed to update notification preferences');
+  }
+};
+
 const notificationService = {
   getNotifications,
   markAsRead,
   markAllAsRead,
   getUnreadCount,
+  getPreferences,
+  updatePreferences,
 };
 
 export default notificationService;

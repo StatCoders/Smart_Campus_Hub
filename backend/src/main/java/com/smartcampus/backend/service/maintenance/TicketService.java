@@ -53,6 +53,9 @@ public class TicketService {
     private final TicketAttachmentRepository attachmentRepository;
     private final UserService userService;
     private final FileUploadService fileUploadService;
+    private final com.smartcampus.backend.repository.auth.UserRepository userRepository;
+    
+    @org.springframework.context.annotation.Lazy
     private final NotificationService notificationService;
 
     public TicketDto createTicket(TicketCreateRequest request) {
@@ -78,20 +81,29 @@ public class TicketService {
         createHistoryEntry(savedTicket, currentUser.getId(), "TICKET_CREATED", null, Status.OPEN.toString(), "Ticket created");
 
         // Notify admins about new ticket
-        String message = String.format("New Ticket #%d: %s from %s", 
+        String adminMessage = String.format("New Ticket #%d: %s from %s", 
                 savedTicket.getId(), 
                 savedTicket.getCategory(), 
                 currentUser.getFirstName() + " " + currentUser.getLastName());
         
-        userService.getAdmins().forEach(admin -> {
+        userRepository.findByRoleAndIsActiveTrueOrderByFirstName(Role.ADMIN).forEach(admin -> {
             notificationService.createNotification(
                     admin.getId(),
-                    message,
+                    adminMessage,
                     NotificationType.TICKET,
                     savedTicket.getId(),
                     ReferenceType.TICKET
             );
         });
+
+        // Notify the reporter (User) that their ticket has been received
+        notificationService.createNotification(
+                currentUser.getId(),
+                "Your ticket #" + savedTicket.getId() + " has been successfully reported",
+                NotificationType.TICKET,
+                savedTicket.getId(),
+                ReferenceType.TICKET
+        );
 
         return mapToDto(savedTicket, currentUser);
     }

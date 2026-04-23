@@ -12,6 +12,7 @@ import com.smartcampus.backend.model.auth.User;
 import com.smartcampus.backend.model.notification.NotificationType;
 import com.smartcampus.backend.repository.auth.UserRepository;
 import com.smartcampus.backend.security.JwtUtil;
+import com.smartcampus.backend.service.notification.NotificationPreferenceService;
 import com.smartcampus.backend.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,7 +32,9 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    @org.springframework.context.annotation.Lazy
     private final NotificationService notificationService;
+    private final NotificationPreferenceService preferenceService;
 
     public AuthResponse signup(SignupRequest request) {
         // Validate that passwords match
@@ -65,6 +68,9 @@ public class UserService {
         }
 
         user = userRepository.save(user);
+
+        // Create default notification preferences
+        preferenceService.createDefaultPreferences(user.getId());
 
         // Generate tokens
         String token = jwtUtil.generateToken(user);
@@ -200,6 +206,9 @@ public class UserService {
                 .build();
 
             user = userRepository.save(user);
+            
+            // Create default notification preferences
+            preferenceService.createDefaultPreferences(user.getId());
         }
 
         // Generate JWT tokens
@@ -295,6 +304,9 @@ public class UserService {
         }
 
         user = userRepository.save(user);
+
+        // Create default notification preferences
+        preferenceService.createDefaultPreferences(user.getId());
 
         return UserResponse.builder()
             .id(user.getId())

@@ -2,13 +2,19 @@ package com.smartcampus.backend.service.notification;
 
 import com.smartcampus.backend.exception.ResourceNotFoundException;
 import com.smartcampus.backend.model.notification.Notification;
+import com.smartcampus.backend.model.notification.NotificationPriority;
 import com.smartcampus.backend.model.notification.NotificationType;
 import com.smartcampus.backend.model.notification.ReferenceType;
 import com.smartcampus.backend.repository.notification.NotificationRepository;
+import com.smartcampus.backend.service.notification.NotificationPreferenceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.smartcampus.backend.repository.maintenance.TicketRepository;
+import com.smartcampus.backend.repository.booking.BookingRepository;
+import com.smartcampus.backend.model.maintenance.Priority;
+import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.List;
 
 @Service
@@ -17,22 +23,69 @@ import java.util.List;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final NotificationPreferenceService preferenceService;
+    
+    @org.springframework.context.annotation.Lazy
+    private final com.smartcampus.backend.repository.auth.UserRepository userRepository;
 
     public Notification createNotification(Long userId, String message, NotificationType type) {
         return createNotification(userId, message, type, null, null);
     }
 
     public Notification createNotification(Long userId, String message, NotificationType type, Long referenceId, ReferenceType referenceType) {
+        // 1. Determine priority using the standardized mapping
+        NotificationPriority priority = determinePriority(type);
+
+        // 2. Check user preferences (Admins always get TICKET alerts)
+        if (!shouldSendNotification(userId, type, priority)) {
+            return null;
+        }
+
         Notification notification = Notification.builder()
                 .userId(userId)
                 .message(message)
                 .type(type)
+                .priority(priority)
                 .referenceId(referenceId)
                 .referenceType(referenceType)
                 .isRead(false)
                 .build();
 
         return notificationRepository.save(notification);
+    }
+
+    private NotificationPriority determinePriority(NotificationType type) {
+        return switch (type) {
+            case TICKET -> NotificationPriority.HIGH;
+            case BOOKING -> NotificationPriority.MEDIUM;
+            case SYSTEM -> NotificationPriority.LOW;
+            default -> NotificationPriority.LOW;
+        };
+    }
+
+    private boolean shouldSendNotification(Long userId, NotificationType type, NotificationPriority priority) {
+        // ADMINS always get TICKET notifications regardless of settings
+        var user = userRepository.findById(userId).orElse(null);
+        if (user != null && user.getRole() == com.smartcampus.backend.model.auth.Role.ADMIN && type == NotificationType.TICKET) {
+            return true;
+        }
+
+        var preferences = preferenceService.getPreferences(userId);
+
+        if (preferences.isMuteAll()) {
+            return false;
+        }
+
+        if (preferences.isHighPriorityOnly() && priority != NotificationPriority.HIGH) {
+            return false;
+        }
+
+        return switch (type) {
+            case BOOKING -> preferences.isBookingEnabled();
+            case TICKET -> preferences.isTicketEnabled();
+            case SYSTEM -> preferences.isSystemEnabled();
+            default -> true;
+        };
     }
 
     @Transactional(readOnly = true)

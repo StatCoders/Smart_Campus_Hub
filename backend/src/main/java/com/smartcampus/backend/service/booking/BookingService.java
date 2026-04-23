@@ -45,6 +45,7 @@ public class BookingService {
     private final FacilityRepository facilityRepository;
     private final OutboxEventRepository outboxEventRepository;
     private final ObjectMapper objectMapper;
+    @org.springframework.context.annotation.Lazy
     private final NotificationService notificationService;
 
     // -------------------------------------------------------------------------
@@ -176,12 +177,21 @@ public class BookingService {
         userRepository.findByRoleAndIsActiveTrueOrderByFirstName(Role.ADMIN).forEach(admin -> {
             notificationService.createNotification(
                     admin.getId(),
-                    "New booking request received for " + facility.getName(),
+                    "New booking request received for " + facility.getName() + " from " + currentUser.getFirstName(),
                     NotificationType.BOOKING,
                     savedBooking.getId(),
                     ReferenceType.BOOKING
             );
         });
+
+        // Notify User about booking confirmation
+        notificationService.createNotification(
+                currentUser.getId(),
+                "Your booking request for " + facility.getName() + " has been received",
+                NotificationType.BOOKING,
+                savedBooking.getId(),
+                ReferenceType.BOOKING
+        );
 
         log.info("Booking {} created by user {}", savedBooking.getId(), currentUser.getId());
         return toDto(savedBooking);
