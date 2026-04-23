@@ -56,9 +56,9 @@ export default function NotificationBell({ userId, isOpen, onToggle, unreadCount
       >
         {/* Bell Icon with Loading Animation */}
         <div className={loading ? 'animate-pulse' : ''}>
-          <Bell 
+          <Bell
             className={`h-5 w-5 transition-transform ${isOpen ? 'scale-110' : 'scale-100'}`}
-            strokeWidth={2} 
+            strokeWidth={2}
           />
         </div>
 
@@ -72,9 +72,9 @@ export default function NotificationBell({ userId, isOpen, onToggle, unreadCount
 
         {/* Error indicator */}
         {error && (
-          <span 
-            className="absolute right-0 top-0 h-6 w-6 rounded-full bg-orange-400 animate-pulse" 
-            title="Error loading notifications" 
+          <span
+            className="absolute right-0 top-0 h-6 w-6 rounded-full bg-orange-400 animate-pulse"
+            title="Error loading notifications"
           />
         )}
       </button>

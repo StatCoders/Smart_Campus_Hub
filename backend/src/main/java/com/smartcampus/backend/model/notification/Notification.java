@@ -28,6 +28,18 @@ public class Notification {
     @Column(nullable = false)
     private NotificationType type;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private NotificationPriority priority = NotificationPriority.LOW;
+
+    @Column(name = "reference_id")
+    private Long referenceId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reference_type")
+    private ReferenceType referenceType;
+
     @Builder.Default
     @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;

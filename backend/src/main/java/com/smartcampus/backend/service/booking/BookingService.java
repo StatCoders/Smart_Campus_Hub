@@ -14,6 +14,7 @@ import com.smartcampus.backend.model.booking.BookingStatus;
 import com.smartcampus.backend.model.auth.User;
 import com.smartcampus.backend.model.facility.Facility;
 import com.smartcampus.backend.model.notification.NotificationType;
+import com.smartcampus.backend.model.notification.ReferenceType;
 import com.smartcampus.backend.model.outbox.OutboxEvent;
 import com.smartcampus.backend.model.outbox.OutboxStatus;
 import com.smartcampus.backend.repository.booking.BookingRepository;
@@ -44,6 +45,7 @@ public class BookingService {
     private final FacilityRepository facilityRepository;
     private final OutboxEventRepository outboxEventRepository;
     private final ObjectMapper objectMapper;
+    @org.springframework.context.annotation.Lazy
     private final NotificationService notificationService;
 
     // -------------------------------------------------------------------------
@@ -159,29 +161,40 @@ public class BookingService {
                 .status(BookingStatus.PENDING)
                 .build();
 
-        booking = bookingRepository.save(booking);
+        final Booking savedBooking = bookingRepository.save(booking);
 
         // Outbox event - same transaction
         writeOutboxEvent("BOOKING_CREATED", Map.of(
-                "bookingId", booking.getId(),
+                "bookingId", savedBooking.getId(),
                 "userId", currentUser.getId(),
                 "resourceId", facility.getId(),
-                "bookingDate", booking.getBookingDate().toString(),
-                "startTime", booking.getStartTime().toString(),
-                "endTime", booking.getEndTime().toString()
+                "bookingDate", savedBooking.getBookingDate().toString(),
+                "startTime", savedBooking.getStartTime().toString(),
+                "endTime", savedBooking.getEndTime().toString()
         ));
 
         // Notify Admins
         userRepository.findByRoleAndIsActiveTrueOrderByFirstName(Role.ADMIN).forEach(admin -> {
             notificationService.createNotification(
                     admin.getId(),
-                    "New booking request received for " + facility.getName(),
-                    NotificationType.BOOKING
+                    "New booking request received for " + facility.getName() + " from " + currentUser.getFirstName(),
+                    NotificationType.BOOKING,
+                    savedBooking.getId(),
+                    ReferenceType.BOOKING
             );
         });
 
-        log.info("Booking {} created by user {}", booking.getId(), currentUser.getId());
-        return toDto(booking);
+        // Notify User about booking confirmation
+        notificationService.createNotification(
+                currentUser.getId(),
+                "Your booking request for " + facility.getName() + " has been received",
+                NotificationType.BOOKING,
+                savedBooking.getId(),
+                ReferenceType.BOOKING
+        );
+
+        log.info("Booking {} created by user {}", savedBooking.getId(), currentUser.getId());
+        return toDto(savedBooking);
     }
 
     // =========================================================================
@@ -244,7 +257,9 @@ public class BookingService {
         notificationService.createNotification(
                 booking.getUser().getId(),
                 "Your booking for " + booking.getResource().getName() + " has been approved",
-                NotificationType.BOOKING
+                NotificationType.BOOKING,
+                booking.getId(),
+                ReferenceType.BOOKING
         );
 
         log.info("Booking {} approved by admin {}", booking.getId(), admin.getId());
@@ -281,7 +296,9 @@ public class BookingService {
         notificationService.createNotification(
                 booking.getUser().getId(),
                 "Your booking for " + booking.getResource().getName() + " has been rejected",
-                NotificationType.BOOKING
+                NotificationType.BOOKING,
+                booking.getId(),
+                ReferenceType.BOOKING
         );
 
         log.info("Booking {} rejected by admin {} — reason: {}", booking.getId(), admin.getId(), reason);
@@ -330,7 +347,9 @@ public class BookingService {
                 notificationService.createNotification(
                         admin.getId(),
                         "An approved booking for " + cancelledBooking.getResource().getName() + " was cancelled by the user",
-                        NotificationType.BOOKING
+                        NotificationType.BOOKING,
+                        cancelledBooking.getId(),
+                        ReferenceType.BOOKING
                 );
             });
         }

@@ -25,6 +25,7 @@ import com.smartcampus.backend.service.FileUploadService;
 import com.smartcampus.backend.service.auth.UserService;
 import com.smartcampus.backend.service.notification.NotificationService;
 import com.smartcampus.backend.model.notification.NotificationType;
+import com.smartcampus.backend.model.notification.ReferenceType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -52,6 +53,9 @@ public class TicketService {
     private final TicketAttachmentRepository attachmentRepository;
     private final UserService userService;
     private final FileUploadService fileUploadService;
+    private final com.smartcampus.backend.repository.auth.UserRepository userRepository;
+    
+    @org.springframework.context.annotation.Lazy
     private final NotificationService notificationService;
 
     public TicketDto createTicket(TicketCreateRequest request) {
@@ -75,6 +79,31 @@ public class TicketService {
 
         Ticket savedTicket = ticketRepository.save(ticket);
         createHistoryEntry(savedTicket, currentUser.getId(), "TICKET_CREATED", null, Status.OPEN.toString(), "Ticket created");
+
+        // Notify admins about new ticket
+        String adminMessage = String.format("New Ticket #%d: %s from %s", 
+                savedTicket.getId(), 
+                savedTicket.getCategory(), 
+                currentUser.getFirstName() + " " + currentUser.getLastName());
+        
+        userRepository.findByRoleAndIsActiveTrueOrderByFirstName(Role.ADMIN).forEach(admin -> {
+            notificationService.createNotification(
+                    admin.getId(),
+                    adminMessage,
+                    NotificationType.TICKET,
+                    savedTicket.getId(),
+                    ReferenceType.TICKET
+            );
+        });
+
+        // Notify the reporter (User) that their ticket has been received
+        notificationService.createNotification(
+                currentUser.getId(),
+                "Your ticket #" + savedTicket.getId() + " has been successfully reported",
+                NotificationType.TICKET,
+                savedTicket.getId(),
+                ReferenceType.TICKET
+        );
 
         return mapToDto(savedTicket, currentUser);
     }
@@ -218,13 +247,13 @@ public class TicketService {
 
         // Notify user about status change
         if (newStatus == Status.IN_PROGRESS && oldStatus == Status.OPEN) {
-            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " is now IN_PROGRESS", NotificationType.TICKET);
+            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " is now IN_PROGRESS", NotificationType.TICKET, ticket.getId(), ReferenceType.TICKET);
         } else if (newStatus == Status.RESOLVED && oldStatus == Status.IN_PROGRESS) {
-            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " is now RESOLVED", NotificationType.TICKET);
+            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " is now RESOLVED", NotificationType.TICKET, ticket.getId(), ReferenceType.TICKET);
         } else if (newStatus == Status.CLOSED && oldStatus == Status.RESOLVED) {
-            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " is now CLOSED", NotificationType.TICKET);
+            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " is now CLOSED", NotificationType.TICKET, ticket.getId(), ReferenceType.TICKET);
         } else if (newStatus == Status.REJECTED) {
-            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " has been REJECTED", NotificationType.TICKET);
+            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " has been REJECTED", NotificationType.TICKET, ticket.getId(), ReferenceType.TICKET);
         }
 
         return mapToDetailDto(updatedTicket, currentUser);
@@ -279,7 +308,9 @@ public class TicketService {
         notificationService.createNotification(
                 request.getTechnicianId(),
                 "You have been assigned to ticket #" + ticket.getId(),
-                NotificationType.TICKET
+                NotificationType.TICKET,
+                ticket.getId(),
+                ReferenceType.TICKET
         );
 
         return mapToDetailDto(updatedTicket, currentUser);

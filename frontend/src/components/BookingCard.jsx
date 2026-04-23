@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import { 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  Users, 
-  FileText, 
-  MoreHorizontal, 
-  XCircle, 
-  CheckCircle, 
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  FileText,
+  MoreHorizontal,
+  XCircle,
+  CheckCircle,
   AlertCircle,
   ChevronRight,
   Trash2,
@@ -57,10 +57,10 @@ const STATUS_CONFIG = {
 function formatBookingDate(dateStr) {
   if (!dateStr) return '—';
   const d = new Date(`${dateStr}T00:00:00`);
-  return d.toLocaleDateString('en-US', { 
-    weekday: 'short', 
-    month: 'short', 
-    day: 'numeric' 
+  return d.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric'
   }).toUpperCase();
 }
 
@@ -73,10 +73,19 @@ function formatLocalTime(timeStr) {
   return `${h12}:${m} ${ampm}`;
 }
 
-export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin = false, onEdit }) {
+export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin = false, onEdit, isHighlighted }) {
+  const cardRef = useRef(null);
   const [cancelling, setCancelling] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [cancelError, setCancelError] = useState('');
+
+  useEffect(() => {
+    if (isHighlighted && cardRef.current) {
+      setTimeout(() => {
+        cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 500); // Small delay to ensure list is rendered
+    }
+  }, [isHighlighted]);
 
   const status = booking.status || 'PENDING';
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING;
@@ -109,11 +118,17 @@ export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin
 
   return (
     <Motion.div
+      ref={cardRef}
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ 
+        opacity: 1, 
+        y: 0,
+        backgroundColor: isHighlighted ? '#fefce8' : '#ffffff', // Light yellow for highlight
+        transition: { duration: 0.5 }
+      }}
       exit={{ opacity: 0, scale: 0.95 }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className={`relative bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md border-l-4 ${config.borderColor}`}
+      className={`relative rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md border-l-4 ${config.borderColor} ${isHighlighted ? 'ring-2 ring-yellow-400 ring-offset-2 scale-[1.02] z-10' : ''}`}
     >
       {/* Top Header - Date & Status */}
       <div className="px-5 py-4 flex items-center justify-between border-b border-slate-100 bg-slate-50/50">
@@ -190,7 +205,7 @@ export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin
             </div>
           </div>
         )}
-        
+
         {cancelError && (
           <div className="mt-2 text-xs text-rose-600 font-medium flex items-center gap-1.5 bg-rose-50 p-2 rounded-lg border border-rose-100">
             <AlertCircle className="w-3.5 h-3.5" />
@@ -221,7 +236,7 @@ export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin
         )}
 
         <button
-          onClick={() => {/* View detail logic could go here */}}
+          onClick={() => {/* View detail logic could go here */ }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-sm hover:shadow-md group"
         >
           View Details
