@@ -62,17 +62,23 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
     const isStudent = user?.role === 'USER';
 
     if (referenceType === 'BOOKING' && referenceId) {
-      navigate(`/student-bookings?highlight=${referenceId}`);
+      if (isStudent) {
+        navigate(`/student-bookings?highlight=${referenceId}`);
+      } else {
+        // Admin dashboard bookings list
+        navigate(`/bookings?highlight=${referenceId}`);
+      }
     } else if (referenceType === 'TICKET' && referenceId) {
       if (isStudent) {
         navigate(`/student-tickets?highlight=${referenceId}`);
       } else {
-        navigate(`/tickets/${referenceId}`);
+        // Admin/Technician tickets list with highlighting
+        navigate(`/tickets?highlight=${referenceId}`);
       }
     } else {
       // Fallback for older notifications or SYSTEM notifications
       if (type === 'BOOKING') {
-        navigate('/student-bookings');
+        navigate(isStudent ? '/student-bookings' : '/bookings');
       } else if (type === 'TICKET' || type === 'COMMENT') {
         navigate(isStudent ? '/student-tickets' : '/tickets');
       }

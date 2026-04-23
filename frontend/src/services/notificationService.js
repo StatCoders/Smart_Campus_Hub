@@ -23,7 +23,7 @@ export const getNotifications = async () => {
 
 export const markAsRead = async (notificationId) => {
   try {
-    const response = await apiClient.put(`/notifications/${notificationId}/read`);
+    const response = await apiClient.patch(`/notifications/${notificationId}/read`);
     return unwrapResponseData(response);
   } catch (error) {
     throw normalizeNotificationError(error, 'Failed to mark notification as read');

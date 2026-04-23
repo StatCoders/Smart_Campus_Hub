@@ -430,6 +430,14 @@ public class UserService {
                 .build();
     }
 
+    /**
+     * Get all active administrators
+     */
+    @Transactional(readOnly = true)
+    public List<User> getAdmins() {
+        return userRepository.findByRoleAndIsActiveTrueOrderByFirstName(Role.ADMIN);
+    }
+
     private void notifyRoleChangeIfNeeded(User user, Role previousRole) {
         if (previousRole == user.getRole()) {
             return;

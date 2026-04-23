@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
@@ -107,10 +107,26 @@ function AdminBookingRow({ booking, onApprove, onReject, onRefresh, isHighlighte
   };
 
   const isPending = booking.status === 'PENDING';
+  const rowRef = useRef(null);
+
+  useEffect(() => {
+    if (isHighlighted && rowRef.current) {
+      setTimeout(() => {
+        rowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 500);
+    }
+  }, [isHighlighted]);
 
   return (
     <>
-      <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center ${isHighlighted ? 'ring-2 ring-yellow-400 ring-offset-2' : ''}`}>
+      <div 
+        ref={rowRef}
+        className={`bg-white rounded-2xl border transition-all duration-500 shadow-sm p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center ${
+          isHighlighted 
+            ? 'border-yellow-400 ring-2 ring-yellow-400 ring-offset-2 scale-[1.01] bg-yellow-50/30' 
+            : 'border-slate-200'
+        }`}
+      >
         {/* Booking info (reuse BookingCard layout concept inline) */}
         <div className="flex-1 min-w-0">
           <BookingCard

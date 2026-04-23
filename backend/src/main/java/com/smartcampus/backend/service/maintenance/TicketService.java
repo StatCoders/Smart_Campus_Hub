@@ -77,6 +77,22 @@ public class TicketService {
         Ticket savedTicket = ticketRepository.save(ticket);
         createHistoryEntry(savedTicket, currentUser.getId(), "TICKET_CREATED", null, Status.OPEN.toString(), "Ticket created");
 
+        // Notify admins about new ticket
+        String message = String.format("New Ticket #%d: %s from %s", 
+                savedTicket.getId(), 
+                savedTicket.getCategory(), 
+                currentUser.getFirstName() + " " + currentUser.getLastName());
+        
+        userService.getAdmins().forEach(admin -> {
+            notificationService.createNotification(
+                    admin.getId(),
+                    message,
+                    NotificationType.TICKET,
+                    savedTicket.getId(),
+                    ReferenceType.TICKET
+            );
+        });
+
         return mapToDto(savedTicket, currentUser);
     }
 
