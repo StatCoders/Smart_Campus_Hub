@@ -14,7 +14,7 @@ import {
 import { useSidebar } from '../context/useSidebar';
 import { useAuth } from '../context/useAuth';
 import campusLogo from '../assets/campus-logo.png';
-import { getDefaultRouteForRole } from '../utils/roleRedirect';
+import { getDefaultRouteForRole, normalizeRole } from '../utils/roleRedirect';
 
 export default function Sidebar({ activeTab, setActiveTab }) {
   const navigate = useNavigate();
@@ -30,7 +30,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
   ];
 
   // Add Manage Users for admins only
-  if (user?.role === 'ADMIN') {
+  if (normalizeRole(user?.role) === 'ADMIN') {
     menuItems.splice(4, 0, { id: 'manage-users', label: 'Manage Users', Icon: Users });
   }
 
