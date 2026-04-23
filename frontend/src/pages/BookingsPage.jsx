@@ -17,7 +17,7 @@ import {
   LayoutGrid,
   Info
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import BookingCard from '../components/BookingCard';
 import CreateBookingModal from '../components/CreateBookingModal';
 import Toast from '../components/Toast';
@@ -104,7 +104,7 @@ function CalendarView({ bookings }) {
     d === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
 
   return (
-    <motion.div 
+    <Motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden"
@@ -170,7 +170,7 @@ function CalendarView({ bookings }) {
           ))}
         </div>
       </div>
-    </motion.div>
+    </Motion.div>
   );
 }
 
@@ -181,7 +181,7 @@ export default function BookingsPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [viewMode, setViewMode] = useState('list');
@@ -331,7 +331,7 @@ export default function BookingsPage() {
 
         {/* Hero Section */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-12">
-          <motion.div 
+          <Motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
           >
@@ -346,9 +346,9 @@ export default function BookingsPage() {
                 <span>{bookings.length} Total Bookings</span>
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
 
-          <motion.button
+          <Motion.button
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             whileHover={{ scale: 1.02 }}
@@ -360,7 +360,7 @@ export default function BookingsPage() {
               <Plus className="w-5 h-5" />
             </div>
             Create New Booking
-          </motion.button>
+          </Motion.button>
         </div>
 
         {/* Filters & Controls */}
@@ -426,7 +426,7 @@ export default function BookingsPage() {
         ) : viewMode === 'calendar' ? (
           <CalendarView bookings={bookings} />
         ) : processedBookings.length === 0 ? (
-          <motion.div 
+          <Motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="flex flex-col items-center justify-center py-24 px-8 bg-white rounded-[3rem] border border-dashed border-slate-300 text-center"
@@ -447,7 +447,7 @@ export default function BookingsPage() {
               <Plus className="w-5 h-5" />
               Make Your First Booking
             </button>
-          </motion.div>
+          </Motion.div>
         ) : (
           <div className="space-y-12">
             {processedBookings.map(([date, dayBookings]) => (
