@@ -1,5 +1,6 @@
 package com.smartcampus.backend.controller.booking;
 
+import com.smartcampus.backend.dto.booking.AvailabilitySlotDto;
 import com.smartcampus.backend.dto.booking.BookingRequestDto;
 import com.smartcampus.backend.dto.booking.BookingResponseDto;
 import com.smartcampus.backend.dto.booking.RejectBookingRequestDto;
@@ -7,11 +8,13 @@ import com.smartcampus.backend.exception.ApiResponse;
 import com.smartcampus.backend.service.booking.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -97,5 +100,35 @@ public class BookingController {
         BookingResponseDto updated = bookingService.cancelBooking(id);
         return ResponseEntity.ok(new ApiResponse<>(true, HttpStatus.OK.value(),
                 "Booking cancelled successfully", updated));
+    }
+
+    // -------------------------------------------------------------------------
+    // PUT /api/bookings/{id}  — update a booking (USER / owner)
+    // -------------------------------------------------------------------------
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<BookingResponseDto>> updateBooking(
+            @PathVariable Long id,
+            @Valid @RequestBody BookingRequestDto dto) {
+
+        BookingResponseDto updated = bookingService.updateBooking(id, dto);
+        return ResponseEntity.ok(new ApiResponse<>(true, HttpStatus.OK.value(),
+                "Booking updated successfully", updated));
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /api/bookings/availability?resourceId={id}&date={date}  (USER)
+    // Returns all 15-minute slots for the day with booked/remaining capacity.
+    // The frontend uses this list to colour and disable individual time options.
+    // -------------------------------------------------------------------------
+    @GetMapping("/availability")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<List<AvailabilitySlotDto>>> getAvailability(
+            @RequestParam Long resourceId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+
+        List<AvailabilitySlotDto> slots = bookingService.getAvailability(resourceId, date);
+        return ResponseEntity.ok(new ApiResponse<>(true, HttpStatus.OK.value(),
+                "Availability retrieved successfully", slots));
     }
 }
