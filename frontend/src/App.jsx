@@ -18,6 +18,7 @@ import EditTicketPage from './pages/EditTicketPage';
 import GoogleAuthSuccess from './pages/GoogleAuthSuccess';
 import BookingsPage from './pages/BookingsPage';
 import AdminBookingsPage from './pages/AdminBookingsPage';
+import StudentBookingsPage from './pages/StudentBookingsPage';
 import ManageUsersPage from './pages/ManageUsersPage';
 import { useAuth } from './context/useAuth';
 import { getDefaultRouteForRole, normalizeRole } from './utils/roleRedirect';
@@ -110,7 +111,7 @@ function App() {
               path="/student-bookings"
               element={
                 <ProtectedRoute allowedRoles={['USER']}>
-                  <BookingsPage />
+                  <StudentBookingsPage />
                 </ProtectedRoute>
               }
             />

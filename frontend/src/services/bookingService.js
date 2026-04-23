@@ -98,3 +98,27 @@ export const cancelBooking = async (id) => {
     throw normalizeBookingError(error, 'Failed to cancel booking');
   }
 };
+
+/**
+ * Fetch per-slot availability for a resource on a specific date.
+ * Returns the list of AvailabilitySlotDto objects from the backend:
+ *   { startTime, endTime, bookedCapacity, remainingCapacity, isAvailable }
+ *
+ * The frontend uses this to colour the time dropdowns:
+ *   - remainingCapacity === 0  → disabled / greyed out
+ *   - partially booked         → amber label
+ *   - fully free               → green label
+ *
+ * @param {number} resourceId
+ * @param {string} date  ISO date string, e.g. "2026-04-23"
+ */
+export const getAvailability = async (resourceId, date) => {
+  try {
+    const response = await apiClient.get('/bookings/availability', {
+      params: { resourceId, date },
+    });
+    return response.data.data || response.data;
+  } catch (error) {
+    throw normalizeBookingError(error, 'Failed to fetch availability');
+  }
+};
