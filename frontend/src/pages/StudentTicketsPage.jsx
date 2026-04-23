@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Bell, User, Settings, LogOut, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, User, Settings, LogOut, X } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import campusLogo from '../assets/campus-logo.png';
 import { getAllTickets, deleteTicket } from '../services/ticketService';
 import EditTicket from '../components/EditTicket';
+import NotificationDropdown from '../components/NotificationDropdown';
 
 export default function StudentTicketsPage() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -131,13 +133,22 @@ export default function StudentTicketsPage() {
 
             {/* User Menu */}
             <div className="flex items-center gap-3 relative">
-              <button className="p-2 hover:bg-blue-50 rounded-lg transition">
-                <Bell className="w-5 h-5 text-blue-600" />
-              </button>
+              <NotificationDropdown
+                userId={user?.id}
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+                onToggle={() => {
+                  setShowNotifications((c) => !c);
+                  setIsMenuOpen(false);
+                }}
+              />
 
               {/* Profile Button */}
               <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                onClick={() => {
+                  setIsMenuOpen(!isMenuOpen);
+                  setShowNotifications(false);
+                }}
                 className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50 rounded-lg transition"
               >
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
@@ -224,11 +235,10 @@ export default function StudentTicketsPage() {
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                statusFilter === status
+              className={`px-4 py-2 rounded-lg font-medium transition ${statusFilter === status
                   ? 'bg-blue-600 text-white'
                   : 'bg-white text-gray-700 border border-gray-300 hover:border-blue-300'
-              }`}
+                }`}
             >
               {status === 'IN_PROGRESS' ? 'In Progress' : status}
             </button>
@@ -311,28 +321,27 @@ export default function StudentTicketsPage() {
                   const isEditable = canEditTicket(ticket);
 
                   return (
-                <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex gap-3">
-                  <button
-                    onClick={() => isEditable && setEditingTicketId(ticket.id)}
-                    disabled={!isEditable}
-                    title={!isEditable ? "You can't edit ticket now and it's timed out" : 'Edit ticket'}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition font-medium text-sm ${
-                      isEditable
-                        ? 'text-blue-600 hover:bg-blue-50'
-                        : 'text-slate-400 cursor-not-allowed bg-slate-100'
-                    }`}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteConfirm(ticket.id)}
-                    className="flex-1 flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition font-medium text-sm"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </button>
-                </div>
+                    <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex gap-3">
+                      <button
+                        onClick={() => isEditable && setEditingTicketId(ticket.id)}
+                        disabled={!isEditable}
+                        title={!isEditable ? "You can't edit ticket now and it's timed out" : 'Edit ticket'}
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition font-medium text-sm ${isEditable
+                            ? 'text-blue-600 hover:bg-blue-50'
+                            : 'text-slate-400 cursor-not-allowed bg-slate-100'
+                          }`}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setShowDeleteConfirm(ticket.id)}
+                        className="flex-1 flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition font-medium text-sm"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </button>
+                    </div>
                   );
                 })()}
 
@@ -385,7 +394,7 @@ export default function StudentTicketsPage() {
 
             {/* Modal Content - Scrollable */}
             <div className="flex-1 overflow-y-auto p-8">
-              <EditTicket 
+              <EditTicket
                 ticketId={editingTicketId}
                 onSuccess={() => {
                   setEditingTicketId(null);

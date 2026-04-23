@@ -61,7 +61,7 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
     } else if (notification.type === 'TICKET' || notification.type === 'COMMENT') {
       navigate('/tickets');
     }
-    
+
     onClose();
   };
 
@@ -162,18 +162,17 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
               <div className="p-2">
                 {notifications.map((notification) => {
                   const isMarking = markingIds.has(notification.id);
-                  
+
                   return (
                     <button
                       key={notification.id}
                       type="button"
                       onClick={() => handleNotificationClick(notification)}
                       disabled={isMarking || isProcessing}
-                      className={`mb-2 w-full rounded-2xl border px-4 py-3 text-left transition-all duration-200 last:mb-0 ${
-                        notification.isRead
+                      className={`mb-2 w-full rounded-2xl border px-4 py-3 text-left transition-all duration-200 last:mb-0 ${notification.isRead
                           ? 'border-transparent bg-slate-50 text-slate-600 hover:bg-slate-100 disabled:opacity-60'
                           : 'border-sky-100 bg-sky-50/80 text-slate-800 shadow-sm hover:border-sky-200 hover:bg-sky-50 disabled:opacity-70 disabled:hover:bg-sky-50'
-                      } ${isMarking ? 'opacity-75' : ''} active:scale-95`}
+                        } ${isMarking ? 'opacity-75' : ''} active:scale-95`}
                     >
                       <div className="flex items-start gap-3">
                         {/* Status Indicator with Animation */}
@@ -184,18 +183,16 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
                             </span>
                           ) : (
                             <span
-                              className={`block h-2.5 w-2.5 rounded-full transition-all duration-300 ${
-                                notification.isRead ? 'bg-slate-300' : 'bg-sky-500'
-                              }`}
+                              className={`block h-2.5 w-2.5 rounded-full transition-all duration-300 ${notification.isRead ? 'bg-slate-300' : 'bg-sky-500'
+                                }`}
                             />
                           )}
                         </div>
 
                         {/* Message Content */}
                         <div className="min-w-0 flex-1">
-                          <p className={`text-sm leading-5 transition-all duration-200 ${
-                            notification.isRead ? 'font-medium text-slate-600' : 'font-semibold text-slate-900'
-                          }`}>
+                          <p className={`text-sm leading-5 transition-all duration-200 ${notification.isRead ? 'font-medium text-slate-600' : 'font-semibold text-slate-900'
+                            }`}>
                             {notification.message}
                           </p>
                           <p className="mt-1 text-xs text-slate-500 transition-colors duration-200">

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import { 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  Users, 
-  FileText, 
-  MoreHorizontal, 
-  XCircle, 
-  CheckCircle, 
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  FileText,
+  MoreHorizontal,
+  XCircle,
+  CheckCircle,
   AlertCircle,
   ChevronRight,
   Trash2,
@@ -57,10 +57,10 @@ const STATUS_CONFIG = {
 function formatBookingDate(dateStr) {
   if (!dateStr) return '—';
   const d = new Date(`${dateStr}T00:00:00`);
-  return d.toLocaleDateString('en-US', { 
-    weekday: 'short', 
-    month: 'short', 
-    day: 'numeric' 
+  return d.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric'
   }).toUpperCase();
 }
 
@@ -190,7 +190,7 @@ export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin
             </div>
           </div>
         )}
-        
+
         {cancelError && (
           <div className="mt-2 text-xs text-rose-600 font-medium flex items-center gap-1.5 bg-rose-50 p-2 rounded-lg border border-rose-100">
             <AlertCircle className="w-3.5 h-3.5" />
@@ -221,7 +221,7 @@ export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin
         )}
 
         <button
-          onClick={() => {/* View detail logic could go here */}}
+          onClick={() => {/* View detail logic could go here */ }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-sm hover:shadow-md group"
         >
           View Details

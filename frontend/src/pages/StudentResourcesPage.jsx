@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, User, Settings, LogOut, MapPin, Users, Clock, Check, X } from 'lucide-react';
+import { User, Settings, LogOut, MapPin, Users, Clock, Check, X } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import campusLogo from '../assets/campus-logo.png';
 import { getAllFacilities } from '../services/facilityService';
 import OccupancyChart from '../components/OccupancyChart';
+import NotificationDropdown from '../components/NotificationDropdown';
 
 export default function StudentResourcesPage() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [facilities, setFacilities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -123,13 +125,22 @@ export default function StudentResourcesPage() {
 
             {/* User Menu */}
             <div className="flex items-center gap-3 relative">
-              <button className="p-2 hover:bg-blue-50 rounded-lg transition">
-                <Bell className="w-5 h-5 text-blue-600" />
-              </button>
+              <NotificationDropdown
+                userId={user?.id}
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+                onToggle={() => {
+                  setShowNotifications((c) => !c);
+                  setIsMenuOpen(false);
+                }}
+              />
 
               {/* Profile Button */}
               <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                onClick={() => {
+                  setIsMenuOpen(!isMenuOpen);
+                  setShowNotifications(false);
+                }}
                 className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50 rounded-lg transition"
               >
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
@@ -279,7 +290,7 @@ export default function StudentResourcesPage() {
                 {/* Image Section */}
                 <div className="relative h-48 bg-gray-200 overflow-hidden">
                   {facility.imageUrl ? (
-                    <img 
+                    <img
                       src={facility.imageUrl}
                       alt={facility.name}
                       className="w-full h-full object-cover"
@@ -297,11 +308,10 @@ export default function StudentResourcesPage() {
                     <h3 className="text-lg font-semibold text-white">{facility.name}</h3>
                     <p className="text-blue-100 text-sm mt-1">{facility.type}</p>
                   </div>
-                  <span className={`px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap ${
-                    facility.status === 'ACTIVE' 
-                      ? 'bg-white/20 text-white border border-white/30' 
+                  <span className={`px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap ${facility.status === 'ACTIVE'
+                      ? 'bg-white/20 text-white border border-white/30'
                       : 'bg-white/10 text-white border border-white/20'
-                  }`}>
+                    }`}>
                     {facility.status === 'ACTIVE' ? 'Active' : 'Out of Service'}
                   </span>
                 </div>
@@ -381,11 +391,11 @@ export default function StudentResourcesPage() {
       {isModalOpen && selectedFacility && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Glass Effect Backdrop */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={() => setIsModalOpen(false)}
           ></div>
-          
+
           {/* Modal */}
           <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             {/* Close Button */}
@@ -399,7 +409,7 @@ export default function StudentResourcesPage() {
             {/* Image Section */}
             <div className="relative h-64 bg-gray-200 overflow-hidden">
               {selectedFacility.imageUrl ? (
-                <img 
+                <img
                   src={selectedFacility.imageUrl}
                   alt={selectedFacility.name}
                   className="w-full h-full object-cover"

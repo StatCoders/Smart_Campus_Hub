@@ -1,15 +1,15 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Bell, 
-  User, 
-  Settings, 
-  LogOut, 
-  Search, 
-  Filter, 
-  Calendar, 
-  List, 
-  Plus, 
+import {
+  Bell,
+  User,
+  Settings,
+  LogOut,
+  Search,
+  Filter,
+  Calendar,
+  List,
+  Plus,
   RefreshCw,
   CalendarDays,
   ChevronRight,
@@ -104,7 +104,7 @@ function CalendarView({ bookings }) {
     d === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
 
   return (
-    <Motion.div 
+    <Motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden"
@@ -137,9 +137,8 @@ function CalendarView({ bookings }) {
           {cells.map((day, idx) => (
             <div
               key={idx}
-              className={`min-h-[100px] rounded-2xl p-2.5 transition-all ${
-                day ? 'bg-slate-50 border border-slate-100 hover:border-indigo-200 hover:bg-white hover:shadow-lg hover:shadow-indigo-500/5' : 'bg-transparent'
-              } ${isToday(day) ? 'ring-2 ring-indigo-500 bg-white shadow-lg shadow-indigo-500/10' : ''}`}
+              className={`min-h-[100px] rounded-2xl p-2.5 transition-all ${day ? 'bg-slate-50 border border-slate-100 hover:border-indigo-200 hover:bg-white hover:shadow-lg hover:shadow-indigo-500/5' : 'bg-transparent'
+                } ${isToday(day) ? 'ring-2 ring-indigo-500 bg-white shadow-lg shadow-indigo-500/10' : ''}`}
             >
               {day && (
                 <>
@@ -150,9 +149,8 @@ function CalendarView({ bookings }) {
                     {(bookingsByDay[day] || []).slice(0, 3).map((b, i) => (
                       <div
                         key={i}
-                        className={`truncate rounded-lg px-2 py-1 text-white text-[10px] font-bold ${
-                          STATUS_CHIP_COLORS[b.status] || 'bg-slate-400'
-                        } shadow-sm`}
+                        className={`truncate rounded-lg px-2 py-1 text-white text-[10px] font-bold ${STATUS_CHIP_COLORS[b.status] || 'bg-slate-400'
+                          } shadow-sm`}
                         title={b.purpose || b.resourceName}
                       >
                         {b.purpose || b.resourceName || 'Booking'}
@@ -255,17 +253,17 @@ export default function BookingsPage() {
   const formatDateHeader = (dateStr) => {
     const d = new Date(`${dateStr}T00:00:00`);
     const today = new Date();
-    today.setHours(0,0,0,0);
-    
+    today.setHours(0, 0, 0, 0);
+
     if (d.getTime() === today.getTime()) return 'Today';
-    
+
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
     if (d.getTime() === tomorrow.getTime()) return 'Tomorrow';
 
-    return d.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      month: 'long', 
+    return d.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
       day: 'numeric',
       year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
     });
@@ -310,7 +308,7 @@ export default function BookingsPage() {
                 onClose={() => setShowNotifications(false)}
                 onToggle={() => setShowNotifications((c) => !c)}
               />
-              
+
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="w-10 h-10 rounded-2xl bg-indigo-600 text-white font-black text-sm shadow-lg shadow-indigo-200 flex items-center justify-center hover:scale-105 transition-transform"
@@ -331,7 +329,7 @@ export default function BookingsPage() {
 
         {/* Hero Section */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-12">
-          <Motion.div 
+          <Motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
           >
@@ -397,18 +395,16 @@ export default function BookingsPage() {
               <div className="flex bg-slate-100 p-1 rounded-2xl">
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black transition-all ${
-                    viewMode === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                  }`}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black transition-all ${viewMode === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    }`}
                 >
                   <List className="w-4 h-4" />
                   List
                 </button>
                 <button
                   onClick={() => setViewMode('calendar')}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black transition-all ${
-                    viewMode === 'calendar' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                  }`}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black transition-all ${viewMode === 'calendar' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    }`}
                 >
                   <Calendar className="w-4 h-4" />
                   Calendar
@@ -426,7 +422,7 @@ export default function BookingsPage() {
         ) : viewMode === 'calendar' ? (
           <CalendarView bookings={bookings} />
         ) : processedBookings.length === 0 ? (
-          <Motion.div 
+          <Motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="flex flex-col items-center justify-center py-24 px-8 bg-white rounded-[3rem] border border-dashed border-slate-300 text-center"
@@ -436,7 +432,7 @@ export default function BookingsPage() {
             </div>
             <h3 className="text-2xl font-black text-slate-900 mb-2">No bookings found</h3>
             <p className="text-slate-500 max-w-sm mb-8 font-medium">
-              {searchTerm || statusFilter !== 'All' 
+              {searchTerm || statusFilter !== 'All'
                 ? "We couldn't find any bookings matching your current filters. Try adjusting them!"
                 : "Your reservation list is currently empty. Start by booking a campus resource today."}
             </p>
@@ -458,7 +454,7 @@ export default function BookingsPage() {
                   </h3>
                   <div className="h-px bg-slate-200 w-full" />
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {dayBookings.map(booking => (
                     <BookingCard
@@ -484,22 +480,22 @@ export default function BookingsPage() {
           onSuccess={handleBookingCreated}
         />
       )}
-      
+
       {isMenuOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto" onClick={() => setIsMenuOpen(false)}>
           <div className="absolute right-8 top-20 w-72 bg-white rounded-3xl shadow-2xl border border-slate-100 p-2 transform origin-top-right transition-all">
-             <div className="p-4 border-b border-slate-50">
-               <p className="font-black text-slate-900">{user?.firstName} {user?.lastName}</p>
-               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">{user?.role}</p>
-             </div>
-             <div className="p-2 space-y-1">
-               <button onClick={() => navigate('/profile')} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">
-                 <User className="w-4 h-4" /> Profile Settings
-               </button>
-               <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors">
-                 <LogOut className="w-4 h-4" /> Sign Out
-               </button>
-             </div>
+            <div className="p-4 border-b border-slate-50">
+              <p className="font-black text-slate-900">{user?.firstName} {user?.lastName}</p>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">{user?.role}</p>
+            </div>
+            <div className="p-2 space-y-1">
+              <button onClick={() => navigate('/profile')} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">
+                <User className="w-4 h-4" /> Profile Settings
+              </button>
+              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors">
+                <LogOut className="w-4 h-4" /> Sign Out
+              </button>
+            </div>
           </div>
         </div>
       )}

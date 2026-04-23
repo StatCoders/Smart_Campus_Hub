@@ -23,9 +23,9 @@ import NotificationDropdown from '../components/NotificationDropdown';
 // ─────────────────────────────────────────────────────────────
 const TYPE_META = {
   LECTURE_HALL: { label: 'Lecture Hall', icon: '🏛️', color: 'bg-purple-100 text-purple-700' },
-  LAB:          { label: 'Lab',          icon: '🧪', color: 'bg-blue-100 text-blue-700'   },
-  MEETING_ROOM: { label: 'Meeting Room', icon: '💼', color: 'bg-teal-100 text-teal-700'   },
-  EQUIPMENT:    { label: 'Equipment',    icon: '🎥', color: 'bg-orange-100 text-orange-700'},
+  LAB: { label: 'Lab', icon: '🧪', color: 'bg-blue-100 text-blue-700' },
+  MEETING_ROOM: { label: 'Meeting Room', icon: '💼', color: 'bg-teal-100 text-teal-700' },
+  EQUIPMENT: { label: 'Equipment', icon: '🎥', color: 'bg-orange-100 text-orange-700' },
 };
 
 function getTypeMeta(type) {
@@ -66,7 +66,7 @@ function ResourceCard({ resource, onBook }) {
   const meta = getTypeMeta(resource.type);
 
   return (
-    <Motion.div 
+    <Motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4 }}
@@ -154,23 +154,23 @@ export default function StudentBookingsPage() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
 
-  const [activeTab, setActiveTab]           = useState('book'); // 'book' | 'my-bookings'
-  const [isMenuOpen, setIsMenuOpen]         = useState(false);
+  const [activeTab, setActiveTab] = useState('book'); // 'book' | 'my-bookings'
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const [resources, setResources]           = useState([]);
+  const [resources, setResources] = useState([]);
   const [personalBookings, setPersonalBookings] = useState([]);
-  const [loading, setLoading]               = useState(true);
-  const [error, setError]                   = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const [searchTerm, setSearchTerm]         = useState('');
-  const [typeFilter, setTypeFilter]         = useState('All');
-  const [statusFilter, setStatusFilter]     = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
 
   const [selectedResource, setSelectedResource] = useState(null);
-  const [editBooking, setEditBooking]         = useState(null);
-  const [showModal, setShowModal]           = useState(false);
-  const [toast, setToast]                   = useState(null);
+  const [editBooking, setEditBooking] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const handleLogout = async () => {
     await logout();
@@ -217,7 +217,7 @@ export default function StudentBookingsPage() {
     });
 
     const sorted = filtered.sort((a, b) => new Date(`${b.bookingDate}T00:00:00`) - new Date(`${a.bookingDate}T00:00:00`));
-    
+
     return Object.entries(sorted.reduce((acc, b) => {
       if (!acc[b.bookingDate]) acc[b.bookingDate] = [];
       acc[b.bookingDate].push(b);
@@ -291,14 +291,14 @@ export default function StudentBookingsPage() {
 
             {/* User Menu */}
             <div className="flex items-center gap-3 relative">
-              <NotificationDropdown 
-                userId={user?.id} 
-                isOpen={showNotifications} 
-                onClose={() => setShowNotifications(false)} 
+              <NotificationDropdown
+                userId={user?.id}
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
                 onToggle={() => {
                   setShowNotifications((c) => !c);
                   setIsMenuOpen(false);
-                }} 
+                }}
               />
 
               {/* Profile Button */}
@@ -373,12 +373,12 @@ export default function StudentBookingsPage() {
               {activeTab === 'book' ? 'Book Campus Spaces and Equipments' : 'My Bookings'}
             </h2>
             <p className="text-gray-600 mt-1">
-              {activeTab === 'book' 
-                ? 'Browse and book available university resources' 
+              {activeTab === 'book'
+                ? 'Browse and book available university resources'
                 : 'Track and manage your space reservations'}
             </p>
           </div>
-          
+
           {/* ── Custom Tab Switcher ── */}
           <div className="mt-4 sm:mt-0 flex p-1 bg-gray-100 rounded-xl w-fit">
             <button
@@ -409,28 +409,28 @@ export default function StudentBookingsPage() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
             </div>
-            
+
             <div className="flex gap-3">
               {activeTab === 'book' ? (
-                <select 
-                  value={typeFilter} 
-                  onChange={e => setTypeFilter(e.target.value)} 
+                <select
+                  value={typeFilter}
+                  onChange={e => setTypeFilter(e.target.value)}
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium text-gray-700 bg-white"
                 >
                   <option value="All">All Types</option>
                   {Object.keys(TYPE_META).map(t => <option key={t} value={t}>{TYPE_META[t].label}</option>)}
                 </select>
               ) : (
-                <select 
-                  value={statusFilter} 
-                  onChange={e => setStatusFilter(e.target.value)} 
+                <select
+                  value={statusFilter}
+                  onChange={e => setStatusFilter(e.target.value)}
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium text-gray-700 bg-white"
                 >
                   {['All', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].map(s => <option key={s} value={s}>{s === 'All' ? 'All Status' : s}</option>)}
                 </select>
               )}
-              <button 
-                onClick={fetchData} 
+              <button
+                onClick={fetchData}
                 className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200"
                 title="Refresh"
               >
@@ -475,11 +475,11 @@ export default function StudentBookingsPage() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {group.map(b => (
-                      <BookingCard 
-                        key={b.id} 
-                        booking={b} 
-                        onRefresh={fetchData} 
-                        currentUserId={user?.id} 
+                      <BookingCard
+                        key={b.id}
+                        booking={b}
+                        onRefresh={fetchData}
+                        currentUserId={user?.id}
                         onEdit={handleEdit}
                       />
                     ))}
@@ -492,11 +492,11 @@ export default function StudentBookingsPage() {
       </main>
 
       {showModal && (
-        <CreateBookingModal 
-          isOpen={showModal} 
-          onClose={handleCloseModal} 
-          onSuccess={handleBookingSuccess} 
-          preSelectedResource={selectedResource} 
+        <CreateBookingModal
+          isOpen={showModal}
+          onClose={handleCloseModal}
+          onSuccess={handleBookingSuccess}
+          preSelectedResource={selectedResource}
           editBooking={editBooking}
         />
       )}
