@@ -9,10 +9,10 @@ export function getDefaultRouteForRole(role) {
       return '/technician-dashboard';
     case 'USER':
     case 'STAFF':
-      return '/student-dashboard';
+      return '/home';
     default:
       // Fallback: USER/STAFF share the student experience in this app
-      return '/student-dashboard';
+      return '/home';
   }
 }
 
