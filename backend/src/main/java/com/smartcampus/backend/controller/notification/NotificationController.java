@@ -156,6 +156,8 @@ public class NotificationController {
                 .userId(notification.getUserId())
                 .message(notification.getMessage())
                 .type(notification.getType())
+                .referenceId(notification.getReferenceId())
+                .referenceType(notification.getReferenceType())
                 .isRead(notification.getIsRead())
                 .createdAt(notification.getCreatedAt())
                 .build();

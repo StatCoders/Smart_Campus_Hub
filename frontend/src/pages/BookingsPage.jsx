@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Bell,
   User,
@@ -175,8 +175,10 @@ function CalendarView({ bookings }) {
 // ---------- Main Page ----------
 export default function BookingsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [highlightId, setHighlightId] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [, setError] = useState('');
@@ -209,6 +211,16 @@ export default function BookingsPage() {
   useEffect(() => {
     fetchBookings();
   }, [fetchBookings]);
+
+  // Handle deep linking/highlighting
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const highlight = params.get('highlight');
+    if (highlight) {
+      setHighlightId(highlight);
+      setStatusFilter('All');
+    }
+  }, [location.search]);
 
   const handleBookingCreated = () => {
     setToast({ message: 'Booking submitted successfully!', type: 'success' });
@@ -463,6 +475,7 @@ export default function BookingsPage() {
                       onRefresh={handleRefresh}
                       currentUserId={user?.id}
                       isAdmin={false}
+                      isHighlighted={String(booking.id) === String(highlightId)}
                     />
                   ))}
                 </div>

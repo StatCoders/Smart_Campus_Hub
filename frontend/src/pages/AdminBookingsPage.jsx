@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import BookingCard from '../components/BookingCard';
@@ -82,7 +83,7 @@ function RejectModal({ booking, onConfirm, onClose }) {
 
 // ---------- Admin Booking Row ----------
 
-function AdminBookingRow({ booking, onApprove, onReject, onRefresh }) {
+function AdminBookingRow({ booking, onApprove, onReject, onRefresh, isHighlighted }) {
   const [approving, setApproving] = useState(false);
   const [approveError, setApproveError] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -109,13 +110,14 @@ function AdminBookingRow({ booking, onApprove, onReject, onRefresh }) {
 
   return (
     <>
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+      <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center ${isHighlighted ? 'ring-2 ring-yellow-400 ring-offset-2' : ''}`}>
         {/* Booking info (reuse BookingCard layout concept inline) */}
         <div className="flex-1 min-w-0">
           <BookingCard
             booking={booking}
             onRefresh={onRefresh}
             isAdmin={true}
+            isHighlighted={isHighlighted}
           />
         </div>
 
@@ -160,7 +162,9 @@ function AdminBookingRow({ booking, onApprove, onReject, onRefresh }) {
 export default function AdminBookingsPage() {
   const { user } = useAuth();
   const { isCollapsed } = useSidebar();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('bookings');
+  const [highlightId, setHighlightId] = useState(null);
 
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -187,6 +191,17 @@ export default function AdminBookingsPage() {
   useEffect(() => {
     fetchBookings();
   }, [fetchBookings]);
+
+  // Handle deep linking/highlighting
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const highlight = params.get('highlight');
+    if (highlight) {
+      setHighlightId(highlight);
+      // If we have a highlight, we might want to ensure it's not filtered out
+      setStatusFilter('All');
+    }
+  }, [location.search]);
 
   const handleApprove = async (id) => {
     await approveBooking(id);
@@ -316,6 +331,7 @@ export default function AdminBookingsPage() {
                   onApprove={handleApprove}
                   onReject={handleReject}
                   onRefresh={handleRefresh}
+                  isHighlighted={String(booking.id) === String(highlightId)}
                 />
               ))}
             </div>

@@ -4,10 +4,12 @@ import { useNotifications } from '../hooks/useNotifications';
 import NotificationBell from './NotificationBell';
 import { formatRelativeTime } from '../utils/dateFormatter';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/useAuth';
 
 export default function NotificationDropdown({ userId, isOpen, onClose, onToggle }) {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
   const {
     notifications,
     unreadCount,
@@ -55,11 +57,25 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
       }
     }
 
-    // Navigate based on type
-    if (notification.type === 'BOOKING') {
-      navigate('/dashboard'); // or wherever bookings are shown
-    } else if (notification.type === 'TICKET' || notification.type === 'COMMENT') {
-      navigate('/tickets');
+    // Navigate based on referenceType and referenceId
+    const { referenceType, referenceId, type } = notification;
+    const isStudent = user?.role === 'USER';
+
+    if (referenceType === 'BOOKING' && referenceId) {
+      navigate(`/student-bookings?highlight=${referenceId}`);
+    } else if (referenceType === 'TICKET' && referenceId) {
+      if (isStudent) {
+        navigate(`/student-tickets?highlight=${referenceId}`);
+      } else {
+        navigate(`/tickets/${referenceId}`);
+      }
+    } else {
+      // Fallback for older notifications or SYSTEM notifications
+      if (type === 'BOOKING') {
+        navigate('/student-bookings');
+      } else if (type === 'TICKET' || type === 'COMMENT') {
+        navigate(isStudent ? '/student-tickets' : '/tickets');
+      }
     }
 
     onClose();
@@ -169,7 +185,7 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
                       type="button"
                       onClick={() => handleNotificationClick(notification)}
                       disabled={isMarking || isProcessing}
-                      className={`mb-2 w-full rounded-2xl border px-4 py-3 text-left transition-all duration-200 last:mb-0 ${notification.isRead
+                      className={`mb-2 w-full rounded-2xl border px-4 py-3 text-left transition-all duration-200 last:mb-0 cursor-pointer ${notification.isRead
                           ? 'border-transparent bg-slate-50 text-slate-600 hover:bg-slate-100 disabled:opacity-60'
                           : 'border-sky-100 bg-sky-50/80 text-slate-800 shadow-sm hover:border-sky-200 hover:bg-sky-50 disabled:opacity-70 disabled:hover:bg-sky-50'
                         } ${isMarking ? 'opacity-75' : ''} active:scale-95`}

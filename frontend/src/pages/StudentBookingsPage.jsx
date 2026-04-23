@@ -17,6 +17,7 @@ import CreateBookingModal from '../components/CreateBookingModal';
 import BookingCard from '../components/BookingCard';
 import Toast from '../components/Toast';
 import NotificationDropdown from '../components/NotificationDropdown';
+import { useLocation } from 'react-router-dom';
 
 // ─────────────────────────────────────────────────────────────
 // Resource type labels + icons
@@ -154,7 +155,9 @@ export default function StudentBookingsPage() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
 
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('book'); // 'book' | 'my-bookings'
+  const [highlightId, setHighlightId] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -199,6 +202,18 @@ export default function StudentBookingsPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Handle deep linking/highlighting
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const highlight = params.get('highlight');
+    if (highlight) {
+      setHighlightId(highlight);
+      setActiveTab('my-bookings');
+      // Clear the param from URL without refreshing to avoid re-triggering if user navigates back/forth
+      // navigate('/student-bookings', { replace: true });
+    }
+  }, [location.search]);
 
   // Filtering Logic
   const filteredResources = useMemo(() => {
@@ -481,6 +496,7 @@ export default function StudentBookingsPage() {
                         onRefresh={fetchData}
                         currentUserId={user?.id}
                         onEdit={handleEdit}
+                        isHighlighted={String(b.id) === String(highlightId)}
                       />
                     ))}
                   </div>

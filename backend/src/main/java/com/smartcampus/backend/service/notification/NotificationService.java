@@ -3,6 +3,7 @@ package com.smartcampus.backend.service.notification;
 import com.smartcampus.backend.exception.ResourceNotFoundException;
 import com.smartcampus.backend.model.notification.Notification;
 import com.smartcampus.backend.model.notification.NotificationType;
+import com.smartcampus.backend.model.notification.ReferenceType;
 import com.smartcampus.backend.repository.notification.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,10 +19,16 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
 
     public Notification createNotification(Long userId, String message, NotificationType type) {
+        return createNotification(userId, message, type, null, null);
+    }
+
+    public Notification createNotification(Long userId, String message, NotificationType type, Long referenceId, ReferenceType referenceType) {
         Notification notification = Notification.builder()
                 .userId(userId)
                 .message(message)
                 .type(type)
+                .referenceId(referenceId)
+                .referenceType(referenceType)
                 .isRead(false)
                 .build();
 
