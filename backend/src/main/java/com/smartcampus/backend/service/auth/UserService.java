@@ -308,6 +308,13 @@ public class UserService {
         // Create default notification preferences
         preferenceService.createDefaultPreferences(user.getId());
 
+        // Send welcome notification
+        notificationService.createNotification(
+            user.getId(),
+            "Welcome to Smart Campus Hub! Your account has been created with the role: " + user.getRole(),
+            NotificationType.SYSTEM
+        );
+
         return UserResponse.builder()
             .id(user.getId())
             .email(user.getEmail())
@@ -457,7 +464,7 @@ public class UserService {
 
         notificationService.createNotification(
                 user.getId(),
-                "Your role has been updated to " + user.getRole(),
+                "System Update: Your account role has been updated to " + user.getRole() + " by an administrator.",
                 NotificationType.SYSTEM
         );
     }
@@ -468,8 +475,8 @@ public class UserService {
         }
 
         String message = Boolean.TRUE.equals(user.getIsActive())
-                ? "Your account has been enabled"
-                : "Your account has been disabled";
+                ? "System Update: Your account has been enabled by an administrator."
+                : "System Update: Your account has been disabled by an administrator.";
 
         notificationService.createNotification(
                 user.getId(),
