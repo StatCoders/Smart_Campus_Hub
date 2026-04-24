@@ -223,27 +223,27 @@ export default function StudentResourcesPage() {
         )}
 
         {/* Filters */}
-        <div className="mb-8 bg-white rounded-lg border border-gray-200 p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="mb-8 bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex gap-3 items-center flex-wrap">
             {/* Search */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+            <div className="flex-1 min-w-[150px]">
+              <label className="text-xs text-gray-500 font-medium mb-1 block">Search by location</label>
               <input
                 type="text"
-                placeholder="Search by name or building..."
+                placeholder="Building, floor..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             {/* Type Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Resource Type</label>
+            <div className="flex-1 min-w-[150px]">
+              <label className="text-xs text-gray-500 font-medium mb-1 block">Filter by facility</label>
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {facilityTypes.map(type => (
                   <option key={type} value={type}>{type}</option>
@@ -252,12 +252,12 @@ export default function StudentResourcesPage() {
             </div>
 
             {/* Capacity Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Capacity</label>
+            <div className="flex-1 min-w-[150px]">
+              <label className="text-xs text-gray-500 font-medium mb-1 block">Filter by capacity</label>
               <select
                 value={capacityFilter}
                 onChange={(e) => setCapacityFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {capacityRanges.map(range => (
                   <option key={range} value={range}>
@@ -268,35 +268,35 @@ export default function StudentResourcesPage() {
             </div>
 
             {/* Availability Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Availability</label>
+            <div className="flex-1 min-w-[150px]">
+              <label className="text-xs text-gray-500 font-medium mb-1 block">Filter by availability</label>
               <select
                 value={availabilityFilter}
                 onChange={(e) => setAvailabilityFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="All">All</option>
+                <option value="All">All Availability</option>
                 <option value="Available">Available</option>
                 <option value="Available for Future Bookings">Available for Future Bookings</option>
                 <option value="Not Available">Not Available</option>
               </select>
             </div>
-          </div>
 
-          {/* Clear Filters */}
-          {(searchTerm || typeFilter !== 'All' || capacityFilter !== 'All' || availabilityFilter !== 'All') && (
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setTypeFilter('All');
-                setCapacityFilter('All');
-                setAvailabilityFilter('All');
-              }}
-              className="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Clear filters
-            </button>
-          )}
+            {/* Clear Filters Button */}
+            {(searchTerm || typeFilter !== 'All' || capacityFilter !== 'All' || availabilityFilter !== 'All') && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setTypeFilter('All');
+                  setCapacityFilter('All');
+                  setAvailabilityFilter('All');
+                }}
+                className="px-4 py-2 text-sm text-blue-600 hover:text-blue-700 font-medium border border-blue-300 rounded-lg hover:bg-blue-50 whitespace-nowrap"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Resources Grid */}
