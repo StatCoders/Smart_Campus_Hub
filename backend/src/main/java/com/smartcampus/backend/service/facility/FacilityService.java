@@ -336,6 +336,14 @@ public class FacilityService {
                 if (booking.getExpectedAttendees() != null && booking.getUser() != null) {
                     totalAttendees += booking.getExpectedAttendees();
                     
+                    // Format times as ISO strings
+                    String startTimeStr = booking.getStartTime() != null 
+                        ? booking.getStartTime().toString() 
+                        : null;
+                    String endTimeStr = booking.getEndTime() != null 
+                        ? booking.getEndTime().toString() 
+                        : null;
+                    
                     bookingUsers.add(OccupancyDataDto.BookingUserDto.builder()
                             .userId(booking.getUser().getId())
                             .userName(booking.getUser().getFullName() != null 
@@ -343,6 +351,9 @@ public class FacilityService {
                                 : booking.getUser().getEmail())
                             .email(booking.getUser().getEmail())
                             .expectedAttendees(booking.getExpectedAttendees())
+                            .startTime(startTimeStr)
+                            .endTime(endTimeStr)
+                            .status(booking.getStatus() != null ? booking.getStatus().toString() : "PENDING")
                             .build());
                 }
             }
