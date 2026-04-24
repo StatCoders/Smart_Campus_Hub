@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, AlertCircle, Loader, X } from 'lucide-react';
-import { getTechnicians } from '../services/userService';
+import { getAvailableTechnicians } from '../services/userService';
 import { useAssignTechnician } from '../hooks/useTicketMutations';
 
 export default function AssignTechnicianModal({
@@ -37,7 +37,7 @@ export default function AssignTechnicianModal({
     const fetchTechs = async () => {
       setLoadingTechs(true);
       try {
-        const data = await getTechnicians();
+        const data = await getAvailableTechnicians(ticketId);
         setTechnicians(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Failed to fetch technicians:', err);
@@ -49,7 +49,7 @@ export default function AssignTechnicianModal({
     };
 
     fetchTechs();
-  }, [isOpen]);
+  }, [isOpen, ticketId]);
 
   const handleTechnicianChange = (e) => {
     const value = e.target.value ? Number(e.target.value) : null;
@@ -153,7 +153,10 @@ export default function AssignTechnicianModal({
               </div>
             ) : technicians.length === 0 ? (
               <div className="py-3 text-center text-sm text-gray-600">
-                No technicians available
+                No available technicians right now
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  Technicians appear here when they have no open or in-progress assigned ticket.
+                </p>
               </div>
             ) : (
               <select
@@ -198,7 +201,8 @@ export default function AssignTechnicianModal({
             />
             <p className="mt-1 text-right text-xs text-gray-500">{charCount}/500</p>
             <p className="mt-2 text-xs leading-5 text-slate-500">
-              Open tickets automatically enter the active maintenance workflow after assignment.
+              Only available technicians are shown. Open tickets automatically enter the active
+              maintenance workflow after assignment.
             </p>
           </div>
 

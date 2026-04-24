@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, AlertCircle, CheckCircle, Clock, TrendingUp, Ticket } from 'lucide-react';
+import { Users, AlertCircle, CheckCircle, Clock, TrendingUp, Ticket, MessageSquare } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import TicketTable from '../components/TicketTable';
@@ -8,12 +8,15 @@ import { useAuth } from '../context/useAuth';
 import { useSidebar } from '../context/useSidebar';
 import { useTickets } from '../hooks/useTickets';
 import { useDeleteTicket } from '../hooks/useTicketMutations';
+import TicketCommentModal from '../components/tickets/TicketCommentModal';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isCollapsed } = useSidebar();
   const [activeTab, setActiveTab] = useState('tickets');
+  const [commentModalOpen, setCommentModalOpen] = useState(false);
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
 
   const { data: allTickets, isLoading } = useTickets();
   const deleteTicketMutation = useDeleteTicket();
@@ -41,6 +44,12 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error deleting ticket:', error);
     }
+  };
+
+  const handleOpenComments = (e, ticketId) => {
+    e.stopPropagation();
+    setSelectedTicketId(ticketId);
+    setCommentModalOpen(true);
   };
 
   return (
@@ -331,12 +340,21 @@ export default function AdminDashboard() {
                               </span>
                             </td>
                             <td className="px-6 py-4">
-                              <button
-                                onClick={() => navigate(`/tickets/${ticket.id}`)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
-                              >
-                                Assign →
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => navigate(`/tickets/${ticket.id}`)}
+                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                                >
+                                  Assign →
+                                </button>
+                                <button
+                                  onClick={(e) => handleOpenComments(e, ticket.id)}
+                                  className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200"
+                                  title="View Comments"
+                                >
+                                  <MessageSquare className="h-4 w-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -377,6 +395,13 @@ export default function AdminDashboard() {
                             }`}>
                               {ticket.priority}
                             </span>
+                            <button
+                              onClick={(e) => handleOpenComments(e, ticket.id)}
+                              className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="View Comments"
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                            </button>
                             <span className="text-blue-600">→</span>
                           </div>
                         </div>
@@ -429,6 +454,12 @@ export default function AdminDashboard() {
           )}
         </main>
       </div>
+
+      <TicketCommentModal
+        isOpen={commentModalOpen}
+        onClose={() => setCommentModalOpen(false)}
+        ticketId={selectedTicketId}
+      />
     </div>
   );
 }

@@ -365,7 +365,7 @@ export default function TicketDetailPage() {
                 </div>
               ) : null}
 
-              {isAdmin ? (
+              {isAdminOrTech ? (
                 <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
                   <h2 className="mb-4 text-lg font-bold text-slate-900">Before / After Comparison</h2>
                   <BeforeAfterComparison
@@ -421,17 +421,6 @@ export default function TicketDetailPage() {
                   <p className="text-sm italic text-slate-600">Unassigned</p>
                 )}
 
-                {isAdmin ? (
-                  <div className="mt-4 border-t border-gray-100 pt-4">
-                    <button
-                      onClick={() => setAssignModalOpen(true)}
-                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-sm font-medium text-white transition-all hover:shadow-lg"
-                    >
-                      <Users className="h-4 w-4" />
-                      {ticket.assignedTechnicianName ? 'Reassign Technician' : 'Assign Technician'}
-                    </button>
-                  </div>
-                ) : null}
               </div>
 
               {isAdminOrTech ? (
@@ -482,12 +471,6 @@ export default function TicketDetailPage() {
                 <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
                   <h3 className="mb-4 text-sm font-bold text-slate-900">Admin Actions</h3>
                   <div className="space-y-2">
-                    <button
-                      onClick={() => setAssignModalOpen(true)}
-                      className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-sm font-medium text-white transition-all hover:shadow-lg"
-                    >
-                      {ticket.assignedTechnicianName ? 'Reassign Technician' : 'Assign Technician'}
-                    </button>
                     {canReject ? (
                       <button
                         onClick={() => setRejectModalOpen(true)}
@@ -602,7 +585,7 @@ export default function TicketDetailPage() {
                         ) : null}
                         <div className="mt-4">
                           <TicketAttachmentGallery
-                            attachments={[]}
+                            attachments={ticket.technicianAttachments || []}
                             onUpload={handleAfterUpload}
                             isLoading={uploadingAfterImages}
                             emptyMessage="No completion images uploaded yet."
