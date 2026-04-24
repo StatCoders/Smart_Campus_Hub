@@ -56,7 +56,7 @@ public class NotificationService {
 
     private NotificationPriority determinePriority(NotificationType type) {
         return switch (type) {
-            case TICKET -> NotificationPriority.HIGH;
+            case TICKET, COMMENT -> NotificationPriority.HIGH;
             case BOOKING -> NotificationPriority.MEDIUM;
             case SYSTEM -> NotificationPriority.LOW;
             default -> NotificationPriority.LOW;
@@ -76,12 +76,18 @@ public class NotificationService {
             return false;
         }
 
+        // 1. Critical status updates for bookings (Approved/Rejected) should bypass 
+        // the general "enabled" check AND the "high priority only" filter.
+        if (type == NotificationType.BOOKING) {
+            return true;
+        }
+
+        // 2. Otherwise, respect the highPriorityOnly setting
         if (preferences.isHighPriorityOnly() && priority != NotificationPriority.HIGH) {
             return false;
         }
 
         return switch (type) {
-            case BOOKING -> preferences.isBookingEnabled();
             case TICKET -> preferences.isTicketEnabled();
             case SYSTEM -> preferences.isSystemEnabled();
             default -> true;
@@ -89,8 +95,16 @@ public class NotificationService {
     }
 
     @Transactional(readOnly = true)
-    public List<Notification> getUserNotifications(Long userId) {
+    public List<Notification> getUserNotifications(Long userId, NotificationPriority priority) {
+        if (priority != null) {
+            return notificationRepository.findByUserIdAndPriorityOrderByCreatedAtDesc(userId, priority);
+        }
         return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Notification> getAllNotifications(NotificationPriority priority, NotificationType type, Long userId) {
+        return notificationRepository.findAllWithFilters(userId, priority, type);
     }
 
     @Transactional(readOnly = true)
