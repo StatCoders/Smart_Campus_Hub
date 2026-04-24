@@ -17,6 +17,7 @@ export default function StudentResourcesPage() {
   const [error, setError] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [availabilityFilter, setAvailabilityFilter] = useState('All');
+  const [capacityFilter, setCapacityFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFacility, setSelectedFacility] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -59,13 +60,19 @@ export default function StudentResourcesPage() {
 
   // Get unique types for filter
   const facilityTypes = ['All', ...new Set(facilities.map(f => f.type))];
+  const capacityRanges = ['All', '5+', '10+', '30+', '50+', '100+'];
 
   // Filter facilities
   const filteredFacilities = facilities.filter(facility => {
     if (typeFilter !== 'All' && facility.type !== typeFilter) return false;
+    if (capacityFilter !== 'All') {
+      const minCapacity = parseInt(capacityFilter);
+      if (facility.capacity < minCapacity) return false;
+    }
     if (availabilityFilter !== 'All') {
       if (availabilityFilter === 'Available' && facility.bookingStatus !== 'CAN_BOOK_NOW') return false;
-      if (availabilityFilter === 'Not Available' && facility.bookingStatus === 'CAN_BOOK_NOW') return false;
+      if (availabilityFilter === 'Available for Future Bookings' && facility.bookingStatus !== 'AVAILABLE_FOR_FUTURE_BOOKINGS') return false;
+      if (availabilityFilter === 'Not Available' && facility.bookingStatus !== 'CANNOT_BOOK_NOW') return false;
     }
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
@@ -82,6 +89,9 @@ export default function StudentResourcesPage() {
     const baseStyles = 'px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1';
     if (status === 'CAN_BOOK_NOW') {
       return <span className={`${baseStyles} bg-green-100 text-green-800`}><Check className="w-3 h-3" /> Available</span>;
+    }
+    if (status === 'AVAILABLE_FOR_FUTURE_BOOKINGS') {
+      return <span className={`${baseStyles} bg-blue-100 text-blue-800`}><Clock className="w-3 h-3" /> Available for Future Bookings</span>;
     }
     return <span className={`${baseStyles} bg-red-100 text-red-800`}><X className="w-3 h-3" /> Not Available</span>;
   };
@@ -241,6 +251,22 @@ export default function StudentResourcesPage() {
               </select>
             </div>
 
+            {/* Capacity Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Capacity</label>
+              <select
+                value={capacityFilter}
+                onChange={(e) => setCapacityFilter(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {capacityRanges.map(range => (
+                  <option key={range} value={range}>
+                    {range === 'All' ? 'All Capacities' : `${range} people`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Availability Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Availability</label>
@@ -251,17 +277,19 @@ export default function StudentResourcesPage() {
               >
                 <option value="All">All</option>
                 <option value="Available">Available</option>
+                <option value="Available for Future Bookings">Available for Future Bookings</option>
                 <option value="Not Available">Not Available</option>
               </select>
             </div>
           </div>
 
           {/* Clear Filters */}
-          {(searchTerm || typeFilter !== 'All' || availabilityFilter !== 'All') && (
+          {(searchTerm || typeFilter !== 'All' || capacityFilter !== 'All' || availabilityFilter !== 'All') && (
             <button
               onClick={() => {
                 setSearchTerm('');
                 setTypeFilter('All');
+                setCapacityFilter('All');
                 setAvailabilityFilter('All');
               }}
               className="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
