@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, AlertCircle, CheckCircle, Clock, TrendingUp, Ticket, MessageSquare } from 'lucide-react';
+import { Users, AlertCircle, CheckCircle, Clock, TrendingUp, Ticket, MessageSquare, Bell } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import TicketTable from '../components/TicketTable';
@@ -9,6 +9,8 @@ import { useSidebar } from '../context/useSidebar';
 import { useTickets } from '../hooks/useTickets';
 import { useDeleteTicket } from '../hooks/useTicketMutations';
 import TicketCommentModal from '../components/tickets/TicketCommentModal';
+import { useNotifications } from '../hooks/useNotifications';
+import { formatRelativeTime } from '../utils/dateFormatter';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -140,318 +142,284 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Critical Alerts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-            {/* Unassigned Tickets */}
-            <div className="bg-orange-50 border border-orange-200 rounded-2xl p-6">
-              <h3 className="font-bold text-orange-900 flex items-center gap-2 mb-4">
-                <Users className="h-5 w-5" />
-                Unassigned Tickets ({stats.unassigned})
-              </h3>
-              {unassignedTickets.length === 0 ? (
-                <p className="text-sm text-orange-800">All tickets are assigned</p>
-              ) : (
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {unassignedTickets.slice(0, 5).map(ticket => (
-                    <button
-                      key={ticket.id}
-                      onClick={() => navigate(`/tickets/${ticket.id}`)}
-                      className="block w-full text-left text-sm bg-white p-3 rounded-lg hover:bg-orange-100 transition-colors border border-orange-100"
-                    >
-                      <div className="font-medium text-slate-900">#{ticket.id}: {ticket.resourceId}</div>
-                      <div className="text-xs text-slate-600 mt-1">{ticket.description?.substring(0, 60)}...</div>
-                    </button>
-                  ))}
-                  {unassignedTickets.length > 5 && (
-                    <p className="text-xs text-orange-700 text-center py-2">+{unassignedTickets.length - 5} more</p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Urgent Tickets */}
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
-              <h3 className="font-bold text-red-900 flex items-center gap-2 mb-4">
-                <AlertCircle className="h-5 w-5" />
-                Urgent/Open ({stats.urgent + stats.high})
-              </h3>
-              {urgentTickets.length === 0 ? (
-                <p className="text-sm text-red-800">No urgent open tickets</p>
-              ) : (
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {urgentTickets.slice(0, 5).map(ticket => (
-                    <button
-                      key={ticket.id}
-                      onClick={() => navigate(`/tickets/${ticket.id}`)}
-                      className="block w-full text-left text-sm bg-white p-3 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
-                    >
-                      <div className="font-medium text-slate-900">#{ticket.id}: {ticket.category}</div>
-                      <div className="text-xs text-slate-600 mt-1">{ticket.description?.substring(0, 60)}...</div>
-                    </button>
-                  ))}
-                  {urgentTickets.length > 5 && (
-                    <p className="text-xs text-red-700 text-center py-2">+{urgentTickets.length - 5} more</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <div className="flex gap-4 mb-6 border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`px-4 py-3 font-medium transition-colors ${
-                activeTab === 'all'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              All Tickets
-            </button>
-            <button
-              onClick={() => setActiveTab('maintenance')}
-              className={`px-4 py-3 font-medium transition-colors ${
-                activeTab === 'maintenance'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              🔧 Maintenance
-            </button>
-            <button
-              onClick={() => setActiveTab('open')}
-              className={`px-4 py-3 font-medium transition-colors ${
-                activeTab === 'open'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Management
-            </button>
-          </div>
-
-          {/* Content */}
-          {activeTab === 'all' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-slate-950">System Tickets</h2>
-              <TicketTable tickets={allTickets} isLoading={isLoading} onDelete={handleDeleteTicket} />
-            </div>
-          )}
-
-          {activeTab === 'maintenance' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-slate-950">🔧 Maintenance & Incident Management</h2>
-              
-              {/* Quick Stats for Maintenance */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-slate-600 font-medium">Unassigned</p>
-                      <p className="text-2xl font-bold text-orange-600 mt-2">{stats.unassigned}</p>
-                    </div>
-                    <Users className="h-8 w-8 text-orange-600 bg-orange-50 rounded-lg p-1" />
-                  </div>
-                </div>
-                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-slate-600 font-medium">In Progress</p>
-                      <p className="text-2xl font-bold text-amber-600 mt-2">{stats.inProgress}</p>
-                    </div>
-                    <Clock className="h-8 w-8 text-amber-600 bg-amber-50 rounded-lg p-1" />
-                  </div>
-                </div>
-                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-slate-600 font-medium">Urgent Tickets</p>
-                      <p className="text-2xl font-bold text-red-600 mt-2">{stats.urgent + stats.high}</p>
-                    </div>
-                    <AlertCircle className="h-8 w-8 text-red-600 bg-red-50 rounded-lg p-1" />
-                  </div>
-                </div>
-                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-slate-600 font-medium">Open Tickets</p>
-                      <p className="text-2xl font-bold text-blue-600 mt-2">{stats.open}</p>
-                    </div>
-                    <Ticket className="h-8 w-8 text-blue-600 bg-blue-50 rounded-lg p-1" />
-                  </div>
-                </div>
+          {/* System Notifications Panel & Main Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <div className="lg:col-span-2 space-y-6">
+              {/* Tabs */}
+              <div className="flex gap-4 mb-6 border-b border-gray-200">
+                <button
+                  onClick={() => setActiveTab('all')}
+                  className={`px-4 py-3 font-medium transition-colors ${
+                    activeTab === 'all' || activeTab === 'tickets'
+                      ? 'text-blue-600 border-b-2 border-blue-600'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  All Tickets
+                </button>
+                <button
+                  onClick={() => setActiveTab('maintenance')}
+                  className={`px-4 py-3 font-medium transition-colors ${
+                    activeTab === 'maintenance'
+                      ? 'text-blue-600 border-b-2 border-blue-600'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  🔧 Maintenance
+                </button>
+                <button
+                  onClick={() => setActiveTab('open')}
+                  className={`px-4 py-3 font-medium transition-colors ${
+                    activeTab === 'open'
+                      ? 'text-blue-600 border-b-2 border-blue-600'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Management
+                </button>
               </div>
 
-              {/* Unassigned Tickets for Assignment */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
-                <div className="p-6 border-b border-gray-100">
-                  <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                    <Users className="h-5 w-5 text-orange-600" />
-                    Unassigned Tickets - Ready to Assign ({stats.unassigned})
-                  </h3>
+              {/* Content */}
+              {(activeTab === 'all' || activeTab === 'tickets') && (
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-bold text-slate-950">System Tickets</h2>
+                  <TicketTable tickets={allTickets} isLoading={isLoading} onDelete={handleDeleteTicket} />
                 </div>
-                {unassignedTickets.length === 0 ? (
-                  <div className="p-6 text-center">
-                    <p className="text-sm text-slate-600">✅ All tickets are assigned! Great work.</p>
+              )}
+
+              {activeTab === 'maintenance' && (
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-bold text-slate-950">🔧 Maintenance & Incident Management</h2>
+                  
+                  {/* Quick Stats for Maintenance */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-slate-600 font-medium">Unassigned</p>
+                          <p className="text-2xl font-bold text-orange-600 mt-2">{stats.unassigned}</p>
+                        </div>
+                        <Users className="h-8 w-8 text-orange-600 bg-orange-50 rounded-lg p-1" />
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-slate-600 font-medium">In Progress</p>
+                          <p className="text-2xl font-bold text-amber-600 mt-2">{stats.inProgress}</p>
+                        </div>
+                        <Clock className="h-8 w-8 text-amber-600 bg-amber-50 rounded-lg p-1" />
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-slate-600 font-medium">Urgent Tickets</p>
+                          <p className="text-2xl font-bold text-red-600 mt-2">{stats.urgent + stats.high}</p>
+                        </div>
+                        <AlertCircle className="h-8 w-8 text-red-600 bg-red-50 rounded-lg p-1" />
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-slate-600 font-medium">Open Tickets</p>
+                          <p className="text-2xl font-bold text-blue-600 mt-2">{stats.open}</p>
+                        </div>
+                        <Ticket className="h-8 w-8 text-blue-600 bg-blue-50 rounded-lg p-1" />
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                          <th className="px-6 py-3 text-left font-medium text-slate-700">Ticket ID</th>
-                          <th className="px-6 py-3 text-left font-medium text-slate-700">Resource</th>
-                          <th className="px-6 py-3 text-left font-medium text-slate-700">Priority</th>
-                          <th className="px-6 py-3 text-left font-medium text-slate-700">Status</th>
-                          <th className="px-6 py-3 text-left font-medium text-slate-700">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {unassignedTickets.map(ticket => (
-                          <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-6 py-4">
-                              <button
-                                onClick={() => navigate(`/tickets/${ticket.id}`)}
-                                className="text-blue-600 hover:text-blue-700 font-semibold"
-                              >
-                                #{ticket.id}
-                              </button>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div>
-                                <p className="font-medium text-slate-900">{ticket.resourceId}</p>
-                                <p className="text-xs text-slate-600">{ticket.category}</p>
+
+                  {/* Unassigned Tickets for Assignment */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+                    <div className="p-6 border-b border-gray-100">
+                      <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                        <Users className="h-5 w-5 text-orange-600" />
+                        Unassigned Tickets - Ready to Assign ({stats.unassigned})
+                      </h3>
+                    </div>
+                    {unassignedTickets.length === 0 ? (
+                      <div className="p-6 text-center">
+                        <p className="text-sm text-slate-600">✅ All tickets are assigned! Great work.</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                              <th className="px-6 py-3 text-left font-medium text-slate-700">Ticket ID</th>
+                              <th className="px-6 py-3 text-left font-medium text-slate-700">Resource</th>
+                              <th className="px-6 py-3 text-left font-medium text-slate-700">Priority</th>
+                              <th className="px-6 py-3 text-left font-medium text-slate-700">Status</th>
+                              <th className="px-6 py-3 text-left font-medium text-slate-700">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {unassignedTickets.map(ticket => (
+                              <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
+                                <td className="px-6 py-4">
+                                  <button
+                                    onClick={() => navigate(`/tickets/${ticket.id}`)}
+                                    className="text-blue-600 hover:text-blue-700 font-semibold"
+                                  >
+                                    #{ticket.id}
+                                  </button>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div>
+                                    <p className="font-medium text-slate-900">{ticket.resourceId}</p>
+                                    <p className="text-xs text-slate-600">{ticket.category}</p>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
+                                    ticket.priority === 'URGENT' ? 'bg-red-100 text-red-800' :
+                                    ticket.priority === 'HIGH' ? 'bg-orange-100 text-orange-800' :
+                                    ticket.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-green-100 text-green-800'
+                                  }`}>
+                                    {ticket.priority}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800">
+                                    {ticket.status}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => navigate(`/tickets/${ticket.id}`)}
+                                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                                    >
+                                      Assign →
+                                    </button>
+                                    <button
+                                      onClick={(e) => handleOpenComments(e, ticket.id)}
+                                      className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200"
+                                      title="View Comments"
+                                    >
+                                      <MessageSquare className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Urgent/Open Tickets */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+                    <div className="p-6 border-b border-gray-100">
+                      <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5 text-red-600" />
+                        Urgent/Open Tickets - Priority Monitoring ({stats.urgent + stats.high})
+                      </h3>
+                    </div>
+                    {urgentTickets.length === 0 ? (
+                      <div className="p-6 text-center">
+                        <p className="text-sm text-slate-600">✅ No urgent open tickets!</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-gray-200">
+                        {urgentTickets.slice(0, 10).map(ticket => (
+                          <button
+                            key={ticket.id}
+                            onClick={() => navigate(`/tickets/${ticket.id}`)}
+                            className="w-full text-left p-4 hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <p className="font-bold text-slate-900">#{ticket.id} - {ticket.resourceId}</p>
+                                <p className="text-sm text-slate-600 mt-1">{ticket.description?.substring(0, 80)}...</p>
                               </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
-                                ticket.priority === 'URGENT' ? 'bg-red-100 text-red-800' :
-                                ticket.priority === 'HIGH' ? 'bg-orange-100 text-orange-800' :
-                                ticket.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-green-100 text-green-800'
-                              }`}>
-                                {ticket.priority}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800">
-                                {ticket.status}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => navigate(`/tickets/${ticket.id}`)}
-                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
-                                >
-                                  Assign →
-                                </button>
+                              <div className="flex items-center gap-3 ml-4">
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                  ticket.priority === 'URGENT' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                                }`}>
+                                  {ticket.priority}
+                                </span>
                                 <button
                                   onClick={(e) => handleOpenComments(e, ticket.id)}
-                                  className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200"
+                                  className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                   title="View Comments"
                                 >
                                   <MessageSquare className="h-4 w-4" />
                                 </button>
+                                <span className="text-blue-600">→</span>
                               </div>
-                            </td>
-                          </tr>
+                            </div>
+                          </button>
                         ))}
-                      </tbody>
-                    </table>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-
-              {/* Urgent/Open Tickets */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
-                <div className="p-6 border-b border-gray-100">
-                  <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-red-600" />
-                    Urgent/Open Tickets - Priority Monitoring ({stats.urgent + stats.high})
-                  </h3>
                 </div>
-                {urgentTickets.length === 0 ? (
-                  <div className="p-6 text-center">
-                    <p className="text-sm text-slate-600">✅ No urgent open tickets!</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-gray-200">
-                    {urgentTickets.slice(0, 10).map(ticket => (
-                      <button
-                        key={ticket.id}
-                        onClick={() => navigate(`/tickets/${ticket.id}`)}
-                        className="w-full text-left p-4 hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="font-bold text-slate-900">#{ticket.id} - {ticket.resourceId}</p>
-                            <p className="text-sm text-slate-600 mt-1">{ticket.description?.substring(0, 80)}...</p>
-                          </div>
-                          <div className="flex items-center gap-3 ml-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                              ticket.priority === 'URGENT' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
-                            }`}>
-                              {ticket.priority}
-                            </span>
-                            <button
-                              onClick={(e) => handleOpenComments(e, ticket.id)}
-                              className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="View Comments"
-                            >
-                              <MessageSquare className="h-4 w-4" />
-                            </button>
-                            <span className="text-blue-600">→</span>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+              )}
 
-          {activeTab === 'open' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-slate-950">Ticket Management</h2>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <button
-                  onClick={() => navigate('/tickets')}
-                  className="bg-white border-2 border-blue-200 rounded-2xl p-6 hover:bg-blue-50 transition-colors text-center"
-                >
-                  <Ticket className="h-8 w-8 text-blue-600 mx-auto mb-3" />
-                  <p className="font-bold text-slate-900">View All</p>
-                  <p className="text-xs text-slate-600 mt-1">{stats.total} tickets</p>
-                </button>
-                <button
-                  onClick={() => navigate('/tickets')}
-                  className="bg-white border-2 border-red-200 rounded-2xl p-6 hover:bg-red-50 transition-colors text-center"
-                >
-                  <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-3" />
-                  <p className="font-bold text-slate-900">Open</p>
-                  <p className="text-xs text-slate-600 mt-1">{stats.open} tickets</p>
-                </button>
-                <button
-                  onClick={() => navigate('/tickets')}
-                  className="bg-white border-2 border-amber-200 rounded-2xl p-6 hover:bg-amber-50 transition-colors text-center"
-                >
-                  <Clock className="h-8 w-8 text-amber-600 mx-auto mb-3" />
-                  <p className="font-bold text-slate-900">In Progress</p>
-                  <p className="text-xs text-slate-600 mt-1">{stats.inProgress} tickets</p>
-                </button>
-                <button
-                  onClick={() => navigate('/tickets')}
-                  className="bg-white border-2 border-green-200 rounded-2xl p-6 hover:bg-green-50 transition-colors text-center"
-                >
-                  <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-3" />
-                  <p className="font-bold text-slate-900">Resolved</p>
-                  <p className="text-xs text-slate-600 mt-1">{stats.resolved} tickets</p>
-                </button>
+              {activeTab === 'open' && (
+                <div className="space-y-6">
+                  <h2 className="text-2xl font-bold text-slate-950">Ticket Management</h2>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <button
+                      onClick={() => navigate('/tickets')}
+                      className="bg-white border-2 border-blue-200 rounded-2xl p-6 hover:bg-blue-50 transition-colors text-center"
+                    >
+                      <Ticket className="h-8 w-8 text-blue-600 mx-auto mb-3" />
+                      <p className="font-bold text-slate-900">View All</p>
+                      <p className="text-xs text-slate-600 mt-1">{stats.total} tickets</p>
+                    </button>
+                    <button
+                      onClick={() => navigate('/tickets')}
+                      className="bg-white border-2 border-red-200 rounded-2xl p-6 hover:bg-red-50 transition-colors text-center"
+                    >
+                      <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-3" />
+                      <p className="font-bold text-slate-900">Open</p>
+                      <p className="text-xs text-slate-600 mt-1">{stats.open} tickets</p>
+                    </button>
+                    <button
+                      onClick={() => navigate('/tickets')}
+                      className="bg-white border-2 border-amber-200 rounded-2xl p-6 hover:bg-amber-50 transition-colors text-center"
+                    >
+                      <Clock className="h-8 w-8 text-amber-600 mx-auto mb-3" />
+                      <p className="font-bold text-slate-900">In Progress</p>
+                      <p className="text-xs text-slate-600 mt-1">{stats.inProgress} tickets</p>
+                    </button>
+                    <button
+                      onClick={() => navigate('/tickets')}
+                      className="bg-white border-2 border-green-200 rounded-2xl p-6 hover:bg-green-50 transition-colors text-center"
+                    >
+                      <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-3" />
+                      <p className="font-bold text-slate-900">Resolved</p>
+                      <p className="text-xs text-slate-600 mt-1">{stats.resolved} tickets</p>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Notifications Side Panel */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden sticky top-32">
+                <div className="bg-slate-950 p-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                      <Bell className="h-5 w-5 text-sky-400" />
+                      System Alerts
+                    </h3>
+                    <span className="px-2 py-1 bg-sky-500/20 text-sky-400 text-[10px] font-black rounded-lg uppercase tracking-wider border border-sky-500/30">Live</span>
+                  </div>
+                </div>
+                <div className="p-2 max-h-[600px] overflow-y-auto custom-scrollbar">
+                  <AdminNotificationPanel />
+                </div>
               </div>
             </div>
-          )}
+          </div>
         </main>
       </div>
 
@@ -460,6 +428,92 @@ export default function AdminDashboard() {
         onClose={() => setCommentModalOpen(false)}
         ticketId={selectedTicketId}
       />
+    </div>
+  );
+}
+
+function AdminNotificationPanel() {
+  const { user } = useAuth();
+  const [priority, setPriority] = useState('ALL');
+  const [type, setType] = useState('ALL');
+  const { notifications, loading, loadNotifications } = useNotifications(user?.id, true);
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const filters = {};
+    if (priority !== 'ALL') filters.priority = priority;
+    if (type !== 'ALL') filters.type = type;
+    loadNotifications(filters);
+  }, [priority, type, loadNotifications]);
+
+  const getPriorityColor = (p) => {
+    if (p === 'HIGH') return 'bg-rose-500';
+    if (p === 'MEDIUM') return 'bg-amber-500';
+    return 'bg-sky-400';
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Mini Filters */}
+      <div className="flex flex-wrap gap-2 p-3 border-b border-slate-100">
+        <select 
+          value={priority} 
+          onChange={(e) => setPriority(e.target.value)}
+          className="text-[10px] font-bold border border-slate-200 rounded-lg px-2 py-1 bg-slate-50 text-slate-600 outline-none focus:border-sky-300"
+        >
+          <option value="ALL">All Priorities</option>
+          <option value="HIGH">High (Tickets)</option>
+          <option value="MEDIUM">Medium (Bookings)</option>
+          <option value="LOW">Low (System)</option>
+        </select>
+        <select 
+          value={type} 
+          onChange={(e) => setType(e.target.value)}
+          className="text-[10px] font-bold border border-slate-200 rounded-lg px-2 py-1 bg-slate-50 text-slate-600 outline-none focus:border-sky-300"
+        >
+          <option value="ALL">All Categories</option>
+          <option value="TICKET">Tickets</option>
+          <option value="BOOKING">Bookings</option>
+          <option value="SYSTEM">System</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-10">
+          <div className="h-6 w-6 border-2 border-slate-200 border-t-sky-500 rounded-full animate-spin" />
+        </div>
+      ) : notifications.length === 0 ? (
+        <div className="py-10 text-center">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No matching alerts</p>
+        </div>
+      ) : (
+        <div className="space-y-2 p-2">
+          {notifications.slice(0, 15).map(n => (
+            <button
+              key={n.id}
+              onClick={() => {
+                if (n.priority === 'HIGH') navigate(`/tickets/${n.referenceId || ''}`);
+                else if (n.priority === 'MEDIUM') navigate(`/bookings?highlight=${n.referenceId || ''}`);
+                else navigate('/dashboard');
+              }}
+              className="w-full text-left p-3 rounded-2xl border border-slate-100 hover:border-sky-100 hover:bg-sky-50/30 transition-all group"
+            >
+              <div className="flex items-start gap-3">
+                <div className={`h-1.5 w-1.5 rounded-full mt-1.5 flex-shrink-0 ${getPriorityColor(n.priority)}`} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">User #{n.userId}</span>
+                    <span className="text-[9px] font-medium text-slate-400">{formatRelativeTime(n.createdAt)}</span>
+                  </div>
+                  <p className="text-[11px] font-bold text-slate-900 leading-relaxed group-hover:text-sky-700 transition-colors">
+                    {n.message}
+                  </p>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import { getAllTickets } from '../services/ticketService';
@@ -8,6 +8,7 @@ import { useSidebar } from '../context/useSidebar';
 
 export default function Tickets() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { isCollapsed } = useSidebar();
   const [activeTab, setActiveTab] = useState('tickets');
@@ -18,6 +19,7 @@ export default function Tickets() {
   const [statusFilter, setStatusFilter] = useState('All Statuses');
   const [priorityFilter, setPriorityFilter] = useState('All Priorities');
   const [searchTerm, setSearchTerm] = useState('');
+  const [highlightId, setHighlightId] = useState(null);
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -35,6 +37,18 @@ export default function Tickets() {
   useEffect(() => {
     fetchTickets();
   }, []);
+
+  // Handle deep linking/highlighting
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const highlight = params.get('highlight');
+    if (highlight) {
+      setHighlightId(highlight);
+      setStatusFilter('All Statuses');
+      setPriorityFilter('All Priorities');
+      setSearchTerm('');
+    }
+  }, [location.search]);
 
   const applyFilters = useCallback(() => {
     let filtered = [...tickets];
@@ -108,6 +122,70 @@ export default function Tickets() {
     if (hours < 24) return `${hours}h ago`;
     if (days === 1) return '1d ago';
     return `${days}d ago`;
+  };
+
+  const TicketCard = ({ ticket, isHighlighted }) => {
+    const cardRef = useRef(null);
+
+    useEffect(() => {
+      if (isHighlighted && cardRef.current) {
+        setTimeout(() => {
+          cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 500);
+      }
+    }, [isHighlighted]);
+
+    return (
+      <div
+        ref={cardRef}
+        onClick={() => navigate(`/tickets/${ticket.id}`)}
+        className={`bg-white rounded-lg border transition-all duration-500 shadow hover:shadow-lg transition-shadow cursor-pointer overflow-hidden ${
+          isHighlighted 
+            ? 'border-yellow-400 ring-2 ring-yellow-400 ring-offset-2 scale-[1.02] bg-yellow-50/30' 
+            : 'border-slate-200'
+        }`}
+      >
+        {/* Card Header with Priority and Time */}
+        <div className={`flex justify-between items-start p-5 border-b ${isHighlighted ? 'border-yellow-200' : 'border-gray-200'}`}>
+          <span className={`px-3 py-1 rounded-full text-xs font-bold ${getPriorityColor(ticket.priority)}`}>
+            {getPriorityLabel(ticket.priority)}
+          </span>
+          <span className="text-xs text-gray-500">🕐 {getTimeAgo(ticket.createdAt)}</span>
+        </div>
+
+        {/* Card Body */}
+        <div className="p-5">
+          {/* Title */}
+          <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+            {ticket.category}
+          </h3>
+
+          {/* Description */}
+          <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+            {ticket.description}
+          </p>
+
+          {/* Resource ID / Location */}
+          <div className="flex items-center gap-2 text-gray-600 text-sm mb-4">
+            <span>📍</span>
+            <span>Resource {ticket.resourceId}</span>
+          </div>
+
+          {/* Footer with Status and User */}
+          <div className={`flex justify-between items-center pt-4 border-t ${isHighlighted ? 'border-yellow-200' : 'border-gray-200'}`}>
+            <div className="flex items-center gap-2">
+              <span className={`w-2.5 h-2.5 ${getStatusColor(ticket.status)} rounded-full`}></span>
+              <span className="text-sm font-medium text-gray-700">
+                {ticket.status.replace('_', ' ')}
+              </span>
+            </div>
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+              U
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -196,51 +274,11 @@ export default function Tickets() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredTickets.map((ticket) => (
-                <div
-                  key={ticket.id}
-                  onClick={() => navigate(`/tickets/${ticket.id}`)}
-                  className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer overflow-hidden"
-                >
-                  {/* Card Header with Priority and Time */}
-                  <div className="flex justify-between items-start p-5 border-b border-gray-200">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${getPriorityColor(ticket.priority)}`}>
-                      {getPriorityLabel(ticket.priority)}
-                    </span>
-                    <span className="text-xs text-gray-500">🕐 {getTimeAgo(ticket.createdAt)}</span>
-                  </div>
-
-                  {/* Card Body */}
-                  <div className="p-5">
-                    {/* Title */}
-                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
-                      {ticket.category}
-                    </h3>
-
-                    {/* Description */}
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                      {ticket.description}
-                    </p>
-
-                    {/* Resource ID / Location */}
-                    <div className="flex items-center gap-2 text-gray-600 text-sm mb-4">
-                      <span>📍</span>
-                      <span>Resource {ticket.resourceId}</span>
-                    </div>
-
-                    {/* Footer with Status and User */}
-                    <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2.5 h-2.5 ${getStatusColor(ticket.status)} rounded-full`}></span>
-                        <span className="text-sm font-medium text-gray-700">
-                          {ticket.status.replace('_', ' ')}
-                        </span>
-                      </div>
-                      <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                        U
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <TicketCard 
+                  key={ticket.id} 
+                  ticket={ticket} 
+                  isHighlighted={String(ticket.id) === String(highlightId)} 
+                />
               ))}
             </div>
           )}

@@ -12,6 +12,7 @@ import {
   User,
   Users,
 } from 'lucide-react';
+
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import TechnicianMaintenanceSidebar from '../components/TechnicianMaintenanceSidebar';
@@ -266,60 +267,60 @@ export default function TicketDetailPage() {
           </button>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="space-y-6 lg:col-span-2">
-              <div className="rounded-3xl border border-sky-200 bg-gradient-to-r from-sky-100 via-blue-50 to-sky-50 p-6 shadow-sm">
-                <div className="mb-4 flex items-start justify-between gap-4">
-                  <div>
-                    <h1 className="text-3xl font-bold text-slate-950">Ticket #{ticket.id}</h1>
-                    <p className="mt-1 text-slate-600">
-                      {ticket.resourceId} - {ticket.building} / {ticket.roomNumber}
-                    </p>
-                  </div>
-                  <span className={`inline-block rounded-full border px-4 py-2 text-xs font-bold ${statusColor[ticket.status]}`}>
-                    {formatStatusLabel(ticket.status)}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                  <div>
-                    <p className="text-xs font-medium text-slate-500">Created</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">{new Date(ticket.createdAt).toLocaleDateString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-slate-500">Priority</p>
-                    <span className={`mt-1 inline-block rounded px-2 py-1 text-xs font-bold ${priorityColor[ticket.priority]}`}>
-                      {ticket.priority}
+              <div className="space-y-6 lg:col-span-2">
+                <div className="rounded-3xl border border-sky-200 bg-gradient-to-r from-sky-100 via-blue-50 to-sky-50 p-6 shadow-sm">
+                  <div className="mb-4 flex items-start justify-between gap-4">
+                    <div>
+                      <h1 className="text-3xl font-bold text-slate-950">Ticket #{ticket.id}</h1>
+                      <p className="mt-1 text-slate-600">
+                        {ticket.resourceId} - {ticket.building} / {ticket.roomNumber}
+                      </p>
+                    </div>
+                    <span className={`inline-block rounded-full border px-4 py-2 text-xs font-bold ${statusColor[ticket.status]}`}>
+                      {formatStatusLabel(ticket.status)}
                     </span>
                   </div>
-                  <div>
-                    <p className="text-xs font-medium text-slate-500">Category</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">{ticket.category}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-slate-500">Last Updated</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">{new Date(ticket.updatedAt).toLocaleDateString()}</p>
-                  </div>
-                </div>
 
-                {(slaMetrics.minutesToFirstResponse !== null || slaMetrics.minutesToResolution !== null) && (
-                  <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-                    {slaMetrics.minutesToFirstResponse !== null && (
-                      <div className={`rounded-2xl border p-4 ${getSLAStatusColor(slaMetrics.isOverdueFirstResponse, slaMetrics.status)}`}>
-                        <p className="text-xs font-medium uppercase tracking-[0.16em]">Time to First Response</p>
-                        <p className="mt-2 text-2xl font-bold">{formatMinutesToTime(slaMetrics.minutesToFirstResponse)}</p>
-                        <p className="mt-1 text-xs">SLA target: 4 hours</p>
-                      </div>
-                    )}
-                    {slaMetrics.minutesToResolution !== null && (
-                      <div className={`rounded-2xl border p-4 ${getSLAStatusColor(false, slaMetrics.status)}`}>
-                        <p className="text-xs font-medium uppercase tracking-[0.16em]">Time to Resolution</p>
-                        <p className="mt-2 text-2xl font-bold">{formatMinutesToTime(slaMetrics.minutesToResolution)}</p>
-                        <p className="mt-1 text-xs">SLA target: 24 hours</p>
-                      </div>
-                    )}
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">Created</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{new Date(ticket.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">Priority</p>
+                      <span className={`mt-1 inline-block rounded px-2 py-1 text-xs font-bold ${priorityColor[ticket.priority]}`}>
+                        {ticket.priority}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">Category</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{ticket.category}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">Last Updated</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{new Date(ticket.updatedAt).toLocaleDateString()}</p>
+                    </div>
                   </div>
-                )}
-              </div>
+
+                  {(slaMetrics.minutesToFirstResponse !== null || slaMetrics.minutesToResolution !== null) && (
+                    <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                      {slaMetrics.minutesToFirstResponse !== null && (
+                        <div className={`rounded-2xl border p-4 ${getSLAStatusColor(slaMetrics.isOverdueFirstResponse, slaMetrics.status)}`}>
+                          <p className="text-xs font-medium uppercase tracking-[0.16em]">Time to First Response</p>
+                          <p className="mt-2 text-2xl font-bold">{formatMinutesToTime(slaMetrics.minutesToFirstResponse)}</p>
+                          <p className="mt-1 text-xs">SLA target: 4 hours</p>
+                        </div>
+                      )}
+                      {slaMetrics.minutesToResolution !== null && (
+                        <div className={`rounded-2xl border p-4 ${getSLAStatusColor(false, slaMetrics.status)}`}>
+                          <p className="text-xs font-medium uppercase tracking-[0.16em]">Time to Resolution</p>
+                          <p className="mt-2 text-2xl font-bold">{formatMinutesToTime(slaMetrics.minutesToResolution)}</p>
+                          <p className="mt-1 text-xs">SLA target: 24 hours</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
               <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
                 <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">

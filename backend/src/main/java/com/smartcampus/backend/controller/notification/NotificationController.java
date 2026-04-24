@@ -7,6 +7,8 @@ import com.smartcampus.backend.exception.ApiResponse;
 import com.smartcampus.backend.model.auth.User;
 import com.smartcampus.backend.model.notification.Notification;
 import com.smartcampus.backend.service.auth.UserService;
+import com.smartcampus.backend.model.notification.NotificationPriority;
+import com.smartcampus.backend.model.notification.NotificationType;
 import com.smartcampus.backend.service.notification.NotificationService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -53,11 +55,12 @@ public class NotificationController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<List<NotificationDto>>> getUserNotifications() {
+    public ResponseEntity<ApiResponse<List<NotificationDto>>> getUserNotifications(
+            @RequestParam(required = false) NotificationPriority priority) {
 
         User currentUser = userService.getCurrentUser();
 
-        List<NotificationDto> notifications = notificationService.getUserNotifications(currentUser.getId())
+        List<NotificationDto> notifications = notificationService.getUserNotifications(currentUser.getId(), priority)
                 .stream()
                 .map(this::mapToDto)
                 .toList();
@@ -66,6 +69,26 @@ public class NotificationController {
                 true,
                 HttpStatus.OK.value(),
                 "Notifications retrieved successfully",
+                notifications
+        ));
+    }
+
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<NotificationDto>>> getAllNotifications(
+            @RequestParam(required = false) NotificationPriority priority,
+            @RequestParam(required = false) NotificationType type,
+            @RequestParam(required = false) Long userId) {
+
+        List<NotificationDto> notifications = notificationService.getAllNotifications(priority, type, userId)
+                .stream()
+                .map(this::mapToDto)
+                .toList();
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                HttpStatus.OK.value(),
+                "All notifications retrieved successfully",
                 notifications
         ));
     }
@@ -156,6 +179,9 @@ public class NotificationController {
                 .userId(notification.getUserId())
                 .message(notification.getMessage())
                 .type(notification.getType())
+                .priority(notification.getPriority())
+                .referenceId(notification.getReferenceId())
+                .referenceType(notification.getReferenceType())
                 .isRead(notification.getIsRead())
                 .createdAt(notification.getCreatedAt())
                 .build();

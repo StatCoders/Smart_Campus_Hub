@@ -1,16 +1,18 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Calendar, Wrench, Users, Clock, Zap, ArrowRight, Bell, User, Settings, LogOut } from 'lucide-react';
+import { Building2, Calendar, Wrench, Users, Clock, Zap, ArrowRight, User, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import campusLogo from '../assets/campus-logo.png';
 import universityBg from '../assets/university-bg.jpg';
 import bg2 from '../assets/bg2.jpg';
 import bg4 from '../assets/bg4.jpg';
+import NotificationDropdown from '../components/NotificationDropdown';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const backgroundImages = [universityBg, bg2, bg4];
@@ -57,7 +59,7 @@ export default function HomePage() {
                 Resources
               </button>
               <button
-                onClick={() => handleNavigate('/bookings')}
+                onClick={() => handleNavigate('/student-bookings')}
                 className="text-gray-700 hover:text-blue-600 transition font-medium"
               >
                 Bookings
@@ -72,13 +74,22 @@ export default function HomePage() {
 
             {/* User Menu */}
             <div className="flex items-center gap-3 relative">
-              <button className="p-2 hover:bg-blue-50 rounded-lg transition">
-                <Bell className="w-5 h-5 text-blue-600" />
-              </button>
-              
+              <NotificationDropdown
+                userId={user?.id}
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+                onToggle={() => {
+                  setShowNotifications((c) => !c);
+                  setIsMenuOpen(false);
+                }}
+              />
+
               {/* Profile Button */}
               <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                onClick={() => {
+                  setIsMenuOpen(!isMenuOpen);
+                  setShowNotifications(false);
+                }}
                 className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50 rounded-lg transition"
               >
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
@@ -177,7 +188,7 @@ export default function HomePage() {
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" />
                   </button>
                   <button
-                    onClick={() => handleNavigate('/bookings')}
+                    onClick={() => handleNavigate('/student-bookings')}
                     className="inline-flex items-center justify-center gap-2 border-2 border-white hover:bg-white/10 text-white px-8 py-3 rounded-full font-semibold transition"
                   >
                     Reserve Facilities
@@ -257,7 +268,7 @@ export default function HomePage() {
                   icon: Calendar,
                   title: 'Bookings',
                   description: 'Reserve spaces, rooms, and equipment for your activities',
-                  path: '/bookings',
+                  path: '/student-bookings',
                   color: 'bg-blue-700',
                   lightColor: 'from-blue-50 to-blue-100',
                 },
@@ -429,7 +440,7 @@ export default function HomePage() {
               <h4 className="text-white font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li><button onClick={() => handleNavigate('/student-resources')} className="hover:text-white transition">Resources</button></li>
-                <li><button onClick={() => handleNavigate('/bookings')} className="hover:text-white transition">Bookings</button></li>
+                <li><button onClick={() => handleNavigate('/student-bookings')} className="hover:text-white transition">Bookings</button></li>
                 <li><button onClick={() => handleNavigate('/student-tickets')} className="hover:text-white transition">Tickets</button></li>
               </ul>
             </div>
