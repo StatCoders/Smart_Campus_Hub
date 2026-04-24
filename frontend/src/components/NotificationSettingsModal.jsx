@@ -16,13 +16,7 @@ export default function NotificationSettingsModal({ userId, isOpen, onClose }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && userId) {
-      fetchPreferences();
-    }
-  }, [isOpen, userId]);
-
-  const fetchPreferences = async () => {
+  const fetchPreferences = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -33,7 +27,13 @@ export default function NotificationSettingsModal({ userId, isOpen, onClose }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    if (isOpen && userId) {
+      fetchPreferences();
+    }
+  }, [isOpen, userId, fetchPreferences]);
 
   const handleToggle = (key) => {
     setPreferences(prev => ({

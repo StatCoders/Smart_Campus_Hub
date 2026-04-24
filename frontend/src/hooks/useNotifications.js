@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
-import { getNotifications, getUnreadCount, markAsRead, markAllAsRead } from '../services/notificationService';
+import { useState, useCallback, useEffect } from 'react';
+import { getNotifications, getAllNotifications, getUnreadCount, markAsRead, markAllAsRead } from '../services/notificationService';
 
-export function useNotifications(userId) {
+export function useNotifications(userId, adminView = false) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -26,15 +26,19 @@ export function useNotifications(userId) {
   }, [userId]);
 
   // Load notifications
-  const loadNotifications = useCallback(async () => {
-    if (!userId) return;
+  const loadNotifications = useCallback(async (filters = {}) => {
+    if (!userId && !adminView) return;
 
     setLoading(true);
     setError('');
 
     try {
+      const fetchPromise = adminView 
+        ? getAllNotifications(filters) 
+        : getNotifications(filters);
+
       const [items, count] = await Promise.all([
-        getNotifications(userId),
+        fetchPromise,
         getUnreadCount(userId),
       ]);
 
@@ -46,14 +50,23 @@ export function useNotifications(userId) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, adminView]);
+
+  // Initial fetch and fetch when view mode changes
+  useEffect(() => {
+    if (adminView) {
+      loadNotifications();
+    } else {
+      loadUnreadCount();
+      // If we are in personal view, we might also want to clear any global notifications 
+      // if they were previously loaded, or just let them be replaced by the next open.
+    }
+  }, [adminView, loadUnreadCount, loadNotifications]);
 
   // Mark single notification as read
   const markNotificationAsRead = useCallback(async (notificationId) => {
-    // Track this notification as being marked
     setMarkingIds((current) => new Set(current).add(notificationId));
 
-    // Optimistic update
     setNotifications((current) =>
       current.map((item) =>
         item.id === notificationId ? { ...item, isRead: true } : item
@@ -64,7 +77,6 @@ export function useNotifications(userId) {
     try {
       await markAsRead(notificationId);
     } catch (err) {
-      // Rollback on error
       setNotifications((current) =>
         current.map((item) =>
           item.id === notificationId ? { ...item, isRead: false } : item
@@ -74,7 +86,6 @@ export function useNotifications(userId) {
       setError(err.message || 'Failed to mark notification as read');
       throw err;
     } finally {
-      // Remove from marking set
       setMarkingIds((current) => {
         const updated = new Set(current);
         updated.delete(notificationId);
@@ -90,7 +101,6 @@ export function useNotifications(userId) {
     setMarkingAll(true);
     const previousNotifications = notifications;
 
-    // Optimistic update
     setNotifications((current) =>
       current.map((item) => ({ ...item, isRead: true }))
     );
@@ -99,7 +109,6 @@ export function useNotifications(userId) {
     try {
       await markAllAsRead(userId);
     } catch (err) {
-      // Rollback on error
       setNotifications(previousNotifications);
       setUnreadCount(previousNotifications.filter((item) => !item.isRead).length);
       setError(err.message || 'Failed to mark all notifications as read');
