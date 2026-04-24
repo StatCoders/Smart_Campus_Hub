@@ -5,6 +5,8 @@ import TopBar from '../components/TopBar';
 import { getAllTickets } from '../services/ticketService';
 import { useAuth } from '../context/useAuth';
 import { useSidebar } from '../context/useSidebar';
+import { Users } from 'lucide-react';
+import AssignTechnicianModal from '../components/AssignTechnicianModal';
 
 export default function Tickets() {
   const navigate = useNavigate();
@@ -20,6 +22,10 @@ export default function Tickets() {
   const [priorityFilter, setPriorityFilter] = useState('All Priorities');
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightId, setHighlightId] = useState(null);
+  const [assignModalState, setAssignModalState] = useState({
+    isOpen: false,
+    ticket: null,
+  });
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -32,6 +38,26 @@ export default function Tickets() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOpenAssignModal = (e, ticket) => {
+    e.stopPropagation();
+    setAssignModalState({
+      isOpen: true,
+      ticket: ticket,
+    });
+  };
+
+  const handleCloseAssignModal = () => {
+    setAssignModalState({
+      isOpen: false,
+      ticket: null,
+    });
+  };
+
+  const handleAssignSuccess = () => {
+    handleCloseAssignModal();
+    fetchTickets();
   };
 
   useEffect(() => {
@@ -179,8 +205,19 @@ export default function Tickets() {
                 {ticket.status.replace('_', ' ')}
               </span>
             </div>
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-              U
+            <div className="flex items-center gap-2">
+              {user?.role === 'ADMIN' && (
+                <button
+                  onClick={(e) => handleOpenAssignModal(e, ticket)}
+                  className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center transition hover:bg-blue-700 shadow-md shadow-blue-200"
+                  title={ticket.status === 'REJECTED' ? "Reassign Technician" : "Assign Technician"}
+                >
+                  <Users className="h-4 w-4" />
+                </button>
+              )}
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                {ticket.userFullName ? ticket.userFullName.charAt(0) : 'U'}
+              </div>
             </div>
           </div>
         </div>
@@ -284,6 +321,14 @@ export default function Tickets() {
           )}
         </main>
       </div>
+      <AssignTechnicianModal
+        isOpen={assignModalState.isOpen}
+        ticketId={assignModalState.ticket?.id}
+        ticketNumber={assignModalState.ticket?.id}
+        currentAssignedTo={assignModalState.ticket?.assignedTechnicianName}
+        onClose={handleCloseAssignModal}
+        onSuccess={handleAssignSuccess}
+      />
     </div>
   );
 }

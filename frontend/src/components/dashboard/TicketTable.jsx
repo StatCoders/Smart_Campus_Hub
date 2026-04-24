@@ -1,5 +1,5 @@
 import React, { useDeferredValue, useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Search, SlidersHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, SlidersHorizontal, Users } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
 const STATUS_OPTIONS = ['ALL', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REJECTED'];
@@ -56,6 +56,7 @@ export default function TicketTable({
   emptyTitle,
   emptyDescription,
   onRowClick = () => {},
+  onAssign = null,
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -173,6 +174,7 @@ export default function TicketTable({
                   <th className="px-4 py-2">Priority</th>
                   <th className="px-4 py-2">Status</th>
                   <th className="px-4 py-2">Updated</th>
+                  {onAssign && <th className="px-4 py-2 text-center">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -207,9 +209,25 @@ export default function TicketTable({
                     <td className="px-4 py-4">
                       <StatusBadge value={ticket.status} />
                     </td>
-                    <td className="rounded-r-[22px] px-4 py-4 text-slate-500">
+                    <td className="px-4 py-4 text-slate-500">
                       {formatRelative(ticket.updatedAt || ticket.createdAt)}
                     </td>
+                    {onAssign && (
+                      <td className="rounded-r-[22px] px-4 py-4">
+                        <div className="flex justify-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAssign(ticket);
+                            }}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 hover:shadow-xl"
+                            title={ticket.status === 'REJECTED' ? "Reassign Technician" : "Assign Technician"}
+                          >
+                            <Users className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
