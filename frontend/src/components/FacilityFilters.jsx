@@ -18,7 +18,7 @@ export default function FacilityFilters({
   const types = ['All', 'LECTURE_HALL', 'LAB', 'MEETING_ROOM', 'EQUIPMENT'];
   const statuses = ['All Statuses', 'ACTIVE', 'OUT_OF_SERVICE'];
   const capacities = ['All Capacities', '20+', '50+', '100+'];
-  const bookingAvailability = ['All', 'Available for Booking', 'Not Available for Booking'];
+  const bookingAvailability = ['All', 'Available for Booking', 'Available for Future Bookings', 'Not Available for Booking'];
 
   return (
     <div className="bg-white rounded-lg shadow p-6 mb-6">
