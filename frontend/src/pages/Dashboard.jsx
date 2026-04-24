@@ -10,6 +10,7 @@ import {
   RefreshCw,
   ShieldCheck,
   Wrench,
+  Users,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
@@ -18,6 +19,7 @@ import TicketTable from '../components/dashboard/TicketTable';
 import StatusBadge from '../components/dashboard/StatusBadge';
 import StatusDistributionChart from '../components/dashboard/StatusDistributionChart';
 import PriorityBreakdown from '../components/dashboard/PriorityBreakdown';
+import AssignTechnicianModal from '../components/AssignTechnicianModal';
 import { getAllTickets } from '../services/ticketService';
 import { useAuth } from '../context/useAuth';
 import { useSidebar } from '../context/useSidebar';
@@ -109,6 +111,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [assignModalState, setAssignModalState] = useState({
+    isOpen: false,
+    ticket: null,
+  });
 
   const loadTickets = async ({ silent = false } = {}) => {
     if (silent) {
@@ -130,6 +136,25 @@ export default function Dashboard() {
     }
   };
 
+  const handleOpenAssignModal = (ticket) => {
+    setAssignModalState({
+      isOpen: true,
+      ticket: ticket,
+    });
+  };
+
+  const handleCloseAssignModal = () => {
+    setAssignModalState({
+      isOpen: false,
+      ticket: null,
+    });
+  };
+
+  const handleAssignSuccess = () => {
+    handleCloseAssignModal();
+    loadTickets({ silent: true });
+  };
+
   useEffect(() => {
     loadTickets();
   }, []);
@@ -144,6 +169,7 @@ export default function Dashboard() {
   const inProgressTickets = sortedTickets.filter((ticket) => ticket.status === 'IN_PROGRESS');
   const resolvedOnlyTickets = sortedTickets.filter((ticket) => ticket.status === 'RESOLVED');
   const allTickets = sortedTickets;
+  const isAdmin = user?.role === 'ADMIN';
   const assignmentState = getAssignedTickets(sortedTickets, user);
   const assignedViewTickets = assignmentState.hasAssignmentMetadata
     ? assignmentState.tickets
@@ -291,9 +317,10 @@ export default function Dashboard() {
                 <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                   <th className="px-4 py-2">Ticket</th>
                   <th className="px-4 py-2">Location</th>
-                  <th className="px-4 py-2">Created</th>
+                   <th className="px-4 py-2">Created</th>
                   <th className="px-4 py-2">Priority</th>
                   <th className="px-4 py-2">Status</th>
+                  {isAdmin && <th className="px-4 py-2 text-center">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -323,12 +350,28 @@ export default function Dashboard() {
                         {formatRelativeTime(ticket.createdAt)}
                       </p>
                     </td>
-                    <td className="px-4 py-4">
+                     <td className="px-4 py-4">
                       <StatusBadge value={ticket.priority} type="priority" />
                     </td>
-                    <td className="rounded-r-[22px] px-4 py-4">
+                    <td className={isAdmin ? "px-4 py-4" : "rounded-r-[22px] px-4 py-4"}>
                       <StatusBadge value={ticket.status} />
                     </td>
+                    {isAdmin && (
+                      <td className="rounded-r-[22px] px-4 py-4">
+                        <div className="flex justify-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenAssignModal(ticket);
+                            }}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 hover:shadow-xl"
+                            title={ticket.status === 'REJECTED' ? "Reassign Technician" : "Assign Technician"}
+                          >
+                            <Users className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -556,15 +599,25 @@ export default function Dashboard() {
                   title={activeTableView?.title || 'Tickets'}
                   description={activeTableView?.description || 'Live maintenance workspace'}
                   note={activeTableView?.note}
-                  emptyTitle={activeTableView?.emptyTitle || 'No tickets found'}
+                   emptyTitle={activeTableView?.emptyTitle || 'No tickets found'}
                   emptyDescription={activeTableView?.emptyDescription || 'Try another view or create a new ticket.'}
                   onRowClick={(ticket) => navigate(`/tickets/${ticket.id}`)}
+                  onAssign={isAdmin ? handleOpenAssignModal : null}
                 />
               )}
             </section>
           </div>
         </main>
       </div>
+
+      <AssignTechnicianModal
+        isOpen={assignModalState.isOpen}
+        ticketId={assignModalState.ticket?.id}
+        ticketNumber={assignModalState.ticket?.id}
+        currentAssignedTo={assignModalState.ticket?.assignedTechnicianName}
+        onClose={handleCloseAssignModal}
+        onSuccess={handleAssignSuccess}
+      />
     </div>
   );
 }

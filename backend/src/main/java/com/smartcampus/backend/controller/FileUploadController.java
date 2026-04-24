@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -98,24 +99,32 @@ class FileServeController {
     @GetMapping("/{filename}")
     public ResponseEntity<?> serveFile(@PathVariable String filename) {
         try {
-            Path filePath = Paths.get(uploadDir).resolve(filename).normalize();
+            Path uploadPath = Paths.get(uploadDir);
+            Path filePath = uploadPath.resolve(filename).normalize();
 
             // Security check: ensure path is within upload directory
-            if (!filePath.normalize().toString().startsWith(Paths.get(uploadDir).normalize().toString())) {
+            if (!filePath.startsWith(uploadPath.normalize())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
             }
 
             Resource resource = new UrlResource(filePath.toUri());
 
             if (resource.exists() && resource.isReadable()) {
-                String contentType = "image/*";
+                // Detect MIME type from file; fall back to octet-stream
+                String detectedType = Files.probeContentType(filePath);
+                MediaType mediaType = (detectedType != null)
+                        ? MediaType.parseMediaType(detectedType)
+                        : MediaType.APPLICATION_OCTET_STREAM;
+
                 return ResponseEntity.ok()
-                        .contentType(MediaType.valueOf(contentType))
+                        .contentType(mediaType)
                         .body(resource);
             } else {
                 return ResponseEntity.notFound().build();
             }
         } catch (MalformedURLException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

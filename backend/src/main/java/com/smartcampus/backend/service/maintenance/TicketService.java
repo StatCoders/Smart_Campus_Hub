@@ -269,6 +269,15 @@ public class TicketService {
             throw new IllegalArgumentException("User must have TECHNICIAN role");
         }
 
+        long activeAssignments = ticketRepository.countActiveAssignmentsForTechnicianExceptTicket(
+                technician.getId(),
+                List.of(Status.OPEN, Status.IN_PROGRESS),
+                ticket.getId()
+        );
+        if (activeAssignments > 0) {
+            throw new IllegalArgumentException("Technician is already assigned to an active ticket");
+        }
+
         if (ticket.getStatus() == Status.REJECTED && ticket.getRejectedByRole() == Role.ADMIN) {
             throw new IllegalArgumentException("Admin-rejected tickets cannot be reassigned");
         }
@@ -554,7 +563,7 @@ public class TicketService {
                 .map(this::mapAttachmentToDto)
                 .collect(Collectors.toList());
 
-        List<TicketAttachmentDto> technicianAttachments = viewer.getRole() == Role.ADMIN
+        List<TicketAttachmentDto> technicianAttachments = (viewer.getRole() == Role.ADMIN || viewer.getRole() == Role.TECHNICIAN)
                 ? attachmentRepository.findByTicketIdAndAttachmentCategoryOrderByUploadedAtDesc(ticket.getId(), AttachmentCategory.AFTER)
                         .stream()
                         .map(this::mapAttachmentToDto)

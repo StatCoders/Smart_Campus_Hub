@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, AlertCircle, CheckCircle, Clock, TrendingUp, Ticket, Bell } from 'lucide-react';
+import { Users, AlertCircle, CheckCircle, Clock, TrendingUp, Ticket, MessageSquare, Bell } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import TicketTable from '../components/TicketTable';
@@ -8,6 +8,7 @@ import { useAuth } from '../context/useAuth';
 import { useSidebar } from '../context/useSidebar';
 import { useTickets } from '../hooks/useTickets';
 import { useDeleteTicket } from '../hooks/useTicketMutations';
+import TicketCommentModal from '../components/tickets/TicketCommentModal';
 import { useNotifications } from '../hooks/useNotifications';
 import { formatRelativeTime } from '../utils/dateFormatter';
 
@@ -16,6 +17,8 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const { isCollapsed } = useSidebar();
   const [activeTab, setActiveTab] = useState('tickets');
+  const [commentModalOpen, setCommentModalOpen] = useState(false);
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
 
   const { data: allTickets, isLoading } = useTickets();
   const deleteTicketMutation = useDeleteTicket();
@@ -43,6 +46,12 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error deleting ticket:', error);
     }
+  };
+
+  const handleOpenComments = (e, ticketId) => {
+    e.stopPropagation();
+    setSelectedTicketId(ticketId);
+    setCommentModalOpen(true);
   };
 
   return (
@@ -133,72 +142,15 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Critical Alerts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-            {/* Unassigned Tickets */}
-            <div className="bg-orange-50 border border-orange-200 rounded-2xl p-6">
-              <h3 className="font-bold text-orange-900 flex items-center gap-2 mb-4">
-                <Users className="h-5 w-5" />
-                Unassigned Tickets ({stats.unassigned})
-              </h3>
-              {unassignedTickets.length === 0 ? (
-                <p className="text-sm text-orange-800">All tickets are assigned</p>
-              ) : (
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {unassignedTickets.slice(0, 5).map(ticket => (
-                    <button
-                      key={ticket.id}
-                      onClick={() => navigate(`/tickets/${ticket.id}`)}
-                      className="block w-full text-left text-sm bg-white p-3 rounded-lg hover:bg-orange-100 transition-colors border border-orange-100"
-                    >
-                      <div className="font-medium text-slate-900">#{ticket.id}: {ticket.resourceId}</div>
-                      <div className="text-xs text-slate-600 mt-1">{ticket.description?.substring(0, 60)}...</div>
-                    </button>
-                  ))}
-                  {unassignedTickets.length > 5 && (
-                    <p className="text-xs text-orange-700 text-center py-2">+{unassignedTickets.length - 5} more</p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Urgent Tickets */}
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
-              <h3 className="font-bold text-red-900 flex items-center gap-2 mb-4">
-                <AlertCircle className="h-5 w-5" />
-                Urgent/Open ({stats.urgent + stats.high})
-              </h3>
-              {urgentTickets.length === 0 ? (
-                <p className="text-sm text-red-800">No urgent open tickets</p>
-              ) : (
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {urgentTickets.slice(0, 5).map(ticket => (
-                    <button
-                      key={ticket.id}
-                      onClick={() => navigate(`/tickets/${ticket.id}`)}
-                      className="block w-full text-left text-sm bg-white p-3 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
-                    >
-                      <div className="font-medium text-slate-900">#{ticket.id}: {ticket.category}</div>
-                      <div className="text-xs text-slate-600 mt-1">{ticket.description?.substring(0, 60)}...</div>
-                    </button>
-                  ))}
-                  {urgentTickets.length > 5 && (
-                    <p className="text-xs text-red-700 text-center py-2">+{urgentTickets.length - 5} more</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* System Notifications Panel */}
+          {/* System Notifications Panel & Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
             <div className="lg:col-span-2 space-y-6">
-              {/* Existing Content - Tabs and Table */}
+              {/* Tabs */}
               <div className="flex gap-4 mb-6 border-b border-gray-200">
                 <button
                   onClick={() => setActiveTab('all')}
                   className={`px-4 py-3 font-medium transition-colors ${
-                    activeTab === 'all'
+                    activeTab === 'all' || activeTab === 'tickets'
                       ? 'text-blue-600 border-b-2 border-blue-600'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
@@ -227,7 +179,8 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              {activeTab === 'all' && (
+              {/* Content */}
+              {(activeTab === 'all' || activeTab === 'tickets') && (
                 <div className="space-y-6">
                   <h2 className="text-2xl font-bold text-slate-950">System Tickets</h2>
                   <TicketTable tickets={allTickets} isLoading={isLoading} onDelete={handleDeleteTicket} />
@@ -335,17 +288,73 @@ export default function AdminDashboard() {
                                   </span>
                                 </td>
                                 <td className="px-6 py-4">
-                                  <button
-                                    onClick={() => navigate(`/tickets/${ticket.id}`)}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
-                                  >
-                                    Assign →
-                                  </button>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => navigate(`/tickets/${ticket.id}`)}
+                                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                                    >
+                                      Assign →
+                                    </button>
+                                    <button
+                                      onClick={(e) => handleOpenComments(e, ticket.id)}
+                                      className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200"
+                                      title="View Comments"
+                                    >
+                                      <MessageSquare className="h-4 w-4" />
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Urgent/Open Tickets */}
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+                    <div className="p-6 border-b border-gray-100">
+                      <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5 text-red-600" />
+                        Urgent/Open Tickets - Priority Monitoring ({stats.urgent + stats.high})
+                      </h3>
+                    </div>
+                    {urgentTickets.length === 0 ? (
+                      <div className="p-6 text-center">
+                        <p className="text-sm text-slate-600">✅ No urgent open tickets!</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-gray-200">
+                        {urgentTickets.slice(0, 10).map(ticket => (
+                          <button
+                            key={ticket.id}
+                            onClick={() => navigate(`/tickets/${ticket.id}`)}
+                            className="w-full text-left p-4 hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <p className="font-bold text-slate-900">#{ticket.id} - {ticket.resourceId}</p>
+                                <p className="text-sm text-slate-600 mt-1">{ticket.description?.substring(0, 80)}...</p>
+                              </div>
+                              <div className="flex items-center gap-3 ml-4">
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                  ticket.priority === 'URGENT' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                                }`}>
+                                  {ticket.priority}
+                                </span>
+                                <button
+                                  onClick={(e) => handleOpenComments(e, ticket.id)}
+                                  className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  title="View Comments"
+                                >
+                                  <MessageSquare className="h-4 w-4" />
+                                </button>
+                                <span className="text-blue-600">→</span>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -413,6 +422,12 @@ export default function AdminDashboard() {
           </div>
         </main>
       </div>
+
+      <TicketCommentModal
+        isOpen={commentModalOpen}
+        onClose={() => setCommentModalOpen(false)}
+        ticketId={selectedTicketId}
+      />
     </div>
   );
 }

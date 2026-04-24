@@ -366,7 +366,7 @@ export default function TicketDetailPage() {
                 </div>
               ) : null}
 
-              {isAdmin ? (
+              {isAdminOrTech ? (
                 <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
                   <h2 className="mb-4 text-lg font-bold text-slate-900">Before / After Comparison</h2>
                   <BeforeAfterComparison
@@ -415,24 +415,36 @@ export default function TicketDetailPage() {
                 </h3>
                 {ticket.assignedTechnicianName ? (
                   <div className="rounded-xl border border-sky-100 bg-sky-50 p-4">
-                    <p className="text-sm font-semibold text-slate-900">{ticket.assignedTechnicianName}</p>
-                    <p className="mt-1 text-xs text-slate-600">{ticket.assignedTechnicianEmail}</p>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-900 truncate">{ticket.assignedTechnicianName}</p>
+                        <p className="mt-1 text-xs text-slate-600 truncate">{ticket.assignedTechnicianEmail}</p>
+                      </div>
+                      {isAdmin && (
+                        <button
+                          onClick={() => setAssignModalOpen(true)}
+                          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm transition hover:bg-blue-50 border border-sky-100"
+                          title="Reassign Technician"
+                        >
+                          <Users className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-sm italic text-slate-600">Unassigned</p>
-                )}
-
-                {isAdmin ? (
-                  <div className="mt-4 border-t border-gray-100 pt-4">
-                    <button
-                      onClick={() => setAssignModalOpen(true)}
-                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-sm font-medium text-white transition-all hover:shadow-lg"
-                    >
-                      <Users className="h-4 w-4" />
-                      {ticket.assignedTechnicianName ? 'Reassign Technician' : 'Assign Technician'}
-                    </button>
+                  <div className="flex flex-col gap-4">
+                    <p className="text-sm italic text-slate-600">Unassigned</p>
+                    {isAdmin && (
+                      <button
+                        onClick={() => setAssignModalOpen(true)}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-200 transition hover:from-blue-700 hover:to-blue-800"
+                      >
+                        <Users className="h-4 w-4" />
+                        Assign Technician
+                      </button>
+                    )}
                   </div>
-                ) : null}
+                )}
               </div>
 
               {isAdminOrTech ? (
@@ -483,12 +495,6 @@ export default function TicketDetailPage() {
                 <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
                   <h3 className="mb-4 text-sm font-bold text-slate-900">Admin Actions</h3>
                   <div className="space-y-2">
-                    <button
-                      onClick={() => setAssignModalOpen(true)}
-                      className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-sm font-medium text-white transition-all hover:shadow-lg"
-                    >
-                      {ticket.assignedTechnicianName ? 'Reassign Technician' : 'Assign Technician'}
-                    </button>
                     {canReject ? (
                       <button
                         onClick={() => setRejectModalOpen(true)}
@@ -603,7 +609,7 @@ export default function TicketDetailPage() {
                         ) : null}
                         <div className="mt-4">
                           <TicketAttachmentGallery
-                            attachments={[]}
+                            attachments={ticket.technicianAttachments || []}
                             onUpload={handleAfterUpload}
                             isLoading={uploadingAfterImages}
                             emptyMessage="No completion images uploaded yet."
