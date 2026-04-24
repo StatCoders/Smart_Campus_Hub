@@ -69,7 +69,9 @@ export const updateUser = async (userId, userData) => {
 // Get all technicians
 export const getTechnicians = async () => {
   try {
-    const response = await apiClient.get('/auth/users/role/TECHNICIAN');
+    const response = await apiClient.get('/users', {
+      params: { role: 'TECHNICIAN' },
+    });
     return response.data;
   } catch (error) {
     console.error('Error fetching technicians:', error);
@@ -77,4 +79,37 @@ export const getTechnicians = async () => {
   }
 };
 
+const ACTIVE_TECHNICIAN_STATUSES = new Set(['OPEN', 'IN_PROGRESS']);
+
+// Get technicians that do not currently own another active ticket.
+export const getAvailableTechnicians = async (currentTicketId = null) => {
+  try {
+    const [technicians, ticketsResponse] = await Promise.all([
+      getTechnicians(),
+      apiClient.get('/tickets'),
+    ]);
+
+    const tickets = Array.isArray(ticketsResponse.data) ? ticketsResponse.data : [];
+    const currentId = currentTicketId ? Number(currentTicketId) : null;
+    const busyTechnicianIds = new Set(
+      tickets
+        .filter((ticket) => {
+          const isCurrentTicket = currentId !== null && Number(ticket.id) === currentId;
+          return (
+            !isCurrentTicket &&
+            ticket.assignedTechnicianId &&
+            ACTIVE_TECHNICIAN_STATUSES.has(ticket.status)
+          );
+        })
+        .map((ticket) => Number(ticket.assignedTechnicianId))
+    );
+
+    return (Array.isArray(technicians) ? technicians : []).filter(
+      (technician) => !busyTechnicianIds.has(Number(technician.id))
+    );
+  } catch (error) {
+    console.error('Error fetching available technicians:', error);
+    throw error;
+  }
+};
 
