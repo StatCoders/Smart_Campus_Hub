@@ -50,6 +50,7 @@ export default function TopBar({ user }) {
         <div className="flex items-center gap-3 sm:gap-4">
           <NotificationDropdown
             userId={user?.id}
+            isAdmin={user?.role === 'ADMIN'}
             isOpen={showNotifications}
             onClose={() => setShowNotifications(false)}
             onToggle={() => {

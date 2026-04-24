@@ -169,11 +169,10 @@ export default function CustomNotificationBell({ userId }) {
                       type="button"
                       onClick={() => handleNotificationClick(notification)}
                       disabled={isMarking || isProcessing}
-                      className={`w-full px-4 py-3 text-left transition-all duration-200 hover:bg-slate-50 disabled:opacity-60 active:scale-95 ${
-                        notification.isRead
+                      className={`w-full px-4 py-3 text-left transition-all duration-200 hover:bg-slate-50 disabled:opacity-60 active:scale-95 ${notification.isRead
                           ? 'bg-white'
                           : 'bg-blue-50 hover:bg-blue-100'
-                      }`}
+                        }`}
                     >
                       <div className="flex gap-3">
                         {/* Status Indicator */}
@@ -182,9 +181,8 @@ export default function CustomNotificationBell({ userId }) {
                             <span className="inline-block h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
                           ) : (
                             <span
-                              className={`block h-2 w-2 rounded-full transition-all duration-300 ${
-                                notification.isRead ? 'bg-slate-300' : 'bg-sky-600'
-                              }`}
+                              className={`block h-2 w-2 rounded-full transition-all duration-300 ${notification.isRead ? 'bg-slate-300' : 'bg-sky-600'
+                                }`}
                             />
                           )}
                         </div>
@@ -192,11 +190,10 @@ export default function CustomNotificationBell({ userId }) {
                         {/* Message */}
                         <div className="flex-1 min-w-0">
                           <p
-                            className={`text-sm transition-all duration-200 ${
-                              notification.isRead
+                            className={`text-sm transition-all duration-200 ${notification.isRead
                                 ? 'text-slate-600 font-normal'
                                 : 'text-slate-900 font-semibold'
-                            }`}
+                              }`}
                           >
                             {notification.message}
                           </p>

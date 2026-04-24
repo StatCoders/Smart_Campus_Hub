@@ -26,7 +26,6 @@ export default function Sidebar({ activeTab, setActiveTab }) {
     { id: 'resources', label: 'Facilities', Icon: Package },
     { id: 'bookings', label: 'Bookings', Icon: CalendarDays },
     { id: 'tickets', label: 'Maintenance', Icon: Ticket },
-    { id: 'notifications', label: 'Notifications', Icon: Bell },
   ];
 
   // Add Manage Users for admins only
@@ -57,8 +56,6 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         break;
       case 'manage-users':
         navigate('/manage-users');
-        break;
-      case 'notifications':
         break;
       default:
         break;

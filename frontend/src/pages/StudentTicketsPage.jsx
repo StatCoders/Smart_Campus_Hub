@@ -1,21 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Bell, User, Settings, LogOut, X } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Plus, Edit2, Trash2, User, Settings, LogOut, X } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import campusLogo from '../assets/campus-logo.png';
 import { getAllTickets, deleteTicket } from '../services/ticketService';
 import EditTicket from '../components/EditTicket';
+import NotificationDropdown from '../components/NotificationDropdown';
 
 export default function StudentTicketsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [editingTicketId, setEditingTicketId] = useState(null);
+  const [highlightId, setHighlightId] = useState(null);
 
   const handleLogout = async () => {
     await logout();
@@ -43,6 +47,16 @@ export default function StudentTicketsPage() {
   useEffect(() => {
     fetchTickets();
   }, []);
+
+  // Handle deep linking/highlighting
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const highlight = params.get('highlight');
+    if (highlight) {
+      setHighlightId(highlight);
+      setStatusFilter('All');
+    }
+  }, [location.search]);
 
   const handleDeleteTicket = async (ticketId) => {
     try {
@@ -92,6 +106,117 @@ export default function StudentTicketsPage() {
     return Date.now() - createdAt <= 20 * 60 * 1000;
   };
 
+// ─────────────────────────────────────────────────────────────
+// TicketCard Sub-component for Highlighting & Scrolling
+// ─────────────────────────────────────────────────────────────
+function TicketCard({
+  ticket,
+  isHighlighted,
+  getStatusColor,
+  getPriorityColor,
+  formatDate,
+  canEditTicket,
+  setEditingTicketId,
+  setShowDeleteConfirm
+}) {
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    if (isHighlighted && cardRef.current) {
+      setTimeout(() => {
+        cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 500);
+    }
+  }, [isHighlighted]);
+
+  const isEditable = canEditTicket(ticket);
+
+  return (
+    <div
+      ref={cardRef}
+      className={`bg-white rounded-lg border overflow-hidden transition-all duration-500 flex flex-col ${
+        isHighlighted
+          ? 'border-yellow-400 ring-2 ring-yellow-400 ring-offset-2 scale-[1.02] shadow-xl z-10'
+          : 'border-gray-200 hover:shadow-lg shadow-sm'
+      }`}
+      style={isHighlighted ? { backgroundColor: '#fffbeb' } : {}}
+    >
+      {/* Card Header - Gradient Background */}
+      <div className={`px-6 py-4 transition-colors ${
+        isHighlighted ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 'bg-gradient-to-r from-blue-600 to-blue-700'
+      }`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-white">{ticket.category}</h3>
+            <p className="text-blue-100 text-sm mt-1">{ticket.resourceId}</p>
+          </div>
+          <div className="flex gap-2">
+            <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(ticket.status)}`}>
+              {ticket.status === 'IN_PROGRESS' ? 'In Progress' : ticket.status}
+            </span>
+            <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getPriorityColor(ticket.priority)}`}>
+              {ticket.priority}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Card Content */}
+      <div className="p-6 flex-1 space-y-4">
+        {/* Description */}
+        <div>
+          <p className="text-sm text-gray-600 line-clamp-3">{ticket.description}</p>
+          {ticket.status === 'REJECTED' && ticket.rejectionReason ? (
+            <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-rose-700">Rejection Reason</p>
+              <p className="mt-2 text-sm text-rose-900">{ticket.rejectionReason}</p>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Details Grid */}
+        <div className="space-y-3 border-t border-gray-200 pt-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">Building:</span>
+            <span className="font-medium text-gray-900">{ticket.building || 'N/A'}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">Room:</span>
+            <span className="font-medium text-gray-900">{ticket.roomNumber || 'N/A'}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">Raised On:</span>
+            <span className="font-medium text-gray-900">{formatDate(ticket.createdAt)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Card Footer - Action Buttons */}
+      <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex gap-3">
+        <button
+          onClick={() => isEditable && setEditingTicketId(ticket.id)}
+          disabled={!isEditable}
+          title={!isEditable ? "You can't edit ticket now and it's timed out" : 'Edit ticket'}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition font-medium text-sm ${isEditable
+              ? 'text-blue-600 hover:bg-blue-50'
+              : 'text-slate-400 cursor-not-allowed bg-slate-100'
+            }`}
+        >
+          <Edit2 className="w-4 h-4" />
+          Edit
+        </button>
+        <button
+          onClick={() => setShowDeleteConfirm(ticket.id)}
+          className="flex-1 flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition font-medium text-sm"
+        >
+          <Trash2 className="w-4 h-4" />
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Navigation Header */}
@@ -131,13 +256,22 @@ export default function StudentTicketsPage() {
 
             {/* User Menu */}
             <div className="flex items-center gap-3 relative">
-              <button className="p-2 hover:bg-blue-50 rounded-lg transition">
-                <Bell className="w-5 h-5 text-blue-600" />
-              </button>
+              <NotificationDropdown
+                userId={user?.id}
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+                onToggle={() => {
+                  setShowNotifications((c) => !c);
+                  setIsMenuOpen(false);
+                }}
+              />
 
               {/* Profile Button */}
               <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                onClick={() => {
+                  setIsMenuOpen(!isMenuOpen);
+                  setShowNotifications(false);
+                }}
                 className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50 rounded-lg transition"
               >
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
@@ -224,11 +358,10 @@ export default function StudentTicketsPage() {
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                statusFilter === status
+              className={`px-4 py-2 rounded-lg font-medium transition ${statusFilter === status
                   ? 'bg-blue-600 text-white'
                   : 'bg-white text-gray-700 border border-gray-300 hover:border-blue-300'
-              }`}
+                }`}
             >
               {status === 'IN_PROGRESS' ? 'In Progress' : status}
             </button>
@@ -254,112 +387,17 @@ export default function StudentTicketsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTickets.map(ticket => (
-              <div
+              <TicketCard
                 key={ticket.id}
-                className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition flex flex-col"
-              >
-                {/* Card Header - Gradient Background */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-white">{ticket.category}</h3>
-                      <p className="text-blue-100 text-sm mt-1">{ticket.resourceId}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(ticket.status)}`}>
-                        {ticket.status === 'IN_PROGRESS' ? 'In Progress' : ticket.status}
-                      </span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getPriorityColor(ticket.priority)}`}>
-                        {ticket.priority}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Content */}
-                <div className="p-6 flex-1 space-y-4">
-                  {/* Description */}
-                  <div>
-                    <p className="text-sm text-gray-600 line-clamp-3">{ticket.description}</p>
-                    {ticket.status === 'REJECTED' && ticket.rejectedByRole === 'ADMIN' && ticket.rejectionReason ? (
-                      <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-rose-700">Rejection Reason</p>
-                        <p className="mt-2 text-sm text-rose-900">{ticket.rejectionReason}</p>
-                      </div>
-                    ) : null}
-                  </div>
-
-                  {/* Details Grid */}
-                  <div className="space-y-3 border-t border-gray-200 pt-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Building:</span>
-                      <span className="font-medium text-gray-900">{ticket.building || 'N/A'}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Room:</span>
-                      <span className="font-medium text-gray-900">{ticket.roomNumber || 'N/A'}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Raised On:</span>
-                      <span className="font-medium text-gray-900">{formatDate(ticket.createdAt)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Footer - Action Buttons */}
-                {(() => {
-                  const isEditable = canEditTicket(ticket);
-
-                  return (
-                <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex gap-3">
-                  <button
-                    onClick={() => isEditable && setEditingTicketId(ticket.id)}
-                    disabled={!isEditable}
-                    title={!isEditable ? "You can't edit ticket now and it's timed out" : 'Edit ticket'}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition font-medium text-sm ${
-                      isEditable
-                        ? 'text-blue-600 hover:bg-blue-50'
-                        : 'text-slate-400 cursor-not-allowed bg-slate-100'
-                    }`}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteConfirm(ticket.id)}
-                    className="flex-1 flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition font-medium text-sm"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </button>
-                </div>
-                  );
-                })()}
-
-                {/* Delete Confirmation Modal */}
-                {showDeleteConfirm === ticket.id && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 shadow-xl max-w-sm">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Delete Ticket</h3>
-                      <p className="text-gray-600 mb-6">Are you sure you want to delete this ticket? This action cannot be undone.</p>
-                      <div className="flex gap-3 justify-end">
-                        <button
-                          onClick={() => setShowDeleteConfirm(null)}
-                          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTicket(ticket.id)}
-                          className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition font-medium"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                ticket={ticket}
+                isHighlighted={String(ticket.id) === String(highlightId)}
+                getStatusColor={getStatusColor}
+                getPriorityColor={getPriorityColor}
+                formatDate={formatDate}
+                canEditTicket={canEditTicket}
+                setEditingTicketId={setEditingTicketId}
+                setShowDeleteConfirm={setShowDeleteConfirm}
+              />
             ))}
           </div>
         )}
@@ -385,7 +423,7 @@ export default function StudentTicketsPage() {
 
             {/* Modal Content - Scrollable */}
             <div className="flex-1 overflow-y-auto p-8">
-              <EditTicket 
+              <EditTicket
                 ticketId={editingTicketId}
                 onSuccess={() => {
                   setEditingTicketId(null);
@@ -393,6 +431,33 @@ export default function StudentTicketsPage() {
                 }}
                 onCancel={() => setEditingTicketId(null)}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-3xl p-8 shadow-2xl max-w-sm w-full transform transition-all animate-in fade-in zoom-in duration-200">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Trash2 className="w-8 h-8 text-red-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 text-center mb-3">Delete Ticket</h3>
+            <p className="text-gray-600 text-center mb-8">Are you sure you want to delete this ticket? This action cannot be undone.</p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="flex-1 px-6 py-3 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteTicket(showDeleteConfirm)}
+                className="flex-1 px-6 py-3 text-white bg-red-600 rounded-xl hover:bg-red-700 transition font-semibold shadow-lg shadow-red-200"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
