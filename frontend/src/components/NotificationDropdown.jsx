@@ -13,6 +13,7 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = normalizeRole(user?.role) === 'ADMIN';
+  const isTechnician = normalizeRole(user?.role) === 'TECHNICIAN';
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [priorityFilter, setPriorityFilter] = useState('ALL');
@@ -80,8 +81,10 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
       // Ticket-related
       if (isStudent) {
         navigate(referenceId ? `/student-tickets?highlight=${referenceId}` : '/student-tickets');
+      } else if (isTechnician) {
+        navigate(referenceId ? `/tickets/${referenceId}` : '/technician-dashboard');
       } else {
-        navigate(referenceId ? `/tickets?highlight=${referenceId}` : '/tickets');
+        navigate(referenceId ? `/tickets/${referenceId}` : '/tickets');
       }
     } else if (priority === 'MEDIUM' || type === 'BOOKING') {
       // Booking-related
@@ -94,6 +97,8 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
       // System-related
       if (isAdmin) {
         navigate('/dashboard'); // System logs/dashboard
+      } else if (isTechnician) {
+        navigate('/technician-dashboard');
       } else {
         navigate('/home'); // General announcements/home
       }

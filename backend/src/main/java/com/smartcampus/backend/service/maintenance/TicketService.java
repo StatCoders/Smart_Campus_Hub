@@ -275,6 +275,16 @@ public class TicketService {
             }
         } else if (newStatus == Status.REJECTED) {
             notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " has been REJECTED", NotificationType.TICKET, ticket.getId(), ReferenceType.TICKET);
+            
+            // Notify admins if technician rejected it
+            if (currentUser.getRole() == Role.TECHNICIAN) {
+                String adminMsg = String.format("Ticket #%d has been REJECTED by technician %s. Reason: %s", 
+                        ticket.getId(), techName, ticket.getRejectionReason());
+                
+                userRepository.findByRoleAndIsActiveTrueOrderByFirstName(Role.ADMIN).forEach(admin -> {
+                    notificationService.createNotification(admin.getId(), adminMsg, NotificationType.TICKET, ticket.getId(), ReferenceType.TICKET);
+                });
+            }
         }
 
         return mapToDetailDto(updatedTicket, currentUser);
