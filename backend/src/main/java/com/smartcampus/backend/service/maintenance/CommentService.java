@@ -73,6 +73,32 @@ public class CommentService {
             );
         }
 
+        // Notify assigned technician if commenter is someone else
+        if (ticket.getAssignedTechnicianId() != null && !ticket.getAssignedTechnicianId().equals(currentUser.getId())) {
+            String techMessage;
+            NotificationType type = NotificationType.COMMENT;
+            
+            if (currentUser.getRole() == Role.ADMIN) {
+                String content = comment.getContent() != null ? comment.getContent() : "";
+                String preview = content.length() > 50 ? content.substring(0, 47) + "..." : content;
+                techMessage = String.format("Admin %s commented on ticket #%d: \"%s\"", 
+                        currentUser.getFirstName() + " " + currentUser.getLastName(), 
+                        ticket.getId(), 
+                        preview);
+                type = NotificationType.ADMIN_COMMENT;
+            } else {
+                techMessage = "New comment added by student to ticket #" + ticket.getId();
+            }
+
+            notificationService.createNotification(
+                    ticket.getAssignedTechnicianId(),
+                    techMessage,
+                    type,
+                    ticket.getId(),
+                    ReferenceType.TICKET
+            );
+        }
+
         return mapToDto(savedComment, currentUser);
     }
 
