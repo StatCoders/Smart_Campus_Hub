@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Activity,
   ArrowRight,
@@ -179,11 +179,13 @@ function AnalysisTooltip({ active, payload, label }) {
 
 export default function TechnicianDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { isCollapsed } = useSidebar();
   const [activeTab, setActiveTab] = useState('maintenance');
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [highlightId, setHighlightId] = useState(null);
   const {
     data: tickets = [],
     isLoading: loading,
@@ -201,6 +203,29 @@ export default function TechnicianDashboard() {
   const sortedTickets = [...tickets].sort(
     (left, right) => new Date(right.updatedAt || right.createdAt) - new Date(left.updatedAt || left.createdAt)
   );
+
+  // Handle deep linking/highlighting
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const highlight = params.get('highlight');
+    if (highlight) {
+      setHighlightId(highlight);
+      setActiveTab('maintenance');
+    }
+  }, [location.search]);
+
+  // Scroll to highlighted ticket
+  useEffect(() => {
+    if (highlightId && sortedTickets.length > 0) {
+      const timer = setTimeout(() => {
+        const element = document.getElementById(`ticket-${highlightId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 800); // Wait for data to settle
+      return () => clearTimeout(timer);
+    }
+  }, [highlightId, sortedTickets]);
 
   const stats = {
     totalTickets: tickets.length,
@@ -338,7 +363,15 @@ export default function TechnicianDashboard() {
                               </tr>
                             ) : (
                               sortedTickets.map((ticket) => (
-                                <tr key={ticket.id} className="transition-colors hover:bg-gray-50">
+                                <tr 
+                                  key={ticket.id} 
+                                  id={`ticket-${ticket.id}`}
+                                  className={`transition-colors duration-500 ${
+                                    String(ticket.id) === String(highlightId) 
+                                      ? 'bg-blue-50/80 ring-2 ring-blue-500/50 ring-inset shadow-inner' 
+                                      : 'hover:bg-gray-50'
+                                  }`}
+                                >
                                   <td className="px-6 py-4 align-top">
                                     <p className="text-sm font-semibold text-gray-900">#{ticket.id}</p>
                                     <p className="mt-1 text-xs text-gray-600">{ticket.category}</p>
