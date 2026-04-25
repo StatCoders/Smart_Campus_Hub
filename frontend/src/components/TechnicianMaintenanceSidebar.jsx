@@ -1,9 +1,12 @@
 import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { BarChart3, ChevronLeft, ChevronRight, Wrench, X } from 'lucide-react';
 import { useSidebar } from '../context/useSidebar';
 import campusLogo from '../assets/campus-logo.png';
 
 export default function TechnicianMaintenanceSidebar({ activeTab, setActiveTab }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { isCollapsed, isMobileOpen, toggleCollapsed, closeMobile } = useSidebar();
 
   const menuItems = [
@@ -12,6 +15,9 @@ export default function TechnicianMaintenanceSidebar({ activeTab, setActiveTab }
   ];
 
   const handleTabChange = (itemId) => {
+    if (location.pathname !== '/technician-dashboard') {
+      navigate('/technician-dashboard');
+    }
     setActiveTab(itemId);
     closeMobile();
   };
