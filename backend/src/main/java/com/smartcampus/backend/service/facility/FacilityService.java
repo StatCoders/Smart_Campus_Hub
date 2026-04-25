@@ -304,9 +304,16 @@ public class FacilityService {
      * Aggregates approved bookings with user details.
      */
     private OccupancyDataDto buildOccupancyData(Facility facility, LocalDate startDate, LocalDate endDate) {
+        // Use default availability window if none is set
+        String availabilityWindow = facility.getAvailabilityWindows();
+        if (availabilityWindow == null || availabilityWindow.trim().isEmpty()) {
+            availabilityWindow = "Mon-Fri 08:00-18:00"; // Default to Mon-Fri business hours
+        }
+        
         OccupancyDataDto dto = OccupancyDataDto.builder()
                 .resourceId(facility.getId())
                 .capacity(facility.getCapacity())
+                .availabilityWindow(availabilityWindow)
                 .build();
         
         List<OccupancyDataDto.DayOccupancyDto> dailyData = new java.util.ArrayList<>();
