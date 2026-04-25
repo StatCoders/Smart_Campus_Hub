@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { getWeeklyOccupancy } from '../services/facilityService';
 
@@ -10,7 +10,7 @@ export default function OccupancyChart({ facilityId }) {
   const [period, setPeriod] = useState('week');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchOccupancy = async () => {
+  const fetchOccupancy = useCallback(async () => {
     if (!facilityId) {
       setLoading(false);
       return;
@@ -26,11 +26,11 @@ export default function OccupancyChart({ facilityId }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [facilityId]);
 
   useEffect(() => {
     fetchOccupancy();
-  }, [facilityId, period]);
+  }, [fetchOccupancy, period]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -47,7 +47,7 @@ export default function OccupancyChart({ facilityId }) {
       const startHour = start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
       const endHour = end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
       return `${startHour} - ${endHour}`;
-    } catch (e) {
+    } catch {
       return '';
     }
   };

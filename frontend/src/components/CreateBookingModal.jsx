@@ -13,16 +13,29 @@ import { motion as Motion, AnimatePresence } from 'framer-motion';
 // ─────────────────────────────────────────────────────────────
 function generateTimeSlots() {
   const slots = [];
-  for (let h = 8; h <= 20; h++) {
+  for (let h = 0; h < 24; h++) {
     for (let m = 0; m < 60; m += 15) {
-      if (h === 20 && m > 0) break;
       slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
     }
   }
+  slots.push('24:00');
   return slots;
 }
 
 const TIME_SLOTS = generateTimeSlots();
+
+function getWindowConfig(windowStr) {
+  if (!windowStr) return { start: '08:00', end: '20:00' };
+  // Find time pattern like 08:00-20:00 or 08.00-20.00
+  const match = windowStr.match(/([0-1]?\d|2[0-3])[:.]([0-5]\d)\s*-\s*([0-1]?\d|2[0-3])[:.]([0-5]\d)/);
+  if (match) {
+    return {
+      start: `${match[1].padStart(2, '0')}:${match[2]}`,
+      end: `${match[3].padStart(2, '0')}:${match[4]}`
+    };
+  }
+  return { start: '08:00', end: '20:00' };
+}
 
 function todayString() {
   return new Date().toISOString().split('T')[0];
@@ -31,6 +44,38 @@ function todayString() {
 function toMinutes(t) {
   const [h, m] = t.split(':').map(Number);
   return h * 60 + m;
+}
+
+function getNext15MinSlot() {
+  const now = new Date();
+  let h = now.getHours();
+  let m = now.getMinutes();
+  m = Math.ceil((m + 1) / 15) * 15;
+  if (m >= 60) { h += 1; m = 0; }
+  if (h < 8) return '08:00';
+  if (h >= 20) return '20:00';
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function getAllowedDays(windowStr) {
+  if (!windowStr) return null;
+  const s = windowStr.toLowerCase();
+  const shortDays = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  if (s.includes('mon-sun')) return [0,1,2,3,4,5,6];
+  if (s.includes('weekdays')) return [1,2,3,4,5];
+  if (s.includes('weekends')) return [0,6];
+  const match = s.match(/(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s*-\s*(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/);
+  if (match) {
+    const startIdx = shortDays.findIndex(d => match[1].startsWith(d));
+    const endIdx = shortDays.findIndex(d => match[2].startsWith(d));
+    if (startIdx === -1 || endIdx === -1) return null;
+    const allowed = [];
+    let curr = startIdx;
+    while (curr !== endIdx) { allowed.push(curr); curr = (curr + 1) % 7; }
+    allowed.push(endIdx);
+    return allowed;
+  }
+  return null;
 }
 
 function calcRangeRemaining(startTime, endTime, slotMap) {
@@ -71,7 +116,7 @@ function buildBookingRows(slotMap) {
   return rows;
 }
 
-function BookingSummaryCard({ slotMap, startTime, endTime, rangeRemaining, availLoading }) {
+function BookingSummaryCard({ slotMap, startTime, endTime, rangeRemaining, availLoading, isMeetingRoom, capacity }) {
   if (availLoading) {
     return (
       <div className="rounded-2xl border border-indigo-100 bg-indigo-50/30 px-4 py-4 flex items-center gap-3 text-indigo-600 text-sm font-medium animate-pulse">
@@ -89,7 +134,7 @@ function BookingSummaryCard({ slotMap, startTime, endTime, rangeRemaining, avail
   let bannerTheme;
   if (!hasRange || rangeRemaining === null) {
     bannerTheme = null;
-  } else if (rangeRemaining === 0) {
+  } else if (rangeRemaining === 0 || (isMeetingRoom && rangeRemaining < capacity)) {
     bannerTheme = { bg: 'bg-rose-50', border: 'border-rose-100', text: 'text-rose-700', icon: <XCircle className="w-4 h-4 flex-shrink-0" /> };
   } else if (rangeRemaining <= 5) {
     bannerTheme = { bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-700', icon: <AlertCircle className="w-4 h-4 flex-shrink-0" /> };
@@ -116,7 +161,7 @@ function BookingSummaryCard({ slotMap, startTime, endTime, rangeRemaining, avail
                 </span>
                 <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-[10px] font-black uppercase tracking-wider">
                   <Users className="w-3 h-3" />
-                  {row.booked} Occupied
+                  {isMeetingRoom ? 'Reserved' : `${row.booked} Occupied`}
                 </span>
               </div>
             ))}
@@ -128,10 +173,10 @@ function BookingSummaryCard({ slotMap, startTime, endTime, rangeRemaining, avail
         <div className={`flex items-start gap-3 px-4 py-3 border-t border-slate-100 ${bannerTheme.bg} ${bannerTheme.text}`}>
           {bannerTheme.icon}
           <p className="text-xs font-bold leading-relaxed">
-            {rangeRemaining === 0 ? (
-              <>Selected Window: <span className="font-black">{startTime}–{endTime}</span> is fully booked.</>
+            {rangeRemaining === 0 || (isMeetingRoom && rangeRemaining < capacity) ? (
+              <>Selected Window: <span className="font-black">{startTime}–{endTime}</span> is {isMeetingRoom ? 'unavailable (Private Booking)' : 'fully booked'}.</>
             ) : (
-              <><span className="font-black">{rangeRemaining} seats</span> available from {startTime} to {endTime}.</>
+              <><span className="font-black">{isMeetingRoom ? 'Available' : `${rangeRemaining} seats available`}</span> from {startTime} to {endTime}.</>
             )}
           </p>
         </div>
@@ -140,13 +185,24 @@ function BookingSummaryCard({ slotMap, startTime, endTime, rangeRemaining, avail
   );
 }
 
-function SmartTimeSelect({ id, name, value, onChange, slotMap, filterFn, disabled }) {
+function SmartTimeSelect({ id, name, value, onChange, slotMap, filterFn, disabled, hidePast, windowStart, windowEnd }) {
+  const nowStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  
   const isSlotDisabled = (t) => {
+    if (hidePast && t < nowStr) return true;
     if (!slotMap || !slotMap[t]) return false;
     return slotMap[t].remainingCapacity === 0;
   };
 
-  const visibleSlots = filterFn ? TIME_SLOTS.filter(filterFn) : TIME_SLOTS;
+  const startMin = toMinutes(windowStart || '08:00');
+  const endMin = toMinutes(windowEnd || '20:00');
+
+  const visibleSlots = TIME_SLOTS.filter(t => {
+    const tMin = toMinutes(t);
+    return tMin >= startMin && tMin <= endMin;
+  });
+
+  const finalSlots = filterFn ? visibleSlots.filter(filterFn) : visibleSlots;
 
   return (
     <select
@@ -159,11 +215,15 @@ function SmartTimeSelect({ id, name, value, onChange, slotMap, filterFn, disable
                  focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all appearance-none
                  disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      {visibleSlots.map((t) => (
-        <option key={t} value={t} disabled={isSlotDisabled(t)}>
-          {t}
-        </option>
-      ))}
+      {finalSlots.map((t) => {
+        const disabledSlot = isSlotDisabled(t);
+        if (hidePast && disabledSlot && t < nowStr) return null; // Hide past times for today
+        return (
+          <option key={t} value={t} disabled={disabledSlot}>
+            {t}
+          </option>
+        );
+      })}
     </select>
   );
 }
@@ -205,6 +265,8 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, preSele
       setFormData({
         ...EMPTY_FORM,
         date: todayString(),
+        startTime: getNext15MinSlot(),
+        endTime: '20:00', // Default end to end of window
         resourceId: preSelectedResource ? String(preSelectedResource.id) : '',
       });
     }
@@ -266,23 +328,54 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, preSele
     setError('');
   };
 
+  const isToday = formData.date === todayString();
+  const windowConfig = getWindowConfig(activeResource?.availabilityWindows);
   const rangeRemaining = calcRangeRemaining(formData.startTime, formData.endTime, slotMap);
+  const isMeetingRoom = activeResource?.type === 'MEETING_ROOM';
 
-  const validate = () => {
-    if (!formData.resourceId && !activeResource) return 'Please select a resource.';
-    if (!formData.date) return 'Please select a date.';
-    if (toMinutes(formData.startTime) >= toMinutes(formData.endTime)) return 'End time must be after start time.';
-    if (!formData.attendees || Number(formData.attendees) < 1) return 'Attendees must be at least 1.';
-    if (activeResource && Number(formData.attendees) > activeResource.capacity)
-      return `Capacity exceeded (${activeResource.capacity} max).`;
-    if (!formData.purpose.trim()) return 'Please provide a purpose.';
-    return '';
+  // Validation Logic
+  const getValidationErrors = () => {
+    const errors = {};
+    
+    // Day Validation
+    const allowedDays = getAllowedDays(activeResource?.availabilityWindows);
+    if (formData.date && allowedDays) {
+      const selectedDay = new Date(formData.date).getDay();
+      if (!allowedDays.includes(selectedDay)) {
+        errors.date = `This resource is only available ${activeResource.availabilityWindows.split(' ')[0]}. Please select a valid date.`;
+      }
+    }
+
+    // Time Validation
+    const nowStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    if (isToday && formData.startTime < nowStr) {
+      errors.startTime = 'Start time must be in the future.';
+    }
+    if (toMinutes(formData.startTime) >= toMinutes(formData.endTime)) {
+      errors.endTime = 'End time must be after start time.';
+    }
+
+    // Capacity & Meeting Room Logic
+    if (rangeRemaining !== null) {
+      if (isMeetingRoom && rangeRemaining < (activeResource?.capacity || 0)) {
+        errors.capacity = "This meeting room is already reserved for this time slot. Meeting rooms are private spaces and cannot be shared.";
+      } else if (Number(formData.attendees) > rangeRemaining) {
+        errors.capacity = `Capacity exceeded — only ${rangeRemaining} seats remaining for this time slot.`;
+      }
+    }
+
+    if (!formData.purpose.trim()) errors.purpose = 'Please provide a purpose.';
+    if (!formData.resourceId && !activeResource) errors.resource = 'Please select a resource.';
+
+    return errors;
   };
+
+  const validationErrors = getValidationErrors();
+  const hasErrors = Object.keys(validationErrors).length > 0;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const validationError = validate();
-    if (validationError) { setError(validationError); return; }
+    if (hasErrors) return;
 
     setLoading(true);
     setError('');
@@ -304,7 +397,11 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, preSele
       onSuccess?.();
       onClose();
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Transaction failed.');
+      if (err?.response?.status === 409) {
+        setError(`Capacity exceeded — only ${rangeRemaining || 0} seats remaining for this time slot.`);
+      } else {
+        setError(err?.response?.data?.message || err?.message || 'Transaction failed.');
+      }
     } finally {
       setLoading(false);
     }
@@ -366,7 +463,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, preSele
               <AnimatePresence>
                 {error && (
                   <Motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-700 text-sm font-bold">
-                    <AlertCircle className="w-5 h-5 flex-shrink-0" /> {error}
+                    <XCircle className="w-5 h-5 flex-shrink-0" /> {error}
                   </Motion.div>
                 )}
               </AnimatePresence>
@@ -411,25 +508,71 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, preSele
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Reservation Date</label>
                     <input type="date" name="date" value={formData.date} min={todayString()} onChange={handleChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 transition-all" />
+                    {validationErrors.date && (
+                      <p className="flex items-center gap-1 text-[10px] font-bold text-rose-600 px-2">
+                        <XCircle className="w-3 h-3" /> {validationErrors.date}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Expected Attendees</label>
                     <input type="number" name="attendees" value={formData.attendees} onChange={handleChange} min="1" max={activeResource?.capacity} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 transition-all" />
+                    {validationErrors.capacity && (
+                      <p className="flex items-center gap-1 text-[10px] font-bold text-rose-600 px-2 leading-tight">
+                        <XCircle className="w-3 h-3 flex-shrink-0" /> {validationErrors.capacity}
+                      </p>
+                    )}
                   </div>
+                </div>
+
+                <div className="flex items-center gap-2 mb-4 px-2 py-2 bg-indigo-50/50 rounded-xl text-indigo-700 text-[10px] font-bold uppercase tracking-wider">
+                  <Clock className="w-3 h-3" />
+                  Available hours: {windowConfig.start} — {windowConfig.end}
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Start Time</label>
-                    <SmartTimeSelect id="start-time" name="startTime" value={formData.startTime} onChange={handleChange} slotMap={slotMap} disabled={availLoading} filterFn={t => t !== '20:00'} />
+                    <SmartTimeSelect 
+                      id="start-time" 
+                      name="startTime" 
+                      value={formData.startTime} 
+                      onChange={handleChange} 
+                      slotMap={slotMap} 
+                      disabled={availLoading} 
+                      filterFn={t => t !== windowConfig.end} 
+                      hidePast={isToday}
+                      windowStart={windowConfig.start}
+                      windowEnd={windowConfig.end}
+                    />
+                    {validationErrors.startTime && (
+                      <p className="flex items-center gap-1 text-[10px] font-bold text-rose-600 px-2">
+                        <XCircle className="w-3 h-3" /> {validationErrors.startTime}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">End Time</label>
-                    <SmartTimeSelect id="end-time" name="endTime" value={formData.endTime} onChange={handleChange} slotMap={slotMap} disabled={availLoading} filterFn={t => t !== '08:00' && toMinutes(t) > toMinutes(formData.startTime)} />
+                    <SmartTimeSelect 
+                      id="end-time" 
+                      name="endTime" 
+                      value={formData.endTime} 
+                      onChange={handleChange} 
+                      slotMap={slotMap} 
+                      disabled={availLoading} 
+                      filterFn={t => t !== windowConfig.start && toMinutes(t) > toMinutes(formData.startTime)}
+                      windowStart={windowConfig.start}
+                      windowEnd={windowConfig.end}
+                    />
+                    {validationErrors.endTime && (
+                      <p className="flex items-center gap-1 text-[10px] font-bold text-rose-600 px-2">
+                        <XCircle className="w-3 h-3" /> {validationErrors.endTime}
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                <BookingSummaryCard slotMap={slotMap} startTime={formData.startTime} endTime={formData.endTime} rangeRemaining={rangeRemaining} availLoading={availLoading} />
+                <BookingSummaryCard slotMap={slotMap} startTime={formData.startTime} endTime={formData.endTime} rangeRemaining={rangeRemaining} availLoading={availLoading} isMeetingRoom={isMeetingRoom} capacity={activeResource?.capacity} />
               </div>
 
               {/* Purpose Section */}
@@ -438,11 +581,16 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess, preSele
                   <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider">Purpose of Booking</h4>
                 </div>
                 <textarea name="purpose" value={formData.purpose} onChange={handleChange} rows={3} placeholder="Tell us about your event..." className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] text-sm font-medium text-slate-700 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 transition-all resize-none" />
+                {validationErrors.purpose && (
+                  <p className="flex items-center gap-1 text-[10px] font-bold text-rose-600 px-4">
+                    <XCircle className="w-3 h-3" /> {validationErrors.purpose}
+                  </p>
+                )}
               </div>
 
               {/* Action Buttons */}
               <div className="flex items-center gap-4 pt-4 pb-2">
-                <button type="submit" disabled={loading || availLoading} className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:scale-[1.02] active:scale-95 disabled:opacity-50 text-white font-black py-5 px-8 rounded-3xl transition-all shadow-xl shadow-indigo-200 flex items-center justify-center gap-3">
+                <button type="submit" disabled={loading || availLoading || hasErrors} className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:scale-[1.02] active:scale-95 disabled:opacity-50 text-white font-black py-5 px-8 rounded-3xl transition-all shadow-xl shadow-indigo-200 flex items-center justify-center gap-3">
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Edit3 className="w-5 h-5" /> {isEdit ? 'Update Booking' : 'Confirm Reservation'}</>}
                   {!loading && <ChevronRight className="w-5 h-5 opacity-50" />}
                 </button>

@@ -181,7 +181,7 @@ export default function BookingsPage() {
   const [highlightId, setHighlightId] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [, setError] = useState('');
+  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [viewMode, setViewMode] = useState('list');
@@ -427,6 +427,13 @@ export default function BookingsPage() {
         </div>
 
         {/* Content Area */}
+        {error && (
+          <div className="mb-8 p-6 bg-rose-50 border border-rose-100 rounded-3xl text-center">
+            <Info className="w-10 h-10 text-rose-500 mx-auto mb-3" />
+            <p className="text-rose-800 font-bold">{error}</p>
+          </div>
+        )}
+
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
