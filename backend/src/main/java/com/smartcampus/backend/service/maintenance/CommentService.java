@@ -12,6 +12,8 @@ import com.smartcampus.backend.repository.maintenance.TicketRepository;
 import com.smartcampus.backend.service.auth.UserService;
 import com.smartcampus.backend.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
+import com.smartcampus.backend.model.notification.NotificationType;
+import com.smartcampus.backend.model.notification.ReferenceType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,10 +48,54 @@ public class CommentService {
 
         // Notify ticket owner if commenter is someone else
         if (!ticket.getUserId().equals(currentUser.getId())) {
+            String message;
+            NotificationType type;
+            
+            if (currentUser.getRole() == Role.ADMIN) {
+                String content = comment.getContent() != null ? comment.getContent() : "";
+                String preview = content.length() > 50 ? content.substring(0, 47) + "..." : content;
+                message = String.format("Admin %s commented on your ticket #%d: \"%s\"", 
+                        currentUser.getFirstName() + " " + currentUser.getLastName(), 
+                        ticket.getId(), 
+                        preview);
+                type = NotificationType.ADMIN_COMMENT;
+            } else {
+                message = "New comment added to your ticket #" + ticket.getId();
+                type = NotificationType.COMMENT;
+            }
+
             notificationService.createNotification(
                     ticket.getUserId(),
-                    "New comment added to your ticket #" + ticket.getId(),
-                    com.smartcampus.backend.model.notification.NotificationType.COMMENT
+                    message,
+                    type,
+                    ticket.getId(),
+                    ReferenceType.TICKET
+            );
+        }
+
+        // Notify assigned technician if commenter is someone else
+        if (ticket.getAssignedTechnicianId() != null && !ticket.getAssignedTechnicianId().equals(currentUser.getId())) {
+            String techMessage;
+            NotificationType type = NotificationType.COMMENT;
+            
+            if (currentUser.getRole() == Role.ADMIN) {
+                String content = comment.getContent() != null ? comment.getContent() : "";
+                String preview = content.length() > 50 ? content.substring(0, 47) + "..." : content;
+                techMessage = String.format("Admin %s commented on ticket #%d: \"%s\"", 
+                        currentUser.getFirstName() + " " + currentUser.getLastName(), 
+                        ticket.getId(), 
+                        preview);
+                type = NotificationType.ADMIN_COMMENT;
+            } else {
+                techMessage = "New comment added by student to ticket #" + ticket.getId();
+            }
+
+            notificationService.createNotification(
+                    ticket.getAssignedTechnicianId(),
+                    techMessage,
+                    type,
+                    ticket.getId(),
+                    ReferenceType.TICKET
             );
         }
 

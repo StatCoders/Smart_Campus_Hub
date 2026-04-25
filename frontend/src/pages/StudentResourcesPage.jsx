@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Settings, LogOut, MapPin, Users, Clock, Check, X } from 'lucide-react';
+import { User, LogOut, MapPin, Users, Clock, Check, X } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import campusLogo from '../assets/campus-logo.png';
 import { getAllFacilities } from '../services/facilityService';
@@ -181,16 +181,6 @@ export default function StudentResourcesPage() {
                     >
                       <User className="w-4 h-4" />
                       Your Profile
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigate('/settings');
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition"
-                    >
-                      <Settings className="w-4 h-4" />
-                      Settings
                     </button>
                     <button
                       onClick={handleLogout}

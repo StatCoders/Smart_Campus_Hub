@@ -13,6 +13,7 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = normalizeRole(user?.role) === 'ADMIN';
+  const isTechnician = normalizeRole(user?.role) === 'TECHNICIAN';
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [priorityFilter, setPriorityFilter] = useState('ALL');
@@ -75,13 +76,20 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
     const { referenceId, type, priority } = notification;
     const isStudent = normalizeRole(user?.role) === 'USER';
 
-    // Priority-based Redirection Mapping
+    // Technician Consolidated Redirection (Stay in Dashboard)
+    if (isTechnician) {
+      navigate(referenceId ? `/technician-dashboard?highlight=${referenceId}` : '/technician-dashboard');
+      onClose();
+      return;
+    }
+
+    // Priority-based Redirection Mapping (Other Roles)
     if (priority === 'HIGH' || type === 'TICKET' || type === 'COMMENT') {
       // Ticket-related
       if (isStudent) {
         navigate(referenceId ? `/student-tickets?highlight=${referenceId}` : '/student-tickets');
       } else {
-        navigate(referenceId ? `/tickets?highlight=${referenceId}` : '/tickets');
+        navigate(referenceId ? `/tickets/${referenceId}` : '/tickets');
       }
     } else if (priority === 'MEDIUM' || type === 'BOOKING') {
       // Booking-related
@@ -195,69 +203,71 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
               </div>
 
               {/* Filters Row */}
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <button
-                    onClick={() => { setIsFilterOpen(!isFilterOpen); setIsTypeFilterOpen(false); }}
-                    className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[10px] font-bold transition-all duration-200 ${priorityFilter !== 'ALL'
-                        ? 'border-sky-200 bg-sky-50 text-sky-700 shadow-sm'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                      }`}
-                  >
-                    <Filter className="h-3 w-3" />
-                    <span>Priority: {priorityFilter === 'ALL' ? 'All' : priorityFilter}</span>
-                    <ChevronDown className={`h-3 w-3 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {isFilterOpen && (
-                    <div className="absolute left-0 top-full z-[60] mt-2 w-40 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_10px_40px_rgba(0,0,0,0.12)] ring-1 ring-slate-200/50 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <p className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Priority</p>
-                      {['ALL', 'HIGH', 'MEDIUM', 'LOW'].map((p) => (
-                        <button
-                          key={p}
-                          onClick={() => { setPriorityFilter(p); setIsFilterOpen(false); }}
-                          className={`w-full rounded-xl px-3 py-2 text-left text-[11px] font-bold transition-all duration-200 ${priorityFilter === p ? 'bg-sky-50 text-sky-700' : 'text-slate-600 hover:bg-slate-50'
-                            }`}
-                        >
-                          {p === 'ALL' ? 'All' : p}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {isAdmin && isGlobalView && (
+              {!isTechnician && (
+                <div className="flex items-center gap-2">
                   <div className="relative">
                     <button
-                      onClick={() => { setIsTypeFilterOpen(!isTypeFilterOpen); setIsFilterOpen(false); }}
-                      className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[10px] font-bold transition-all duration-200 ${typeFilter !== 'ALL'
-                          ? 'border-indigo-200 bg-indigo-50 text-indigo-700 shadow-sm'
+                      onClick={() => { setIsFilterOpen(!isFilterOpen); setIsTypeFilterOpen(false); }}
+                      className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[10px] font-bold transition-all duration-200 ${priorityFilter !== 'ALL'
+                          ? 'border-sky-200 bg-sky-50 text-sky-700 shadow-sm'
                           : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                         }`}
                     >
-                      <Layers className="h-3 w-3" />
-                      <span>Type: {typeFilter === 'ALL' ? 'All' : typeFilter}</span>
-                      <ChevronDown className={`h-3 w-3 transition-transform ${isTypeFilterOpen ? 'rotate-180' : ''}`} />
+                      <Filter className="h-3 w-3" />
+                      <span>Priority: {priorityFilter === 'ALL' ? 'All' : priorityFilter}</span>
+                      <ChevronDown className={`h-3 w-3 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
                     </button>
 
-                    {isTypeFilterOpen && (
+                    {isFilterOpen && (
                       <div className="absolute left-0 top-full z-[60] mt-2 w-40 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_10px_40px_rgba(0,0,0,0.12)] ring-1 ring-slate-200/50 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <p className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Category</p>
-                        {['ALL', 'TICKET', 'BOOKING', 'SYSTEM', 'COMMENT'].map((t) => (
+                        <p className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Priority</p>
+                        {['ALL', 'HIGH', 'MEDIUM', 'LOW'].map((p) => (
                           <button
-                            key={t}
-                            onClick={() => { setTypeFilter(t); setIsTypeFilterOpen(false); }}
-                            className={`w-full rounded-xl px-3 py-2 text-left text-[11px] font-bold transition-all duration-200 ${typeFilter === t ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'
+                            key={p}
+                            onClick={() => { setPriorityFilter(p); setIsFilterOpen(false); }}
+                            className={`w-full rounded-xl px-3 py-2 text-left text-[11px] font-bold transition-all duration-200 ${priorityFilter === p ? 'bg-sky-50 text-sky-700' : 'text-slate-600 hover:bg-slate-50'
                               }`}
                           >
-                            {t === 'ALL' ? 'All Types' : t}
+                            {p === 'ALL' ? 'All' : p}
                           </button>
                         ))}
                       </div>
                     )}
                   </div>
-                )}
-              </div>
+
+                  {isAdmin && isGlobalView && (
+                    <div className="relative">
+                      <button
+                        onClick={() => { setIsTypeFilterOpen(!isTypeFilterOpen); setIsFilterOpen(false); }}
+                        className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[10px] font-bold transition-all duration-200 ${typeFilter !== 'ALL'
+                            ? 'border-indigo-200 bg-indigo-50 text-indigo-700 shadow-sm'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                          }`}
+                      >
+                        <Layers className="h-3 w-3" />
+                        <span>Type: {typeFilter === 'ALL' ? 'All' : typeFilter}</span>
+                        <ChevronDown className={`h-3 w-3 transition-transform ${isTypeFilterOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {isTypeFilterOpen && (
+                        <div className="absolute left-0 top-full z-[60] mt-2 w-40 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-[0_10px_40px_rgba(0,0,0,0.12)] ring-1 ring-slate-200/50 animate-in fade-in slide-in-from-top-2 duration-200">
+                          <p className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Category</p>
+                          {['ALL', 'TICKET', 'BOOKING', 'SYSTEM', 'COMMENT'].map((t) => (
+                            <button
+                              key={t}
+                              onClick={() => { setTypeFilter(t); setIsTypeFilterOpen(false); }}
+                              className={`w-full rounded-xl px-3 py-2 text-left text-[11px] font-bold transition-all duration-200 ${typeFilter === t ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'
+                                }`}
+                            >
+                              {t === 'ALL' ? 'All Types' : t}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -307,16 +317,20 @@ export default function NotificationDropdown({ userId, isOpen, onClose, onToggle
                     >
                       <div className="flex items-start gap-4">
                         {/* Priority Badge Indicator */}
-                        <div className={`mt-0.5 h-2 w-2 flex-shrink-0 rounded-full ${notification.priority === 'HIGH' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)] animate-pulse' :
-                            notification.priority === 'MEDIUM' ? 'bg-amber-500' :
-                              notification.priority === 'LOW' ? 'bg-blue-400' : 'bg-slate-300'
-                          }`} />
+                        {!isTechnician && (
+                          <div className={`mt-0.5 h-2 w-2 flex-shrink-0 rounded-full ${notification.priority === 'HIGH' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)] animate-pulse' :
+                              notification.priority === 'MEDIUM' ? 'bg-amber-500' :
+                                notification.priority === 'LOW' ? 'bg-blue-400' : 'bg-slate-300'
+                            }`} />
+                        )}
 
                         <div className="min-w-0 flex-1">
                           <div className="mb-1.5 flex items-center gap-2">
-                            <span className={`rounded-lg border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${getPriorityStyles(notification.priority)}`}>
-                              {notification.priority}
-                            </span>
+                            {!isTechnician && (
+                              <span className={`rounded-lg border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${getPriorityStyles(notification.priority)}`}>
+                                {notification.priority}
+                              </span>
+                            )}
                             <span className="text-[10px] font-bold text-slate-400">
                               {formatRelativeTime(notification.createdAt)}
                             </span>

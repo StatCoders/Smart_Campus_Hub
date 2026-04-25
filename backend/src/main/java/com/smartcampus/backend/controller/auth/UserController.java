@@ -1,8 +1,12 @@
 package com.smartcampus.backend.controller.auth;
 
 import com.smartcampus.backend.dto.UserSummaryDto;
+import com.smartcampus.backend.dto.auth.UpdateProfileRequest;
+import com.smartcampus.backend.dto.auth.UserResponse;
 import com.smartcampus.backend.model.auth.Role;
+import com.smartcampus.backend.model.auth.User;
 import com.smartcampus.backend.service.auth.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,5 +47,13 @@ public class UserController {
         }
         
         return new ResponseEntity<>(users, HttpStatus.OK);
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<UserResponse> updateProfile(
+            @Valid @RequestBody UpdateProfileRequest request) {
+        User currentUser = userService.getCurrentUser();
+        UserResponse updatedUser = userService.updateUserProfile(currentUser.getId(), request);
+        return new ResponseEntity<>(updatedUser, HttpStatus.OK);
     }
 }

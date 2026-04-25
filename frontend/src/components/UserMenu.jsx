@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { ArrowRight, Settings, User } from 'lucide-react';
+import { ArrowRight, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { normalizeRole } from '../utils/roleRedirect';
 
 export default function UserMenu({ user, isOpen, onClose, onLogout }) {
+  const navigate = useNavigate();
   const menuRef = useRef(null);
   const role = normalizeRole(user?.role);
   const isAdminOrTech = role === 'ADMIN' || role === 'TECHNICIAN';
@@ -57,20 +59,16 @@ export default function UserMenu({ user, isOpen, onClose, onLogout }) {
         {/* Menu Items */}
         <div className="py-1">
           <button
-            onClick={onClose}
+            onClick={() => {
+              onClose();
+              navigate('/profile');
+            }}
             className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <User className="h-4 w-4 text-gray-500" />
             <span className="font-medium">Your Profile</span>
           </button>
 
-          <button
-            onClick={onClose}
-            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <Settings className="h-4 w-4 text-gray-500" />
-            <span className="font-medium">Settings</span>
-          </button>
 
           <div className="border-t border-gray-100 my-1"></div>
 
@@ -108,20 +106,16 @@ export default function UserMenu({ user, isOpen, onClose, onLogout }) {
       {/* Menu Items */}
       <div className="py-1">
         <button
-          onClick={onClose}
+          onClick={() => {
+            onClose();
+            navigate('/profile');
+          }}
           className="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
         >
           <User className="h-4 w-4 text-gray-600" />
           <span>Your Profile</span>
         </button>
 
-        <button
-          onClick={onClose}
-          className="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-        >
-          <Settings className="h-4 w-4 text-gray-600" />
-          <span>Settings</span>
-        </button>
 
         <div className="border-t border-gray-100 my-1"></div>
 

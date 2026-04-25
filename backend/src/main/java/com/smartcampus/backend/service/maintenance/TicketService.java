@@ -246,14 +246,45 @@ public class TicketService {
         createHistoryEntry(updatedTicket, currentUser.getId(), "STATUS_CHANGE", oldStatus.toString(), newStatus.toString(), details);
 
         // Notify user about status change
+        String timestamp = LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+        String techName = currentUser.getRole() == Role.TECHNICIAN ? currentUser.getFirstName() + " " + currentUser.getLastName() : "Staff";
+        
         if (newStatus == Status.IN_PROGRESS && oldStatus == Status.OPEN) {
             notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " is now IN_PROGRESS", NotificationType.TICKET, ticket.getId(), ReferenceType.TICKET);
-        } else if (newStatus == Status.RESOLVED && oldStatus == Status.IN_PROGRESS) {
-            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " is now RESOLVED", NotificationType.TICKET, ticket.getId(), ReferenceType.TICKET);
-        } else if (newStatus == Status.CLOSED && oldStatus == Status.RESOLVED) {
-            notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " is now CLOSED", NotificationType.TICKET, ticket.getId(), ReferenceType.TICKET);
+        } else if (newStatus == Status.RESOLVED) {
+            String resolvedMsg = String.format("Your ticket #%d has been RESOLVED by %s at %s", ticket.getId(), techName, timestamp);
+            notificationService.createNotification(ticket.getUserId(), resolvedMsg, NotificationType.TICKET_RESOLVED, ticket.getId(), ReferenceType.TICKET);
+            
+            // Notify admins if technician resolved it
+            if (currentUser.getRole() == Role.TECHNICIAN) {
+                String adminMsg = String.format("Ticket #%d has been marked as RESOLVED by technician %s at %s", ticket.getId(), techName, timestamp);
+                userRepository.findByRoleAndIsActiveTrueOrderByFirstName(Role.ADMIN).forEach(admin -> {
+                    notificationService.createNotification(admin.getId(), adminMsg, NotificationType.TICKET_RESOLVED, ticket.getId(), ReferenceType.TICKET);
+                });
+            }
+        } else if (newStatus == Status.CLOSED) {
+            String closedMsg = String.format("Your ticket #%d has been CLOSED by %s at %s", ticket.getId(), techName, timestamp);
+            notificationService.createNotification(ticket.getUserId(), closedMsg, NotificationType.TICKET_RESOLVED, ticket.getId(), ReferenceType.TICKET);
+            
+            // Notify admins if technician closed it
+            if (currentUser.getRole() == Role.TECHNICIAN) {
+                String adminMsg = String.format("Ticket #%d has been marked as CLOSED by technician %s at %s", ticket.getId(), techName, timestamp);
+                userRepository.findByRoleAndIsActiveTrueOrderByFirstName(Role.ADMIN).forEach(admin -> {
+                    notificationService.createNotification(admin.getId(), adminMsg, NotificationType.TICKET_RESOLVED, ticket.getId(), ReferenceType.TICKET);
+                });
+            }
         } else if (newStatus == Status.REJECTED) {
             notificationService.createNotification(ticket.getUserId(), "Your ticket #" + ticket.getId() + " has been REJECTED", NotificationType.TICKET, ticket.getId(), ReferenceType.TICKET);
+            
+            // Notify admins if technician rejected it
+            if (currentUser.getRole() == Role.TECHNICIAN) {
+                String adminMsg = String.format("Ticket #%d has been REJECTED by technician %s. Reason: %s", 
+                        ticket.getId(), techName, ticket.getRejectionReason());
+                
+                userRepository.findByRoleAndIsActiveTrueOrderByFirstName(Role.ADMIN).forEach(admin -> {
+                    notificationService.createNotification(admin.getId(), adminMsg, NotificationType.TICKET, ticket.getId(), ReferenceType.TICKET);
+                });
+            }
         }
 
         return mapToDetailDto(updatedTicket, currentUser);
@@ -313,10 +344,32 @@ public class TicketService {
                 details
         );
 
-        // Notify assigned technician
+        String descriptionPreview = ticket.getDescription() != null 
+                ? (ticket.getDescription().length() > 50 ? ticket.getDescription().substring(0, 47) + "..." : ticket.getDescription())
+                : "No description";
+        
+        String assignmentMessage = String.format("Ticket #%d assigned to you: %s. Assigned by admin %s on %s.",
+                ticket.getId(),
+                descriptionPreview,
+                currentUser.getFirstName() + " " + currentUser.getLastName(),
+                LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+
         notificationService.createNotification(
                 request.getTechnicianId(),
-                "You have been assigned to ticket #" + ticket.getId(),
+                assignmentMessage,
+                NotificationType.ASSIGN_TICKET,
+                ticket.getId(),
+                ReferenceType.TICKET
+        );
+
+        // Notify ticket owner (Student)
+        String userMessage = String.format("Your ticket #%d has been assigned to technician %s and is now IN_PROGRESS.",
+                ticket.getId(),
+                technician.getFirstName() + " " + technician.getLastName());
+        
+        notificationService.createNotification(
+                ticket.getUserId(),
+                userMessage,
                 NotificationType.TICKET,
                 ticket.getId(),
                 ReferenceType.TICKET
