@@ -73,5 +73,14 @@ public class OccupancyDataDto {
         
         @JsonProperty("expectedAttendees")
         private Integer expectedAttendees;
+        
+        @JsonProperty("startTime")
+        private String startTime; // ISO format date-time
+        
+        @JsonProperty("endTime")
+        private String endTime; // ISO format date-time
+        
+        @JsonProperty("status")
+        private String status; // BOOKED, COMPLETED, CANCELLED, PENDING
     }
 }

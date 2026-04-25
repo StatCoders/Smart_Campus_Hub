@@ -20,19 +20,24 @@ export default function FacilityCard({ facility, onClick }) {
   // Check booking status from DB
   const isAvailableForBooking = () => {
     if (!facility.bookingStatus) return null;
-    return facility.bookingStatus === 'CAN_BOOK_NOW';
+    return facility.bookingStatus === 'CAN_BOOK_NOW' ? 'available' : 
+           facility.bookingStatus === 'AVAILABLE_FOR_FUTURE_BOOKINGS' ? 'future' : 'not_available';
   };
 
   const getBookingStatusBadge = () => {
-    const available = isAvailableForBooking();
-    if (available === null) return null; // OUT_OF_SERVICE, hide booking badge
-    return available ? '✅ Available for Booking' : '⏰ Not Available for Booking';
+    const status = isAvailableForBooking();
+    if (status === null) return null;
+    if (status === 'available') return '✅ Available for Booking';
+    if (status === 'future') return '🕐 Available for Future Bookings';
+    return '⏰ Not Available for Booking';
   };
 
   const getBookingStatusColor = () => {
-    const available = isAvailableForBooking();
-    if (available === null) return null;
-    return available ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+    const status = isAvailableForBooking();
+    if (status === null) return null;
+    if (status === 'available') return 'bg-green-100 text-green-800';
+    if (status === 'future') return 'bg-blue-100 text-blue-800';
+    return 'bg-yellow-100 text-yellow-800';
   };
 
   return (

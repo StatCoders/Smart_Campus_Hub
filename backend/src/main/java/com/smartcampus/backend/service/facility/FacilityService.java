@@ -114,6 +114,11 @@ public class FacilityService {
 
     /**
      * Calculate booking status based on facility status and availability windows
+     * Returns 3 states: CAN_BOOK_NOW, AVAILABLE_FOR_FUTURE_BOOKINGS, CANNOT_BOOK_NOW
+     * Logic:
+     * - CANNOT_BOOK_NOW: Only when facility is OUT_OF_SERVICE
+     * - CAN_BOOK_NOW: Facility is ACTIVE + within availability window
+     * - AVAILABLE_FOR_FUTURE_BOOKINGS: Facility is ACTIVE but outside availability window (hasn't started or has passed)
      * Handles formats like "Mon-Sun : 07:00-20:00"
      */
     private String calculateBookingStatus(Facility facility) {
@@ -172,21 +177,35 @@ public class FacilityService {
 
         // Default to NOT available if we can't parse the time window (safer behavior)
         boolean timeIsValid = false;
+        int startTimeInMinutes = 0;
+        int endTimeInMinutes = 0;
+        
         if (timeMatch.find()) {
             int startHour = Integer.parseInt(timeMatch.group(1));
             int startMinute = Integer.parseInt(timeMatch.group(2));
             int endHour = Integer.parseInt(timeMatch.group(3));
             int endMinute = Integer.parseInt(timeMatch.group(4));
 
-            int startTimeInMinutes = startHour * 60 + startMinute;
-            int endTimeInMinutes = endHour * 60 + endMinute;
+            startTimeInMinutes = startHour * 60 + startMinute;
+            endTimeInMinutes = endHour * 60 + endMinute;
 
             // Check if current time is within the time window
             timeIsValid = currentTime >= startTimeInMinutes && currentTime <= endTimeInMinutes;
         }
 
-        // Available only if both day and time conditions are met
-        return (dayIsValid && timeIsValid) ? "CAN_BOOK_NOW" : "CANNOT_BOOK_NOW";
+        // If day is valid
+        if (dayIsValid) {
+            // If we're within the availability window
+            if (timeIsValid) {
+                return "CAN_BOOK_NOW";
+            }
+            
+            // Outside the window (hasn't started or has passed) → available for future bookings
+            return "AVAILABLE_FOR_FUTURE_BOOKINGS";
+        }
+
+        // Day is not valid (facility not operating today) → available for future bookings
+        return "AVAILABLE_FOR_FUTURE_BOOKINGS";
     }
 
     /**
@@ -317,6 +336,14 @@ public class FacilityService {
                 if (booking.getExpectedAttendees() != null && booking.getUser() != null) {
                     totalAttendees += booking.getExpectedAttendees();
                     
+                    // Format times as ISO strings
+                    String startTimeStr = booking.getStartTime() != null 
+                        ? booking.getStartTime().toString() 
+                        : null;
+                    String endTimeStr = booking.getEndTime() != null 
+                        ? booking.getEndTime().toString() 
+                        : null;
+                    
                     bookingUsers.add(OccupancyDataDto.BookingUserDto.builder()
                             .userId(booking.getUser().getId())
                             .userName(booking.getUser().getFullName() != null 
@@ -324,6 +351,9 @@ public class FacilityService {
                                 : booking.getUser().getEmail())
                             .email(booking.getUser().getEmail())
                             .expectedAttendees(booking.getExpectedAttendees())
+                            .startTime(startTimeStr)
+                            .endTime(endTimeStr)
+                            .status(booking.getStatus() != null ? booking.getStatus().toString() : "PENDING")
                             .build());
                 }
             }

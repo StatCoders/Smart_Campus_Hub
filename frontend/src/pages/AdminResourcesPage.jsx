@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, Edit, Trash2, X, Check } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Check, Clock } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import { useAuth } from '../context/useAuth';
@@ -17,6 +17,7 @@ export default function AdminResourcesPage() {
   const [error, setError] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [availabilityFilter, setAvailabilityFilter] = useState('All');
+  const [capacityFilter, setCapacityFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFacility, setSelectedFacility] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,7 +25,6 @@ export default function AdminResourcesPage() {
   const [editingFacility, setEditingFacility] = useState(null);
   const [toast, setToast] = useState(null);
   const [activeTab, setActiveTab] = useState('resources');
-  const [statusFilter, setStatusFilter] = useState('All');
 
   const fetchFacilities = useCallback(async () => {
     try {
@@ -89,13 +89,18 @@ export default function AdminResourcesPage() {
   };
 
   const facilityTypes = ['All', ...new Set(facilities.map(f => f.type))];
+  const capacityRanges = ['All', '5+', '10+', '30+', '50+', '100+'];
 
   const filteredFacilities = facilities.filter(facility => {
     if (typeFilter !== 'All' && facility.type !== typeFilter) return false;
-    if (statusFilter !== 'All' && facility.status !== statusFilter) return false;
+    if (capacityFilter !== 'All') {
+      const minCapacity = parseInt(capacityFilter);
+      if (facility.capacity < minCapacity) return false;
+    }
     if (availabilityFilter !== 'All') {
       if (availabilityFilter === 'Available' && facility.bookingStatus !== 'CAN_BOOK_NOW') return false;
-      if (availabilityFilter === 'Not Available' && facility.bookingStatus === 'CAN_BOOK_NOW') return false;
+      if (availabilityFilter === 'Available for Future Bookings' && facility.bookingStatus !== 'AVAILABLE_FOR_FUTURE_BOOKINGS') return false;
+      if (availabilityFilter === 'Not Available' && facility.bookingStatus !== 'CANNOT_BOOK_NOW') return false;
     }
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
@@ -112,6 +117,9 @@ export default function AdminResourcesPage() {
     const baseStyles = 'px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1';
     if (status === 'CAN_BOOK_NOW') {
       return <span className={`${baseStyles} bg-green-100 text-green-800`}><Check className="w-3 h-3" /> Available</span>;
+    }
+    if (status === 'AVAILABLE_FOR_FUTURE_BOOKINGS') {
+      return <span className={`${baseStyles} bg-blue-100 text-blue-800`}><Clock className="w-3 h-3" /> Available for Future Bookings</span>;
     }
     return <span className={`${baseStyles} bg-red-100 text-red-800`}><X className="w-3 h-3" /> Not Available</span>;
   };
@@ -161,66 +169,81 @@ export default function AdminResourcesPage() {
           )}
 
           {/* Filters Section */}
-          <div className="flex gap-4 mb-8">
-            {/* Search Bar */}
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="Search by name or building..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+          <div className="mb-8 bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex gap-3 items-center flex-wrap">
+              {/* Search Bar */}
+              <div className="flex-1 min-w-[150px]">
+                <label className="text-xs text-gray-500 font-medium mb-1 block">Search by location</label>
+                <input
+                  type="text"
+                  placeholder="Building, floor..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Facility Type Filter */}
+              <div className="flex-1 min-w-[150px]">
+                <label className="text-xs text-gray-500 font-medium mb-1 block">Filter by facility</label>
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="All">All Types</option>
+                  {facilityTypes.map(type => (
+                    type !== 'All' && <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Capacity Filter */}
+              <div className="flex-1 min-w-[150px]">
+                <label className="text-xs text-gray-500 font-medium mb-1 block">Filter by capacity</label>
+                <select
+                  value={capacityFilter}
+                  onChange={(e) => setCapacityFilter(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="All">All Capacities</option>
+                  {capacityRanges.map(range => (
+                    range !== 'All' && <option key={range} value={range}>{range} people</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Availability Filter */}
+              <div className="flex-1 min-w-[150px]">
+                <label className="text-xs text-gray-500 font-medium mb-1 block">Filter by availability</label>
+                <select
+                  value={availabilityFilter}
+                  onChange={(e) => setAvailabilityFilter(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="All">All Availability</option>
+                  <option value="Available">Available</option>
+                  <option value="Available for Future Bookings">Available for Future Bookings</option>
+                  <option value="Not Available">Not Available</option>
+                </select>
+              </div>
+
+              {/* Clear Filters Button */}
+              {(searchTerm || typeFilter !== 'All' || capacityFilter !== 'All' || availabilityFilter !== 'All') && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setTypeFilter('All');
+                    setCapacityFilter('All');
+                    setAvailabilityFilter('All');
+                  }}
+                  className="px-4 py-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium border border-indigo-300 rounded-lg hover:bg-indigo-50 whitespace-nowrap"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
-
-            {/* Facility Type Filter */}
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="All">Filter by Facility Type</option>
-              {facilityTypes.map(type => (
-                type !== 'All' && <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-
-            {/* Facility Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="All">Facility Status</option>
-              <option value="ACTIVE">Active</option>
-              <option value="OUT_OF_SERVICE">Out of Service</option>
-            </select>
-
-            {/* Booking Status Filter */}
-            <select
-              value={availabilityFilter}
-              onChange={(e) => setAvailabilityFilter(e.target.value)}
-              className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="All">Booking Status</option>
-              <option value="Available">Available</option>
-              <option value="Not Available">Not Available</option>
-            </select>
           </div>
-
-          {(searchTerm || typeFilter !== 'All' || statusFilter !== 'All' || availabilityFilter !== 'All') && (
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setTypeFilter('All');
-                setStatusFilter('All');
-                setAvailabilityFilter('All');
-              }}
-              className="mb-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Clear filters
-            </button>
-          )}
 
             {/* Facilities Count */}
             <p className="text-gray-600 mb-6">

@@ -92,6 +92,8 @@ export default function FacilitiesPage() {
       filtered = filtered.filter(f => {
         if (availabilityFilter === 'Available for Booking') {
           return f.bookingStatus === 'CAN_BOOK_NOW';
+        } else if (availabilityFilter === 'Available for Future Bookings') {
+          return f.bookingStatus === 'AVAILABLE_FOR_FUTURE_BOOKINGS';
         } else if (availabilityFilter === 'Not Available for Booking') {
           return f.bookingStatus === 'CANNOT_BOOK_NOW';
         }
