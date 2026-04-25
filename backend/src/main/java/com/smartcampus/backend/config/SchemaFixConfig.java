@@ -31,7 +31,8 @@ public class SchemaFixConfig {
                         "ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS booking_enabled BOOLEAN DEFAULT TRUE",
                         "ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS ticket_enabled BOOLEAN DEFAULT TRUE",
                         "ALTER TABLE notification_preferences ADD COLUMN IF NOT EXISTS system_enabled BOOLEAN DEFAULT TRUE",
-                        "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS priority VARCHAR(20) DEFAULT 'LOW'"
+                        "ALTER TABLE notifications ADD COLUMN IF NOT EXISTS priority VARCHAR(20) DEFAULT 'LOW'",
+                        "ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check"
                     };
 
                     for (String sql : queries) {
