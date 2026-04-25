@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
-import { getFacilityById, deleteFacility } from '../services/facilityService';
+import { getFacilityById, deleteFacility, getWeeklyOccupancy } from '../services/facilityService';
 import { useAuth } from '../context/useAuth';
 import { useSidebar } from '../context/useSidebar';
 import AddFacilityModal from '../components/AddFacilityModal';
@@ -20,6 +20,10 @@ export default function FacilityDetailPage() {
   const [loading, setLoading] = useState(!facility);
   const [error, setError] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [hasActiveBookings, setHasActiveBookings] = useState(false);
+  const [checkingBookings, setCheckingBookings] = useState(false);
 
   const fetchFacility = useCallback(async () => {
     setLoading(true);
@@ -40,14 +44,56 @@ export default function FacilityDetailPage() {
     }
   }, [id, facility, fetchFacility]);
 
-  const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this facility?')) {
-      try {
-        await deleteFacility(id);
-        navigate('/facilities');
-      } catch (err) {
-        alert('Failed to delete: ' + err);
+  const handleDelete = () => {
+    setDeleteConfirmOpen(true);
+    checkForActiveBookings(id);
+  };
+
+  const checkForActiveBookings = async (facilityId) => {
+    setCheckingBookings(true);
+    try {
+      const occupancyData = await getWeeklyOccupancy(facilityId);
+      // Check if there are any bookings on today or future days
+      const today = new Date();
+      const todayStr = today.getFullYear() + '-' + 
+                       String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(today.getDate()).padStart(2, '0');
+      
+      let hasBookings = false;
+      let dataToCheck = [];
+      
+      if (occupancyData && Array.isArray(occupancyData)) {
+        dataToCheck = occupancyData;
+      } else if (occupancyData?.dailyOccupancy && Array.isArray(occupancyData.dailyOccupancy)) {
+        dataToCheck = occupancyData.dailyOccupancy;
       }
+      
+      // Filter to only today and future days
+      hasBookings = dataToCheck.some(day => {
+        // Check if day date is today or in the future
+        if (day.date && day.date >= todayStr) {
+          return day.bookings && day.bookings.length > 0;
+        }
+        return false;
+      });
+      
+      setHasActiveBookings(hasBookings);
+    } catch (err) {
+      console.error('Error checking bookings:', err);
+      setHasActiveBookings(false);
+    } finally {
+      setCheckingBookings(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteFacility(id);
+      navigate('/facilities');
+    } catch (err) {
+      setError('Failed to delete: ' + err.message);
+      setIsDeleting(false);
     }
   };
 
@@ -281,6 +327,53 @@ export default function FacilityDetailPage() {
             fetchFacility();
           }}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmOpen && facility && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-red-200 animate-in fade-in duration-300">
+            <div className="bg-gradient-to-r from-red-600 to-red-700 px-8 py-6 rounded-t-2xl">
+              <h3 className="text-xl font-bold text-white">Delete Facility?</h3>
+            </div>
+            <div className="p-8">
+              <p className="text-gray-700 mb-2 font-medium">
+                Are you sure you want to delete <span className="font-bold text-red-700">"{facility.name}"</span>?
+              </p>
+              {checkingBookings ? (
+                <p className="text-gray-600 text-sm mb-6 flex items-center gap-2">
+                  <span className="animate-spin">⏳</span> Checking for active bookings...
+                </p>
+              ) : hasActiveBookings ? (
+                <p className="text-orange-700 text-sm mb-6 bg-orange-50 p-3 rounded border border-orange-200">
+                  <span className="font-semibold">⚠️ This facility has active bookings.</span> You must cancel or modify all bookings before you can delete this facility.
+                </p>
+              ) : (
+                <p className="text-gray-600 text-sm mb-6">
+                  This action is permanent and cannot be undone. Bookings associated with this facility can face issues. Recheck bookings and perform necessary actions before confirming deletion.
+                </p>
+              )}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setDeleteConfirmOpen(false);
+                  }}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 px-6 rounded-lg transition"
+                  disabled={isDeleting || checkingBookings}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={isDeleting || hasActiveBookings || checkingBookings}
+                  className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-semibold py-3 px-6 rounded-lg transition"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

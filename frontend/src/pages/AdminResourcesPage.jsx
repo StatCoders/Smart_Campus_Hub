@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import { useAuth } from '../context/useAuth';
 import { useSidebar } from '../context/useSidebar';
-import { getAllFacilities, deleteFacility } from '../services/facilityService';
+import { getAllFacilities, deleteFacility, getWeeklyOccupancy } from '../services/facilityService';
 import OccupancyChart from '../components/OccupancyChart';
 import AddFacilityModal from '../components/AddFacilityModal';
 import Toast from '../components/Toast';
@@ -25,6 +25,11 @@ export default function AdminResourcesPage() {
   const [editingFacility, setEditingFacility] = useState(null);
   const [toast, setToast] = useState(null);
   const [activeTab, setActiveTab] = useState('resources');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [facilityToDelete, setFacilityToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [hasActiveBookings, setHasActiveBookings] = useState(false);
+  const [checkingBookings, setCheckingBookings] = useState(false);
 
   const fetchFacilities = useCallback(async () => {
     try {
@@ -56,29 +61,75 @@ export default function AdminResourcesPage() {
     setIsModalOpen(false);
   };
 
-  const handleDelete = async (facilityId, facilityName) => {
-    const confirmMessage = `Are you sure you want to delete "${facilityName}"?\n\nThis action is permanent. If this facility has active bookings, you must cancel them first before deletion.`;
-    
-    if (window.confirm(confirmMessage)) {
-      try {
-        await deleteFacility(facilityId);
-        setToast({ type: 'success', message: `${facilityName} deleted successfully` });
-        setFacilities(facilities.filter(f => f.id !== facilityId));
-        setIsModalOpen(false);
-        setTimeout(() => setToast(null), 3000);
-      } catch (err) {
-        let errorMessage = 'Failed to delete facility';
-        
-        // Check if error is due to foreign key constraint (active bookings)
-        if (err?.includes?.('foreign key') || err?.includes?.('bookings')) {
-          errorMessage = `Cannot delete "${facilityName}" - This facility has active bookings. Please cancel or modify all bookings before deletion.`;
-        } else if (err?.includes?.('constraint')) {
-          errorMessage = `Cannot delete "${facilityName}" - This facility is still in use. Please ensure all related bookings are removed first.`;
-        }
-        
-        setToast({ type: 'error', message: errorMessage });
-        setTimeout(() => setToast(null), 4000);
+  const checkForActiveBookings = async (facilityId) => {
+    setCheckingBookings(true);
+    try {
+      const occupancyData = await getWeeklyOccupancy(facilityId);
+      // Check if there are any bookings on today or future days
+      const today = new Date();
+      const todayStr = today.getFullYear() + '-' + 
+                       String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(today.getDate()).padStart(2, '0');
+      
+      let hasBookings = false;
+      let dataToCheck = [];
+      
+      if (occupancyData && Array.isArray(occupancyData)) {
+        dataToCheck = occupancyData;
+      } else if (occupancyData?.dailyOccupancy && Array.isArray(occupancyData.dailyOccupancy)) {
+        dataToCheck = occupancyData.dailyOccupancy;
       }
+      
+      // Filter to only today and future days
+      hasBookings = dataToCheck.some(day => {
+        // Check if day date is today or in the future
+        if (day.date && day.date >= todayStr) {
+          return day.bookings && day.bookings.length > 0;
+        }
+        return false;
+      });
+      
+      setHasActiveBookings(hasBookings);
+    } catch (err) {
+      console.error('Error checking bookings:', err);
+      setHasActiveBookings(false);
+    } finally {
+      setCheckingBookings(false);
+    }
+  };
+
+  const handleDelete = async (facilityId, facilityName) => {
+    setFacilityToDelete({ id: facilityId, name: facilityName });
+    setDeleteConfirmOpen(true);
+    // Check for active bookings
+    await checkForActiveBookings(facilityId);
+  };
+
+  const confirmDelete = async () => {
+    if (!facilityToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteFacility(facilityToDelete.id);
+      setToast({ type: 'success', message: `${facilityToDelete.name} deleted successfully` });
+      setFacilities(facilities.filter(f => f.id !== facilityToDelete.id));
+      setIsModalOpen(false);
+      setDeleteConfirmOpen(false);
+      setFacilityToDelete(null);
+      setTimeout(() => setToast(null), 3000);
+    } catch (err) {
+      let errorMessage = 'Failed to delete facility';
+      
+      if (err?.includes?.('foreign key') || err?.includes?.('bookings')) {
+        errorMessage = `Cannot delete "${facilityToDelete.name}" - This facility has active bookings. Please cancel or modify all bookings before deletion.`;
+      } else if (err?.includes?.('constraint')) {
+        errorMessage = `Cannot delete "${facilityToDelete.name}" - This facility is still in use. Please ensure all related bookings are removed first.`;
+      }
+      
+      setToast({ type: 'error', message: errorMessage });
+      setTimeout(() => setToast(null), 4000);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -480,6 +531,54 @@ export default function AdminResourcesPage() {
           onClose={handleAddModalClose}
           facilityToEdit={editingFacility}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmOpen && facilityToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-red-200 animate-in fade-in duration-300">
+            <div className="bg-gradient-to-r from-red-600 to-red-700 px-8 py-6 rounded-t-2xl">
+              <h3 className="text-xl font-bold text-white">Delete Facility?</h3>
+            </div>
+            <div className="p-8">
+              <p className="text-gray-700 mb-2 font-medium">
+                Are you sure you want to delete <span className="font-bold text-red-700">"{facilityToDelete.name}"</span>?
+              </p>
+              {checkingBookings ? (
+                <p className="text-gray-600 text-sm mb-6 flex items-center gap-2">
+                  <span className="animate-spin">⏳</span> Checking for active bookings...
+                </p>
+              ) : hasActiveBookings ? (
+                <p className="text-orange-700 text-sm mb-6 bg-orange-50 p-3 rounded border border-orange-200">
+                  <span className="font-semibold">⚠️ This facility has active bookings.</span> You must cancel or modify all bookings before you can delete this facility.
+                </p>
+              ) : (
+                <p className="text-gray-600 text-sm mb-6">
+                  This action is permanent and cannot be undone. Bookings associated with this facility can face issues. Recheck bookings and perform necessary actions before confirming deletion.
+                </p>
+              )}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setDeleteConfirmOpen(false);
+                    setFacilityToDelete(null);
+                  }}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 px-6 rounded-lg transition"
+                  disabled={isDeleting || checkingBookings}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={isDeleting || hasActiveBookings || checkingBookings}
+                  className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-semibold py-3 px-6 rounded-lg transition"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
       </div>
     </div>
