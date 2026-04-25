@@ -234,14 +234,6 @@ export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin
             Cancel Booking
           </button>
         )}
-
-        <button
-          onClick={() => {/* View detail logic could go here */ }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-sm hover:shadow-md group"
-        >
-          View Details
-          <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-        </button>
       </div>
 
       {/* Cancel Confirmation Overlay */}
