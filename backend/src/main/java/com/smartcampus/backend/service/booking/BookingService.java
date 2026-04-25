@@ -13,6 +13,7 @@ import com.smartcampus.backend.model.booking.Booking;
 import com.smartcampus.backend.model.booking.BookingStatus;
 import com.smartcampus.backend.model.auth.User;
 import com.smartcampus.backend.model.facility.Facility;
+import com.smartcampus.backend.model.facility.FacilityType;
 import com.smartcampus.backend.model.notification.NotificationType;
 import com.smartcampus.backend.model.notification.ReferenceType;
 import com.smartcampus.backend.model.outbox.OutboxEvent;
@@ -122,6 +123,34 @@ public class BookingService {
         if (dto.getExpectedAttendees() > facility.getCapacity()) {
             throw new IllegalArgumentException("Number of attendees (" + dto.getExpectedAttendees() + 
                 ") exceeds the resource capacity");
+        }
+
+        // ── Staff Lecture Hall exclusive booking check ────────────────────────────
+        // 1. If resource type is LECTURE_HALL, check if any STAFF booking exists (exclusively reserved)
+        if (facility.getType() == FacilityType.LECTURE_HALL) {
+            boolean staffBookingExists = bookingRepository.existsStaffBookingForLectureHall(
+                    facility.getId(),
+                    dto.getBookingDate(),
+                    dto.getStartTime(),
+                    dto.getEndTime()
+            );
+            if (staffBookingExists) {
+                throw new ConflictException("This lecture hall has been exclusively reserved by staff for this time slot.");
+            }
+        }
+
+        // 2. If current user is STAFF and resource type is LECTURE_HALL, check if ANY approved booking exists
+        if (currentUser.getRole() == Role.STAFF && facility.getType() == FacilityType.LECTURE_HALL) {
+            List<Booking> conflicts = bookingRepository.findConflictingBookings(
+                    facility.getId(),
+                    dto.getBookingDate(),
+                    dto.getStartTime(),
+                    dto.getEndTime(),
+                    -1L
+            );
+            if (!conflicts.isEmpty()) {
+                throw new ConflictException("This lecture hall is already booked by staff for this time slot. Lecture halls are exclusively reserved when booked by staff.");
+            }
         }
 
         // ── Capacity check (partial-capacity aware) ──────────────────────────────

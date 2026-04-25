@@ -154,4 +154,24 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("endTime") LocalTime endTime,
             @Param("excludeId") Long excludeId
     );
+
+    /**
+     * Check if any APPROVED booking for a specific LECTURE_HALL was made by a STAFF user
+     * during the requested time window.
+     */
+    @Query("""
+            SELECT COUNT(b) > 0 FROM Booking b
+            WHERE b.resource.id = :resourceId
+              AND b.bookingDate = :date
+              AND b.status = com.smartcampus.backend.model.booking.BookingStatus.APPROVED
+              AND b.startTime < :endTime
+              AND b.endTime > :startTime
+              AND b.user.role = com.smartcampus.backend.model.auth.Role.STAFF
+            """)
+    boolean existsStaffBookingForLectureHall(
+            @Param("resourceId") Long resourceId,
+            @Param("date") LocalDate date,
+            @Param("startTime") LocalTime startTime,
+            @Param("endTime") LocalTime endTime
+    );
 }

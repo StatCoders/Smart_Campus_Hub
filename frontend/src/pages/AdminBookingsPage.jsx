@@ -253,6 +253,23 @@ export default function AdminBookingsPage() {
     return acc;
   }, {});
 
+  // Date-based stats for Chart
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const bookingsThisWeek = bookings.filter(b => {
+    const createdDate = new Date(b.createdAt || b.created_at);
+    return createdDate >= sevenDaysAgo;
+  }).length;
+
+  const bookingsThisMonth = bookings.filter(b => {
+    const createdDate = new Date(b.createdAt || b.created_at);
+    return createdDate >= thirtyDaysAgo;
+  }).length;
+
+  const chartMaxVal = Math.max(bookingsThisWeek, bookingsThisMonth, 1);
+
   return (
     <div className="flex h-screen bg-slate-50">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -273,20 +290,56 @@ export default function AdminBookingsPage() {
             </div>
           </div>
 
-          {/* Stats row */}
+          {/* Stats & Overview Section */}
           {!loading && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-              {[
-                { label: 'Pending', count: counts.PENDING || 0, color: 'bg-amber-50 border-amber-300 text-amber-700' },
-                { label: 'Approved', count: counts.APPROVED || 0, color: 'bg-emerald-50 border-emerald-300 text-emerald-700' },
-                { label: 'Rejected', count: counts.REJECTED || 0, color: 'bg-rose-50 border-rose-300 text-rose-700' },
-                { label: 'Cancelled', count: counts.CANCELLED || 0, color: 'bg-slate-50 border-slate-300 text-slate-600' },
-              ].map(stat => (
-                <div key={stat.label} className={`rounded-2xl border px-5 py-4 ${stat.color}`}>
-                  <p className="text-2xl font-bold">{stat.count}</p>
-                  <p className="text-sm font-medium mt-0.5">{stat.label}</p>
+            <div className="space-y-6 mb-8">
+              {/* Row 1: Stat Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label: 'Total', count: bookings.length, sub: 'bookings', borderColor: 'border-l-indigo-500', textColor: 'text-indigo-600' },
+                  { label: 'Pending', count: counts.PENDING || 0, sub: 'awaiting', borderColor: 'border-l-amber-500', textColor: 'text-amber-600' },
+                  { label: 'Approved', count: counts.APPROVED || 0, sub: 'confirmed', borderColor: 'border-l-emerald-500', textColor: 'text-emerald-600' },
+                  { label: 'Rejected', count: counts.REJECTED || 0, sub: 'declined', borderColor: 'border-l-rose-500', textColor: 'text-rose-600' },
+                ].map(stat => (
+                  <div 
+                    key={stat.label} 
+                    className={`bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col items-center text-center transition-all hover:shadow-md border-l-4 ${stat.borderColor}`}
+                  >
+                    <p className={`text-xs font-bold ${stat.textColor} uppercase tracking-wider mb-1`}>{stat.label}</p>
+                    <p className="text-3xl font-bold text-slate-800">{stat.count}</p>
+                    <p className="text-xs text-slate-500 mt-1">{stat.sub}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Row 2: Bar Chart */}
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 transition-all hover:shadow-md">
+                <h3 className="text-sm font-bold text-slate-800 mb-6 uppercase tracking-wider">Bookings Overview</h3>
+                <div className="space-y-5">
+                  {/* This Week */}
+                  <div className="flex items-center gap-4">
+                    <div className="w-24 text-sm font-medium text-slate-600">This Week</div>
+                    <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-indigo-500 rounded-full transition-all duration-700 ease-out" 
+                        style={{ width: `${(bookingsThisWeek / chartMaxVal) * 100}%` }}
+                      />
+                    </div>
+                    <div className="w-8 text-right text-sm font-bold text-slate-900">{bookingsThisWeek}</div>
+                  </div>
+                  {/* This Month */}
+                  <div className="flex items-center gap-4">
+                    <div className="w-24 text-sm font-medium text-slate-600">This Month</div>
+                    <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-purple-500 rounded-full transition-all duration-700 ease-out" 
+                        style={{ width: `${(bookingsThisMonth / chartMaxVal) * 100}%` }}
+                      />
+                    </div>
+                    <div className="w-8 text-right text-sm font-bold text-slate-900">{bookingsThisMonth}</div>
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
           )}
 

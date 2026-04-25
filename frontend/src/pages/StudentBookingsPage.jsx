@@ -65,16 +65,56 @@ const BookingSkeleton = () => (
 // ─────────────────────────────────────────────────────────────
 function ResourceCard({ resource, onBook }) {
   const meta = getTypeMeta(resource.type);
+  const bookingStatus = resource.bookingStatus || 'CAN_BOOK_NOW';
+
+  // Define status configurations
+  const getStatusConfig = () => {
+    switch (bookingStatus) {
+      case 'AVAILABLE_FOR_FUTURE_BOOKINGS':
+        return {
+          badge: { label: 'Available for Future', icon: '◷', classes: 'bg-amber-100 text-amber-700 border-amber-200' },
+          borderClass: 'border-amber-500 shadow-amber-50',
+          buttonLabel: 'New Booking',
+          isDisabled: false,
+          infoText: 'Currently outside availability window — book for a future date'
+        };
+      case 'CANNOT_BOOK_NOW':
+        return {
+          badge: { label: 'Not Available', icon: '✕', classes: 'bg-rose-100 text-rose-700 border-rose-200' },
+          borderClass: 'border-rose-500 shadow-rose-50',
+          buttonLabel: 'Unavailable',
+          isDisabled: true,
+          infoText: 'This resource is out of service'
+        };
+      case 'CAN_BOOK_NOW':
+      default:
+        return {
+          badge: { label: 'Available Now', icon: '●', classes: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+          borderClass: 'border-emerald-500 shadow-emerald-50',
+          buttonLabel: 'New Booking',
+          isDisabled: false,
+          infoText: null
+        };
+    }
+  };
+
+  const config = getStatusConfig();
 
   return (
     <Motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4 }}
-      className="bg-white rounded-2xl border border-slate-200 overflow-hidden
-                    hover:shadow-xl transition-all duration-300 flex flex-col group"
+      className={`bg-white rounded-2xl border-2 ${config.borderClass} overflow-hidden
+                    hover:shadow-xl transition-all duration-300 flex flex-col group h-full`}
     >
       <div className="relative h-48 bg-gradient-to-br from-slate-100 to-slate-200 overflow-hidden">
+        {/* Status Badge - Top Right */}
+        <div className={`absolute top-3 right-3 z-10 px-3 py-1.5 rounded-full border shadow-sm flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider ${config.badge.classes}`}>
+          <span className="text-xs">{config.badge.icon}</span>
+          {config.badge.label}
+        </div>
+
         {resource.imageUrl ? (
           <img
             src={resource.imageUrl}
@@ -86,12 +126,15 @@ function ResourceCard({ resource, onBook }) {
             <span className="text-5xl opacity-60">{meta.icon}</span>
           </div>
         )}
-        <div className="absolute inset-0 bg-indigo-600/70 opacity-0 group-hover:opacity-100
-                        transition-opacity duration-300 flex items-center justify-center">
-          <span className="text-white font-bold text-lg flex items-center gap-2">
-            <CalendarPlus className="w-5 h-5" /> Book Now
-          </span>
-        </div>
+        
+        {!config.isDisabled && (
+          <div className="absolute inset-0 bg-indigo-600/70 opacity-0 group-hover:opacity-100
+                          transition-opacity duration-300 flex items-center justify-center">
+            <span className="text-white font-bold text-lg flex items-center gap-2">
+              <CalendarPlus className="w-5 h-5" /> Book Now
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-4 flex items-start justify-between gap-2">
@@ -100,7 +143,7 @@ function ResourceCard({ resource, onBook }) {
           <p className="text-blue-200 text-xs mt-0.5 uppercase tracking-wide">{meta.label}</p>
         </div>
         <span className="flex-shrink-0 px-2.5 py-1 rounded bg-white/20 text-white text-xs font-semibold border border-white/30">
-          Active
+          {bookingStatus === 'CANNOT_BOOK_NOW' ? 'Inactive' : 'Active'}
         </span>
       </div>
 
@@ -132,17 +175,24 @@ function ResourceCard({ resource, onBook }) {
         </div>
       </div>
 
-      <div className="px-5 pb-5 pt-0">
+      <div className="px-5 pb-5 pt-0 mt-auto">
         <button
-          onClick={() => onBook(resource)}
-          className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700
-                     text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md
-                     flex items-center justify-center gap-2 group/btn"
+          onClick={() => !config.isDisabled && onBook(resource)}
+          disabled={config.isDisabled}
+          className={`w-full ${config.isDisabled 
+            ? 'bg-slate-200 text-slate-500 cursor-not-allowed' 
+            : 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-sm hover:shadow-md'
+          } font-bold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group/btn`}
         >
-          <CalendarPlus className="w-4 h-4 transition-transform group-hover/btn:scale-110" />
-          New Booking
-          <ChevronRight className="w-4 h-4 opacity-60" />
+          {config.isDisabled ? <X className="w-4 h-4" /> : <CalendarPlus className="w-4 h-4 transition-transform group-hover/btn:scale-110" />}
+          {config.buttonLabel}
+          {!config.isDisabled && <ChevronRight className="w-4 h-4 opacity-60" />}
         </button>
+        {config.infoText && (
+          <p className="text-[10px] text-center mt-2 font-black uppercase tracking-tight text-slate-500">
+            {config.infoText}
+          </p>
+        )}
       </div>
     </Motion.div>
   );
@@ -187,7 +237,7 @@ export default function StudentBookingsPage() {
       if (activeTab === 'book') {
         const data = await getAllFacilities();
         let list = Array.isArray(data) ? data : data?.content || data?.data || [];
-        setResources(list.filter((r) => r.bookingStatus === 'CAN_BOOK_NOW'));
+        setResources(list);
       } else {
         const data = await getMyBookings();
         setPersonalBookings(Array.isArray(data) ? data : []);
