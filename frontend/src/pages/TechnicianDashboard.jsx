@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Activity,
@@ -183,9 +183,23 @@ export default function TechnicianDashboard() {
   const { user } = useAuth();
   const { isCollapsed } = useSidebar();
   const [activeTab, setActiveTab] = useState('maintenance');
-  const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
-  const [highlightId, setHighlightId] = useState(null);
+  const [commentModalOpen, setCommentModalOpen] = useState(false);
+  
+  // Derive highlightId directly from URL
+  const highlightId = useMemo(() => {
+    return new URLSearchParams(location.search).get('highlight');
+  }, [location.search]);
+
+  // Handle tab switching when highlightId changes (using the 'adjust state during render' pattern)
+  const [prevHighlightId, setPrevHighlightId] = useState(highlightId);
+  if (highlightId !== prevHighlightId) {
+    setPrevHighlightId(highlightId);
+    if (highlightId && activeTab !== 'maintenance') {
+      setActiveTab('maintenance');
+    }
+  }
+
   const {
     data: tickets = [],
     isLoading: loading,
@@ -203,16 +217,6 @@ export default function TechnicianDashboard() {
   const sortedTickets = [...tickets].sort(
     (left, right) => new Date(right.updatedAt || right.createdAt) - new Date(left.updatedAt || left.createdAt)
   );
-
-  // Handle deep linking/highlighting
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const highlight = params.get('highlight');
-    if (highlight) {
-      setHighlightId(highlight);
-      setActiveTab('maintenance');
-    }
-  }, [location.search]);
 
   // Scroll to highlighted ticket
   useEffect(() => {

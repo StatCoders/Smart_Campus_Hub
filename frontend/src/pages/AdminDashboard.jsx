@@ -21,15 +21,13 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const { isCollapsed } = useSidebar();
   const [activeTab, setActiveTab] = useState('overview');
-  const [commentModalOpen, setCommentModalOpen] = useState(false);
-  const [selectedTicketId, setSelectedTicketId] = useState(null);
 
   const { ticketsQuery, facilitiesQuery, bookingsQuery } = useCampusOperationsData();
   const deleteTicketMutation = useDeleteTicket();
 
-  const allTickets = ticketsQuery.data || [];
-  const allBookings = bookingsQuery.data || [];
-  const allFacilities = facilitiesQuery.data || [];
+  const allTickets = useMemo(() => ticketsQuery.data || [], [ticketsQuery.data]);
+  const allBookings = useMemo(() => bookingsQuery.data || [], [bookingsQuery.data]);
+  const allFacilities = useMemo(() => facilitiesQuery.data || [], [facilitiesQuery.data]);
   const isLoading = ticketsQuery.isLoading || bookingsQuery.isLoading || facilitiesQuery.isLoading;
 
   // Comprehensive analytics
@@ -70,12 +68,6 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error deleting ticket:', error);
     }
-  };
-
-  const handleOpenComments = (e, ticketId) => {
-    e.stopPropagation();
-    setSelectedTicketId(ticketId);
-    setCommentModalOpen(true);
   };
 
   return (
@@ -427,11 +419,6 @@ export default function AdminDashboard() {
         </main>
       </div>
 
-      <TicketCommentModal
-        isOpen={commentModalOpen}
-        onClose={() => setCommentModalOpen(false)}
-        ticketId={selectedTicketId}
-      />
     </div>
   );
 }
