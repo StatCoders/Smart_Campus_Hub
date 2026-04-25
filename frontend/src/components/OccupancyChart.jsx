@@ -73,6 +73,55 @@ export default function OccupancyChart({ facilityId }) {
     return (completedBookings / day.bookings.length) * day.occupancyPercent;
   };
 
+  const getAvailableDays = () => {
+    if (!occupancyData?.availabilityWindow || !occupancyData?.occupancyData) {
+      return occupancyData?.occupancyData || [];
+    }
+
+    const window = occupancyData.availabilityWindow.trim();
+    
+    // Handle formats like "Mon-Fri: 08:30-22:00" or "Mon-Fri 08:00-17:00"
+    // Extract the day part (before colon or first space)
+    let days = '';
+    if (window.includes(':')) {
+      // Format: "Mon-Fri: 08:30-22:00"
+      days = window.split(':')[0].trim();
+    } else {
+      // Format: "Mon-Fri 08:00-17:00"
+      const parts = window.split(' ');
+      days = parts[0];
+    }
+
+    const dayMap = { 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6, 'Sun': 0 };
+    const [startDay, endDay] = days.split('-');
+    
+    if (!startDay || !endDay) {
+      return occupancyData.occupancyData;
+    }
+
+    const startNum = dayMap[startDay];
+    const endNum = dayMap[endDay];
+
+    if (startNum === undefined || endNum === undefined) {
+      return occupancyData.occupancyData;
+    }
+
+    return occupancyData.occupancyData.filter(day => {
+      // Parse date as local date to avoid timezone issues
+      // "2026-04-25" should be April 25 in local timezone, not UTC
+      const [year, month, dayOfMonth] = day.date.split('-');
+      const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(dayOfMonth));
+      const dayOfWeek = dateObj.getDay();
+      
+      if (startNum <= endNum) {
+        return dayOfWeek >= startNum && dayOfWeek <= endNum;
+      } else {
+        // Wrapping case (e.g., Fri-Mon)
+        return dayOfWeek >= startNum || dayOfWeek <= endNum;
+      }
+    });
+  };
+
   if (loading && !occupancyData) {
     return (
       <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
@@ -119,7 +168,7 @@ export default function OccupancyChart({ facilityId }) {
       </div>
       
       <div className="grid grid-cols-1 gap-2">
-        {occupancyData.occupancyData?.map((day, index) => {
+        {getAvailableDays()?.map((day, index) => {
           const isExpanded = expandedDay === index;
           const occupancyPercent = Math.round(day.occupancyPercent || 0);
           const completedPercent = Math.round(calculateCompletedPercent(day));

@@ -25,6 +25,9 @@ public class OccupancyDataDto {
     @JsonProperty("capacity")
     private Integer capacity;
     
+    @JsonProperty("availabilityWindow")
+    private String availabilityWindow; // e.g., "Mon-Fri 08:00-17:00"
+    
     @JsonProperty("occupancyData")
     private List<DayOccupancyDto> occupancyData;
     
