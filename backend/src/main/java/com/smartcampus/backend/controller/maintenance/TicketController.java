@@ -72,7 +72,7 @@ public class TicketController {
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            return new ResponseEntity<>(new ErrorResponse("Ticket not found"), HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ErrorResponse("Error updating ticket: " + e.getMessage()), HttpStatus.NOT_FOUND);
         }
     }
 
@@ -85,7 +85,7 @@ public class TicketController {
         } catch (AccessDeniedException e) {
             return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.FORBIDDEN);
         } catch (Exception e) {
-            return new ResponseEntity<>(new ErrorResponse("Ticket not found"), HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ErrorResponse("Error: " + e.getMessage()), HttpStatus.NOT_FOUND);
         }
     }
 
@@ -100,7 +100,7 @@ public class TicketController {
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            return new ResponseEntity<>(new ErrorResponse("Ticket not found"), HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ErrorResponse("Error: " + e.getMessage()), HttpStatus.NOT_FOUND);
         }
     }
 
@@ -115,7 +115,7 @@ public class TicketController {
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            return new ResponseEntity<>(new ErrorResponse("Ticket not found"), HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ErrorResponse("Error: " + e.getMessage()), HttpStatus.NOT_FOUND);
         }
     }
 
@@ -130,7 +130,7 @@ public class TicketController {
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            return new ResponseEntity<>(new ErrorResponse("Ticket not found"), HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ErrorResponse("Error: " + e.getMessage()), HttpStatus.NOT_FOUND);
         }
     }
 

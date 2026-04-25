@@ -49,6 +49,11 @@ const authService = {
     const response = await apiClient.get(`/auth/check-email/${email}`);
     return response.data;
   },
+  
+  updateProfile: async (profileData) => {
+    const response = await apiClient.put('/users/profile', profileData);
+    return normalizeAuthResponse({ data: response.data, success: true });
+  },
 };
 
 export default authService;

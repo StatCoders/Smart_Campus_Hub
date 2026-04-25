@@ -16,23 +16,28 @@ import lombok.Setter;
 public class SignupRequest {
 
     @NotBlank(message = "Email is required")
-    @Email(message = "Email must be valid")
+    @Email(message = "Enter a valid email address")
+    @Pattern(regexp = "^[A-Za-z0-9._%+-]+@winfall\\.edu$", message = "Use your university email (@winfall.edu)")
     private String email;
 
     @NotBlank(message = "First name is required")
-    @Size(min = 2, max = 100, message = "First name must be between 2 and 100 characters")
+    @Size(min = 2, max = 100, message = "First name must be at least 2 characters")
+    @Pattern(regexp = "^[A-Za-z]+$", message = "Name must contain only letters")
     private String firstName;
 
     @NotBlank(message = "Last name is required")
-    @Size(min = 2, max = 100, message = "Last name must be between 2 and 100 characters")
+    @Size(min = 2, max = 100, message = "Last name must be at least 2 characters")
+    @Pattern(regexp = "^[A-Za-z]+$", message = "Name must contain only letters")
     private String lastName;
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^\\d{10,}$", message = "Phone number must be at least 10 digits")
+    @Pattern(regexp = "^\\d{10}$", message = "Enter a valid phone number (10 digits)")
     private String phoneNumber;
 
     @NotBlank(message = "Password is required")
-    @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")
+    @Size(min = 8, max = 100, message = "Password must be at least 8 characters")
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*(),.?\":{}|<>]).+$", 
+             message = "Password must meet all requirements (uppercase, lowercase, number, special char)")
     private String password;
 
     @NotBlank(message = "Confirm password is required")

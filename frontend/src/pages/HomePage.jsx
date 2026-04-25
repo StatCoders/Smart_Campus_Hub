@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Calendar, Wrench, Users, Clock, Zap, ArrowRight, User, Settings, LogOut } from 'lucide-react';
+import { Building2, Calendar, Wrench, Users, Clock, Zap, ArrowRight, User, LogOut } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import campusLogo from '../assets/campus-logo.png';
 import universityBg from '../assets/university-bg.jpg';
@@ -122,16 +122,6 @@ export default function HomePage() {
                     >
                       <User className="w-4 h-4" />
                       Your Profile
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigate('/settings');
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition"
-                    >
-                      <Settings className="w-4 h-4" />
-                      Settings
                     </button>
                     <button
                       onClick={handleLogout}

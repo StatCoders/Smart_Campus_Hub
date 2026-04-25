@@ -41,10 +41,16 @@ export default function TopBar({ user }) {
             <Menu className="h-5 w-5" />
           </button>
 
-          <img src={campusLogo} alt="Campus Logo" className="h-10 w-10" />
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">Winterfall Northern University</p>
-          </div>
+          <button 
+            onClick={() => navigate(normalizeRole(user?.role) === 'ADMIN' ? '/dashboard' : (normalizeRole(user?.role) === 'TECHNICIAN' ? '/technician-dashboard' : '/home'))}
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+          >
+            <img src={campusLogo} alt="Campus Logo" className="h-10 w-10" />
+            <div className="text-left">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700 leading-none">Winterfall Northern University</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.1em] mt-1 leading-none">Operations Hub</p>
+            </div>
+          </button>
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4">

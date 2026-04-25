@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Bell, User, Settings, LogOut,
+  Bell, User, LogOut,
   MapPin, Users, Clock, Search,
   CalendarPlus, BookOpen, ChevronRight,
   Sparkles, Filter, X, LayoutGrid,
@@ -402,16 +402,6 @@ export default function StudentBookingsPage() {
                     >
                       <User className="w-4 h-4" />
                       Your Profile
-                    </button>
-                    <button
-                      onClick={() => {
-                        navigate('/settings');
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition"
-                    >
-                      <Settings className="w-4 h-4" />
-                      Settings
                     </button>
                     <button
                       onClick={handleLogout}

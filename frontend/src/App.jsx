@@ -20,6 +20,7 @@ import BookingsPage from './pages/BookingsPage';
 import AdminBookingsPage from './pages/AdminBookingsPage';
 import StudentBookingsPage from './pages/StudentBookingsPage';
 import ManageUsersPage from './pages/ManageUsersPage';
+import Profile from './pages/Profile';
 import { useAuth } from './context/useAuth';
 import { getDefaultRouteForRole, normalizeRole } from './utils/roleRedirect';
 
@@ -168,6 +169,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ManageUsersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
                 </ProtectedRoute>
               }
             />

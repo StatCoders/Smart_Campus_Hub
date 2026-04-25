@@ -56,8 +56,8 @@ public class NotificationService {
 
     private NotificationPriority determinePriority(NotificationType type) {
         return switch (type) {
-            case TICKET, COMMENT -> NotificationPriority.HIGH;
-            case BOOKING -> NotificationPriority.MEDIUM;
+            case TICKET, COMMENT, TICKET_RESOLVED, ADMIN_COMMENT -> NotificationPriority.HIGH;
+            case BOOKING, ASSIGN_TICKET -> NotificationPriority.MEDIUM;
             case SYSTEM -> NotificationPriority.LOW;
             default -> NotificationPriority.LOW;
         };
@@ -88,8 +88,9 @@ public class NotificationService {
         }
 
         return switch (type) {
-            case TICKET -> preferences.isTicketEnabled();
+            case TICKET, ASSIGN_TICKET, TICKET_RESOLVED -> preferences.isTicketEnabled();
             case SYSTEM -> preferences.isSystemEnabled();
+            case COMMENT, ADMIN_COMMENT -> true; // Comments are generally enabled if ticket is enabled, or just always true if they are high priority
             default -> true;
         };
     }
