@@ -22,6 +22,16 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
   const [resourceNameInput, setResourceNameInput] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [processingImage, setProcessingImage] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({
+    name: '',
+    building: '',
+    floor: '',
+    capacity: '',
+    availabilityWindows: ''
+  });
+  const [resourceError, setResourceError] = useState('');
+  const [validationModalOpen, setValidationModalOpen] = useState(false);
+  const [validationErrors, setValidationErrors] = useState([]);
 
   useEffect(() => {
     if (!facilityToEdit) return;
@@ -64,15 +74,101 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
     }
     setResourceNameInput('');
     setError('');
+    setResourceError('');
     setShowSuccess(false);
     setProcessingImage(false);
   }, [isOpen, facilityToEdit]);
+
+  // Validation functions for each field
+  const hasProperWord = (value) => {
+    // Must contain at least 3 consecutive letters AND at least one vowel
+    // This prevents nonsense like "shhsdh shdshdh" (no vowels)
+    // Accepts real words: "Computer", "Lab", "Building", "Meeting Room", etc.
+    const hasThreeLetters = /[a-zA-Z]{3,}/.test(value);
+    const hasVowel = /[aeiouAEIOU]/.test(value);
+    return hasThreeLetters && hasVowel;
+  };
+
+  const validateFacilityName = (value) => {
+    if (!value.trim()) {
+      return 'Facility name is required';
+    }
+    if (!hasProperWord(value)) {
+      return 'Facility name must contain a real word (e.g., Computer Lab, Lab 403)';
+    }
+    return '';
+  };
+
+  const validateBuilding = (value) => {
+    if (!value.trim()) {
+      return 'Building is required';
+    }
+    if (!hasProperWord(value)) {
+      return 'Building must contain a real word (e.g., Science Building)';
+    }
+    return '';
+  };
+
+  const validateFloor = (value) => {
+    if (!value.trim()) {
+      return 'Floor is required';
+    }
+    if (!hasProperWord(value)) {
+      return 'Floor must contain a real word (e.g., Ground Floor, First Floor)';
+    }
+    return '';
+  };
+
+  const validateCapacity = (value) => {
+    if (!value || value <= 0) {
+      return 'Capacity must be greater than 0';
+    }
+    return '';
+  };
+
+  const validateAvailabilityWindow = (value) => {
+    if (!value.trim()) {
+      return '';
+    }
+    // Format: Mon-Fri: 08:00-18:00 or similar
+    const pattern = /^[A-Za-z]+-[A-Za-z]+:\s*\d{1,2}:\d{2}-\d{1,2}:\d{2}$/;
+    if (!pattern.test(value)) {
+      return 'Format must be like: Mon-Fri: 08:00-18:00';
+    }
+    return '';
+  };
+
+  const validateResourceName = (value) => {
+    if (!value.trim()) {
+      return 'Resource name is required';
+    }
+    if (!hasProperWord(value)) {
+      return 'Resource must contain a real word (e.g., Projector, Whiteboard)';
+    }
+    return '';
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setError('');
     setShowSuccess(false);
+
+    // Real-time validation for each field
+    let fieldError = '';
+    if (name === 'name') {
+      fieldError = validateFacilityName(value);
+    } else if (name === 'building') {
+      fieldError = validateBuilding(value);
+    } else if (name === 'floor') {
+      fieldError = validateFloor(value);
+    } else if (name === 'capacity') {
+      fieldError = validateCapacity(value);
+    } else if (name === 'availabilityWindows') {
+      fieldError = validateAvailabilityWindow(value);
+    }
+
+    setFieldErrors(prev => ({ ...prev, [name]: fieldError }));
   };
 
   const handleDrag = (e) => {
@@ -247,14 +343,16 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
 
   const addFeature = () => {
     const featureName = resourceNameInput.trim();
-    if (!featureName) {
-      setError('Please enter a feature name');
+    const validationError = validateResourceName(featureName);
+    
+    if (validationError) {
+      setResourceError(validationError);
       return;
     }
 
     // Check for duplicates
     if (formData.features.some(f => f.toLowerCase() === featureName.toLowerCase())) {
-      setError(`Feature "${featureName}" already exists`);
+      setResourceError(`Resource "${featureName}" already exists`);
       return;
     }
 
@@ -264,7 +362,7 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
     }));
 
     setResourceNameInput('');
-    setError('');
+    setResourceError('');
   };
 
   const removeFeature = (index) => {
@@ -275,18 +373,23 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
   };
 
   const validateForm = () => {
-    if (!formData.name.trim()) return 'Facility name is required';
-    if (!formData.capacity || formData.capacity <= 0) return 'Capacity must be greater than 0';
-    if (!formData.building.trim()) return 'Building is required';
-    if (!formData.floor.trim()) return 'Floor is required';
-    return '';
+    const errors = [];
+    if (!formData.name.trim()) errors.push('Facility name');
+    if (!formData.capacity || formData.capacity <= 0) errors.push('Capacity');
+    if (!formData.building.trim()) errors.push('Building');
+    if (!formData.floor.trim()) errors.push('Floor');
+
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      setValidationModalOpen(true);
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
+    if (!validateForm()) {
       return;
     }
 
@@ -345,7 +448,22 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
         }, 1500);
       }
     } catch (err) {
-      setError(err.message || 'Failed to save facility');
+      // Show user-friendly error messages
+      let errorMessage = 'Failed to save facility';
+      
+      if (err.response?.status === 400) {
+        errorMessage = err.response.data?.message || 'Invalid facility details. Please check your input.';
+      } else if (err.response?.status === 409) {
+        errorMessage = 'A facility with this name already exists.';
+      } else if (err.response?.status === 403) {
+        errorMessage = 'You do not have permission to perform this action.';
+      } else if (err.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (err.code === 'ERR_NETWORK' || err.message?.includes('localhost')) {
+        errorMessage = 'Connection error. Please check your internet connection and try again.';
+      }
+      
+      setError(errorMessage);
       setLoading(false);
     }
   };
@@ -362,6 +480,38 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
   });
 
   return (
+    <>
+      {/* Validation Error Modal - Outside main modal for proper positioning */}
+      {validationModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-red-200 animate-in fade-in duration-300">
+            <div className="bg-gradient-to-r from-red-600 to-red-700 px-8 py-6 rounded-t-2xl">
+              <h3 className="text-xl font-bold text-white">Required Fields Missing</h3>
+            </div>
+            <div className="p-8">
+              <p className="text-gray-700 mb-6 font-medium">Please fill in all required fields:</p>
+              <ul className="space-y-3 mb-8">
+                {validationErrors.map((field, idx) => (
+                  <li key={idx} className="flex items-center text-red-700 font-medium">
+                    <span className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center mr-3 text-sm">
+                      ✓
+                    </span>
+                    {field}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => setValidationModalOpen(false)}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition"
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Facility Modal */}
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
         {/* Header */}
@@ -404,8 +554,17 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="e.g., Physics Lab 101"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent transition ${
+                  fieldErrors.name 
+                    ? 'border-red-500 focus:ring-red-600 bg-red-50' 
+                    : 'border-gray-300 focus:ring-indigo-600'
+                }`}
               />
+              {fieldErrors.name && (
+                <p className="mt-2 text-sm text-red-600 font-medium">
+                  ! {fieldErrors.name}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
@@ -438,8 +597,17 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
                 onChange={handleChange}
                 placeholder="e.g., 50"
                 min="1"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent transition ${
+                  fieldErrors.capacity 
+                    ? 'border-red-500 focus:ring-red-600 bg-red-50' 
+                    : 'border-gray-300 focus:ring-indigo-600'
+                }`}
               />
+              {fieldErrors.capacity && (
+                <p className="mt-2 text-sm text-red-600 font-medium">
+                  ! {fieldErrors.capacity}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
@@ -451,8 +619,17 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
                 value={formData.building}
                 onChange={handleChange}
                 placeholder="e.g., Science Building"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent transition ${
+                  fieldErrors.building 
+                    ? 'border-red-500 focus:ring-red-600 bg-red-50' 
+                    : 'border-gray-300 focus:ring-indigo-600'
+                }`}
               />
+              {fieldErrors.building && (
+                <p className="mt-2 text-sm text-red-600 font-medium">
+                  ! {fieldErrors.building}
+                </p>
+              )}
             </div>
           </div>
 
@@ -468,8 +645,17 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
                 value={formData.floor}
                 onChange={handleChange}
                 placeholder="e.g., Ground Floor"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent transition ${
+                  fieldErrors.floor 
+                    ? 'border-red-500 focus:ring-red-600 bg-red-50' 
+                    : 'border-gray-300 focus:ring-indigo-600'
+                }`}
               />
+              {fieldErrors.floor && (
+                <p className="mt-2 text-sm text-red-600 font-medium">
+                  ! {fieldErrors.floor}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
@@ -490,8 +676,13 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
           {/* Features Management */}
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">
-              Features/Equipment
+              Add resources for this facility
             </label>
+            {resourceError && (
+              <div className="mb-3 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded text-sm font-medium">
+                ! {resourceError}
+              </div>
+            )}
             <div className="space-y-3">
               {/* Feature Input */}
               <div className="flex gap-3">
@@ -514,7 +705,7 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
               {/* Features List */}
               {formData.features.length > 0 && (
                 <div className="mt-3 space-y-2">
-                  <p className="text-sm font-medium text-gray-700">Added Features:</p>
+                  <p className="text-sm font-medium text-gray-700">Added Resources:</p>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {formData.features.map((feature, index) => (
                       <div
@@ -548,8 +739,17 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
               value={formData.availabilityWindows}
               onChange={handleChange}
               placeholder="e.g., Mon-Fri: 08:00-18:00"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent transition ${
+                fieldErrors.availabilityWindows 
+                  ? 'border-red-500 focus:ring-red-600 bg-red-50' 
+                  : 'border-gray-300 focus:ring-indigo-600'
+              }`}
             />
+            {fieldErrors.availabilityWindows && (
+              <p className="mt-2 text-sm text-red-600 font-medium">
+                ! {fieldErrors.availabilityWindows}
+              </p>
+            )}
           </div>
 
           {/* Image Upload Section */}
@@ -640,5 +840,6 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
         </form>
       </div>
     </div>
+    </>
   );
 }
