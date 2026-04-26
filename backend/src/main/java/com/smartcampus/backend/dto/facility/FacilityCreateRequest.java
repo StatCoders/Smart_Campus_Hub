@@ -34,6 +34,10 @@ public class FacilityCreateRequest {
 
     private FacilityStatus status = FacilityStatus.ACTIVE;
 
+    @Pattern(
+            regexp = "^$|(?i)(mon|tue|wed|thu|fri|sat|sun)\\s*-\\s*(mon|tue|wed|thu|fri|sat|sun)\\s+([01]?\\d|2[0-3])[.:][0-5]\\d\\s*:\\s*([01]?\\d|2[0-3])[.:][0-5]\\d$",
+            message = "Availability must match format like Mon-Fri 08.00:19:00"
+    )
     private String availabilityWindows;
 
     private List<String> features;

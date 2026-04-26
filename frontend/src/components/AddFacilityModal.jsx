@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { createFacility, updateFacility } from '../services/facilityService';
 
 export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSuccess }) {
+  const availabilityDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const defaultAvailabilitySelection = {
+    startDay: 'Mon',
+    endDay: 'Fri',
+    startTime: '08:00',
+    endTime: '19:00'
+  };
   const [formData, setFormData] = useState({
     name: '',
     type: 'LECTURE_HALL',
@@ -32,9 +39,36 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
   const [resourceError, setResourceError] = useState('');
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
+  const [useAvailabilityWindow, setUseAvailabilityWindow] = useState(false);
+  const [availabilitySelection, setAvailabilitySelection] = useState(defaultAvailabilitySelection);
+
+  const formatAvailabilityWindow = (selection) => {
+    const [startHour = '08', startMinute = '00'] = (selection.startTime || '08:00').split(':');
+    const [endHour = '19', endMinute = '00'] = (selection.endTime || '19:00').split(':');
+    return `${selection.startDay.toLowerCase()}-${selection.endDay} ${startHour}.${startMinute}:${endHour}:${endMinute}`;
+  };
+
+  const parseAvailabilityWindow = (windowValue) => {
+    const matcher = /^([a-z]{3})\s*-\s*([a-z]{3})\s*:?\s*(\d{1,2})[.:](\d{2})\s*[-:]\s*(\d{1,2})[.:](\d{2})$/i.exec((windowValue || '').trim());
+    if (!matcher) {
+      return { enabled: false, selection: defaultAvailabilitySelection };
+    }
+
+    const toDayLabel = (shortDay) => shortDay.charAt(0).toUpperCase() + shortDay.slice(1).toLowerCase();
+    const startDay = toDayLabel(matcher[1]);
+    const endDay = toDayLabel(matcher[2]);
+    const startTime = `${matcher[3].padStart(2, '0')}:${matcher[4]}`;
+    const endTime = `${matcher[5].padStart(2, '0')}:${matcher[6]}`;
+
+    return {
+      enabled: true,
+      selection: { startDay, endDay, startTime, endTime }
+    };
+  };
 
   useEffect(() => {
     if (!facilityToEdit) return;
+    const parsedAvailability = parseAvailabilityWindow(facilityToEdit.availabilityWindows || '');
     
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFormData({
@@ -48,6 +82,8 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
       imageUrl: facilityToEdit.imageUrl || '',
       availabilityWindows: facilityToEdit.availabilityWindows || ''
     });
+    setUseAvailabilityWindow(parsedAvailability.enabled);
+    setAvailabilitySelection(parsedAvailability.selection);
     if (facilityToEdit.imageUrl) {
       setImagePreview(facilityToEdit.imageUrl);
     }
@@ -71,6 +107,8 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
       });
       setImagePreview('');
       setSelectedFile(null);
+      setUseAvailabilityWindow(false);
+      setAvailabilitySelection(defaultAvailabilitySelection);
     }
     setResourceNameInput('');
     setError('');
@@ -130,13 +168,20 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
     if (!value.trim()) {
       return '';
     }
-    // Format: Mon-Fri: 08:00-18:00 or similar
-    const pattern = /^[A-Za-z]+-[A-Za-z]+:\s*\d{1,2}:\d{2}-\d{1,2}:\d{2}$/;
+    // Format: Mon-Fri 08.00:19:00
+    const pattern = /^(mon|tue|wed|thu|fri|sat|sun)\s*-\s*(mon|tue|wed|thu|fri|sat|sun)\s*:?\s*([01]?\d|2[0-3])[.:][0-5]\d\s*[-:]\s*([01]?\d|2[0-3])[.:][0-5]\d$/i;
     if (!pattern.test(value)) {
-      return 'Format must be like: Mon-Fri: 08:00-18:00';
+      return 'Format must be like: Mon-Fri 08.00:19:00';
     }
     return '';
   };
+
+  useEffect(() => {
+    const value = useAvailabilityWindow ? formatAvailabilityWindow(availabilitySelection) : '';
+    const validationMessage = validateAvailabilityWindow(value);
+    setFormData(prev => ({ ...prev, availabilityWindows: value }));
+    setFieldErrors(prev => ({ ...prev, availabilityWindows: validationMessage }));
+  }, [useAvailabilityWindow, availabilitySelection]);
 
   const validateResourceName = (value) => {
     if (!value.trim()) {
@@ -731,20 +776,68 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
           {/* Availability Windows */}
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">
-              Availability (e.g., Mon-Fri: 08:00-18:00)
+              Availability Window
             </label>
-            <input
-              type="text"
-              name="availabilityWindows"
-              value={formData.availabilityWindows}
-              onChange={handleChange}
-              placeholder="e.g., Mon-Fri: 08:00-18:00"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent transition ${
-                fieldErrors.availabilityWindows 
-                  ? 'border-red-500 focus:ring-red-600 bg-red-50' 
-                  : 'border-gray-300 focus:ring-indigo-600'
-              }`}
-            />
+            <label className="inline-flex items-center gap-2 mb-4">
+              <input
+                type="checkbox"
+                checked={useAvailabilityWindow}
+                onChange={(e) => setUseAvailabilityWindow(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+              />
+              <span className="text-sm text-gray-700">Set custom availability</span>
+            </label>
+            {useAvailabilityWindow && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Start Day</label>
+                  <select
+                    value={availabilitySelection.startDay}
+                    onChange={(e) => setAvailabilitySelection(prev => ({ ...prev, startDay: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+                  >
+                    {availabilityDays.map(day => (
+                      <option key={day} value={day}>{day}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">End Day</label>
+                  <select
+                    value={availabilitySelection.endDay}
+                    onChange={(e) => setAvailabilitySelection(prev => ({ ...prev, endDay: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+                  >
+                    {availabilityDays.map(day => (
+                      <option key={day} value={day}>{day}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Start Time</label>
+                  <input
+                    type="time"
+                    value={availabilitySelection.startTime}
+                    onChange={(e) => setAvailabilitySelection(prev => ({ ...prev, startTime: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">End Time</label>
+                  <input
+                    type="time"
+                    value={availabilitySelection.endTime}
+                    onChange={(e) => setAvailabilitySelection(prev => ({ ...prev, endTime: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            )}
+            {formData.availabilityWindows && (
+              <p className="mt-2 text-sm text-gray-600">
+                Stored format: <span className="font-semibold">{formData.availabilityWindows}</span>
+              </p>
+            )}
             {fieldErrors.availabilityWindows && (
               <p className="mt-2 text-sm text-red-600 font-medium">
                 ! {fieldErrors.availabilityWindows}
