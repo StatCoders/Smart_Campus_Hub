@@ -132,6 +132,12 @@ export default function EditTicket({ ticketId, onSuccess, onCancel }) {
       if (!formData.category.trim()) {
         throw new Error('Category is required');
       }
+      if (!formData.building.trim()) {
+        throw new Error('Building is required');
+      }
+      if (!formData.roomNumber.trim()) {
+        throw new Error('Room is required');
+      }
       if (!formData.description.trim()) {
         throw new Error('Description is required');
       }
@@ -144,8 +150,8 @@ export default function EditTicket({ ticketId, onSuccess, onCancel }) {
         category: formData.category,
         description: formData.description,
         priority: formData.priority,
-        building: formData.building || null,
-        roomNumber: formData.roomNumber || null,
+        building: formData.building,
+        roomNumber: formData.roomNumber,
         expectedDate: formData.expectedDate || null,
         additionalNotes: formData.additionalNotes || null,
       });
@@ -239,7 +245,7 @@ export default function EditTicket({ ticketId, onSuccess, onCancel }) {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-3 block text-sm font-semibold text-gray-900">Building</label>
+              <label className="mb-3 block text-sm font-semibold text-gray-900">Building *</label>
               <input
                 type="text"
                 name="building"
@@ -247,10 +253,11 @@ export default function EditTicket({ ticketId, onSuccess, onCancel }) {
                 onChange={handleChange}
                 placeholder="e.g., Block A"
                 className="w-full rounded-xl border border-gray-300 px-4 py-3 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
               />
             </div>
             <div>
-              <label className="mb-3 block text-sm font-semibold text-gray-900">Room</label>
+              <label className="mb-3 block text-sm font-semibold text-gray-900">Room *</label>
               <input
                 type="text"
                 name="roomNumber"
@@ -258,6 +265,7 @@ export default function EditTicket({ ticketId, onSuccess, onCancel }) {
                 onChange={handleChange}
                 placeholder="e.g., 101"
                 className="w-full rounded-xl border border-gray-300 px-4 py-3 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
               />
             </div>
           </div>
