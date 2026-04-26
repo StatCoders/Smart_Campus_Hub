@@ -65,23 +65,23 @@ export default function OccupancyChart({ facilityId }) {
   const calculateCompletedPercent = (day) => {
     if (!day.bookings || day.bookings.length === 0) return 0;
     const now = new Date();
-    
+
     const completedBookings = day.bookings.filter(booking => {
       if (!booking.endTime) return false;
-      
+
       // Parse the end time string (should be ISO format: 2026-04-25T09:00:00)
       const endTime = new Date(booking.endTime);
-      
+
       // Check if date parsing was successful
       if (isNaN(endTime.getTime())) {
         console.warn('Invalid endTime for booking:', booking.endTime);
         return false;
       }
-      
+
       // Compare times - if now > endTime, booking is completed
       return now > endTime;
     }).length;
-    
+
     const completedPercent = (completedBookings / day.bookings.length) * day.occupancyPercent;
     return completedPercent;
   };
@@ -92,9 +92,8 @@ export default function OccupancyChart({ facilityId }) {
     }
 
     const window = occupancyData.availabilityWindow.trim();
-    
+
     // Handle formats like "Mon-Fri: 08:30-22:00" or "Mon-Fri 08:00-17:00"
-    // Extract the day part (before colon or first space)
     let days = '';
     if (window.includes(':')) {
       // Format: "Mon-Fri: 08:30-22:00"
@@ -107,7 +106,7 @@ export default function OccupancyChart({ facilityId }) {
 
     const dayMap = { 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6, 'Sun': 0 };
     const [startDay, endDay] = days.split('-');
-    
+
     if (!startDay || !endDay) {
       return occupancyData.occupancyData;
     }
@@ -125,7 +124,7 @@ export default function OccupancyChart({ facilityId }) {
       const [year, month, dayOfMonth] = day.date.split('-');
       const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(dayOfMonth));
       const dayOfWeek = dateObj.getDay();
-      
+
       if (startNum <= endNum) {
         return dayOfWeek >= startNum && dayOfWeek <= endNum;
       } else {
@@ -156,7 +155,7 @@ export default function OccupancyChart({ facilityId }) {
       {/* Chart Header with Controls */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-900">Weekly Occupancy</h3>
-        
+
         <div className="flex gap-2 items-center">
           {/* Refresh Button */}
           <button
@@ -169,18 +168,18 @@ export default function OccupancyChart({ facilityId }) {
           </button>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 gap-2">
         {getAvailableDays()?.map((day, index) => {
           const isExpanded = expandedDay === index;
           const occupancyPercent = Math.round(day.occupancyPercent || 0);
           const completedPercent = Math.round(calculateCompletedPercent(day));
           const availablePercent = 100 - occupancyPercent;
-          
+
           // Color coding & status based on occupancy percentage
           let colorClass = 'bg-green-50 border-green-200';
           let statusText = 'Available';
-          
+
           // If we have completed bookings, show them
           if (completedPercent > 0) {
             colorClass = 'bg-green-50 border-green-200';
@@ -199,7 +198,7 @@ export default function OccupancyChart({ facilityId }) {
           return (
             <div key={index} className={`${colorClass} border rounded-lg p-3 cursor-pointer transition-all`}
               onClick={() => setExpandedDay(isExpanded ? null : index)}>
-              
+
               {/* Day Header */}
               <div className="flex items-center justify-between mb-2">
                 <div>
@@ -259,10 +258,10 @@ export default function OccupancyChart({ facilityId }) {
                     {day.bookings.map((booking, idx) => {
                       const actualStatus = getActualBookingStatus(booking.status, booking.endTime);
                       const bookingTime = formatBookingTime(booking.startTime, booking.endTime);
-                      const statusColor = actualStatus === 'COMPLETED' 
-                        ? 'bg-green-100 text-green-800' 
+                      const statusColor = actualStatus === 'COMPLETED'
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-blue-100 text-blue-800';
-                      
+
                       return (
                         <div key={idx} className="bg-white rounded p-2 text-xs">
                           <div className="flex items-start justify-between mb-1">

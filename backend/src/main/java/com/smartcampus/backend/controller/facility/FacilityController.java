@@ -25,10 +25,7 @@ public class FacilityController {
 
     private final FacilityService facilityService;
 
-    /**
-     * Get all resources with optional filtering
-     * Accessible by ADMIN and USER
-     */
+    // Get all resources admin, user 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<Page<FacilityDto>> getAllResources(
@@ -54,10 +51,7 @@ public class FacilityController {
         return ResponseEntity.ok(resources);
     }
 
-    /**
-     * Get resource by ID
-     * Accessible by ADMIN and USER
-     */
+    //Get resource by id admin, user
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<FacilityDto> getResourceById(@PathVariable Long id) {
@@ -65,10 +59,7 @@ public class FacilityController {
         return ResponseEntity.ok(resource);
     }
 
-    /**
-     * Create new resource
-     * ADMIN ONLY
-     */
+    //create a new resource
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<FacilityDto> createResource(@Valid @RequestBody FacilityCreateRequest request) {
@@ -76,10 +67,7 @@ public class FacilityController {
         return ResponseEntity.status(HttpStatus.CREATED).body(resource);
     }
 
-    /**
-     * Update existing resource
-     * ADMIN ONLY
-     */
+    //update a resource admin only
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<FacilityDto> updateResource(
@@ -89,10 +77,7 @@ public class FacilityController {
         return ResponseEntity.ok(resource);
     }
 
-    /**
-     * Delete resource
-     * ADMIN ONLY
-     */
+    //delete a resource admin only
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteResource(@PathVariable Long id) {
@@ -100,10 +85,7 @@ public class FacilityController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Search resources by type
-     * Accessible by ADMIN and USER
-     */
+    //search resources by type admin, user
     @GetMapping("/search/by-type")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<?> searchByType(@RequestParam String type) {
@@ -114,21 +96,14 @@ public class FacilityController {
         }
     }
 
-    /**
-     * Search resources by location
-     * Accessible by ADMIN and USER
-     */
+    //search resources by location admin, user
     @GetMapping("/search/by-location")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<?> searchByLocation(@RequestParam String location) {
         return ResponseEntity.ok(facilityService.searchByLocation(location));
     }
 
-    /**
-     * Get 7-day occupancy data for a facility
-     * Shows approved bookings per day with user details and occupancy percentage
-     * Accessible by ADMIN and USER
-     */
+    //get weekly occupancy admin, user
     @GetMapping("/{id}/weekly-occupancy")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<OccupancyDataDto> getWeeklyOccupancy(
