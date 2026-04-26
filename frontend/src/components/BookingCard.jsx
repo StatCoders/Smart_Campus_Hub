@@ -16,7 +16,7 @@ import {
   BookOpen,
   Edit3
 } from 'lucide-react';
-import { cancelBooking } from '../services/bookingService';
+import { cancelBooking, deleteBooking } from '../services/bookingService';
 
 // Status configuration
 const STATUS_CONFIG = {
@@ -76,8 +76,10 @@ function formatLocalTime(timeStr) {
 export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin = false, onEdit, isHighlighted }) {
   const cardRef = useRef(null);
   const [cancelling, setCancelling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [cancelError, setCancelError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     if (isHighlighted && cardRef.current) {
@@ -100,15 +102,29 @@ export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin
 
   const handleCancel = async () => {
     setCancelling(true);
-    setCancelError('');
+    setActionError('');
     try {
       await cancelBooking(booking.id);
       onRefresh?.();
       setShowConfirm(false);
     } catch (err) {
-      setCancelError(typeof err === 'string' ? err : 'Failed to cancel booking');
+      setActionError(typeof err === 'string' ? err : 'Failed to cancel booking');
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setActionError('');
+    try {
+      await deleteBooking(booking.id);
+      onRefresh?.();
+      setShowDeleteConfirm(false);
+    } catch (err) {
+      setActionError(typeof err === 'string' ? err : 'Failed to delete booking');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -206,10 +222,10 @@ export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin
           </div>
         )}
 
-        {cancelError && (
+        {actionError && (
           <div className="mt-2 text-xs text-rose-600 font-medium flex items-center gap-1.5 bg-rose-50 p-2 rounded-lg border border-rose-100">
             <AlertCircle className="w-3.5 h-3.5" />
-            {cancelError}
+            {actionError}
           </div>
         )}
       </div>
@@ -230,8 +246,17 @@ export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin
             onClick={() => setShowConfirm(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-rose-600 hover:bg-rose-50 transition-all border border-transparent hover:border-rose-100"
           >
-            <Trash2 className="w-4 h-4" />
+            <XCircle className="w-4 h-4" />
             Cancel Booking
+          </button>
+        )}
+        {(status === 'REJECTED' || status === 'CANCELLED') && !showDeleteConfirm && (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
           </button>
         )}
       </div>
@@ -265,6 +290,38 @@ export default function BookingCard({ booking, onRefresh, currentUserId, isAdmin
                 className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors shadow-sm disabled:opacity-50"
               >
                 {cancelling ? 'Cancelling...' : 'Yes, Cancel'}
+              </button>
+            </div>
+          </Motion.div>
+        )}
+
+        {showDeleteConfirm && (
+          <Motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-10 bg-white/95 backdrop-blur-sm p-6 flex flex-col items-center justify-center text-center"
+          >
+            <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center mb-4">
+              <Trash2 className="w-8 h-8" />
+            </div>
+            <h4 className="text-lg font-bold text-slate-900 mb-2">Delete Booking?</h4>
+            <p className="text-sm text-slate-500 mb-6 max-w-[240px]">
+              Remove this record from your history permanently?
+            </p>
+            <div className="flex gap-3 w-full max-w-[280px]">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-slate-900 hover:bg-black transition-colors shadow-sm disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Yes, Delete'}
               </button>
             </div>
           </Motion.div>

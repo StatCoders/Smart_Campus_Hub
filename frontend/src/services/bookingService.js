@@ -130,3 +130,12 @@ export const updateBooking = async (id, bookingData) => {
     throw normalizeBookingError(error, 'Failed to update booking');
   }
 };
+
+export const deleteBooking = async (id) => {
+  try {
+    const response = await apiClient.delete(`/bookings/${id}`);
+    return response.data.data || response.data;
+  } catch (error) {
+    throw normalizeBookingError(error, 'Failed to delete booking');
+  }
+};

@@ -131,4 +131,14 @@ public class BookingController {
         return ResponseEntity.ok(new ApiResponse<>(true, HttpStatus.OK.value(),
                 "Availability retrieved successfully", slots));
     }
+    // -------------------------------------------------------------------------
+    // DELETE /api/bookings/{id}  (ADMIN or owner)
+    // -------------------------------------------------------------------------
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deleteBooking(@PathVariable Long id) {
+        bookingService.deleteBooking(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, HttpStatus.OK.value(),
+                "Booking deleted successfully", null));
+    }
 }

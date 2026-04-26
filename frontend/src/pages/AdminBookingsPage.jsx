@@ -188,6 +188,7 @@ export default function AdminBookingsPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [resourceFilter, setResourceFilter] = useState('All');
   const [toast, setToast] = useState(null);
 
   const fetchBookings = useCallback(async () => {
@@ -238,14 +239,18 @@ export default function AdminBookingsPage() {
   // Filter
   const filtered = bookings.filter(b => {
     const matchesStatus = statusFilter === 'All' || b.status === statusFilter;
+    const matchesResource = resourceFilter === 'All' || (b.resourceName || b.resource?.name) === resourceFilter;
     const term = searchTerm.toLowerCase();
     const matchesSearch =
       !term ||
       (b.purpose || '').toLowerCase().includes(term) ||
       (b.userName || b.user?.name || '').toLowerCase().includes(term) ||
       (b.resourceName || b.resource?.name || '').toLowerCase().includes(term);
-    return matchesStatus && matchesSearch;
+    return matchesStatus && matchesResource && matchesSearch;
   });
+
+  // Get unique resource names for filter
+  const uniqueResources = Array.from(new Set(bookings.map(b => b.resourceName || b.resource?.name).filter(Boolean))).sort();
 
   // Stats summary
   const counts = bookings.reduce((acc, b) => {
@@ -371,6 +376,17 @@ export default function AdminBookingsPage() {
             >
               {STATUS_OPTIONS.map(s => (
                 <option key={s} value={s}>{s === 'All' ? 'All Statuses' : s}</option>
+              ))}
+            </select>
+            <select
+              value={resourceFilter}
+              onChange={e => setResourceFilter(e.target.value)}
+              className="px-4 py-2.5 border border-slate-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent max-w-[200px]"
+              id="admin-resource-filter"
+            >
+              <option value="All">All Resources</option>
+              {uniqueResources.map(r => (
+                <option key={r} value={r}>{r}</option>
               ))}
             </select>
           </div>
