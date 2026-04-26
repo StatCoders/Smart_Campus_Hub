@@ -7,7 +7,6 @@ export default function OccupancyChart({ facilityId }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedDay, setExpandedDay] = useState(null);
-  const [period, setPeriod] = useState('week');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchOccupancy = useCallback(async () => {
@@ -30,7 +29,7 @@ export default function OccupancyChart({ facilityId }) {
 
   useEffect(() => {
     fetchOccupancy();
-  }, [fetchOccupancy, period]);
+  }, [fetchOccupancy]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -66,11 +65,25 @@ export default function OccupancyChart({ facilityId }) {
   const calculateCompletedPercent = (day) => {
     if (!day.bookings || day.bookings.length === 0) return 0;
     const now = new Date();
+    
     const completedBookings = day.bookings.filter(booking => {
+      if (!booking.endTime) return false;
+      
+      // Parse the end time string (should be ISO format: 2026-04-25T09:00:00)
       const endTime = new Date(booking.endTime);
-      return now > endTime && !isNaN(endTime.getTime());
+      
+      // Check if date parsing was successful
+      if (isNaN(endTime.getTime())) {
+        console.warn('Invalid endTime for booking:', booking.endTime);
+        return false;
+      }
+      
+      // Compare times - if now > endTime, booking is completed
+      return now > endTime;
     }).length;
-    return (completedBookings / day.bookings.length) * day.occupancyPercent;
+    
+    const completedPercent = (completedBookings / day.bookings.length) * day.occupancyPercent;
+    return completedPercent;
   };
 
   const getAvailableDays = () => {
@@ -145,16 +158,6 @@ export default function OccupancyChart({ facilityId }) {
         <h3 className="text-sm font-semibold text-slate-900">Weekly Occupancy</h3>
         
         <div className="flex gap-2 items-center">
-          {/* Period Selector */}
-          <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="text-xs px-3 py-1 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-          </select>
-
           {/* Refresh Button */}
           <button
             onClick={handleRefresh}
@@ -178,7 +181,11 @@ export default function OccupancyChart({ facilityId }) {
           let colorClass = 'bg-green-50 border-green-200';
           let statusText = 'Available';
           
-          if (occupancyPercent > 80) {
+          // If we have completed bookings, show them
+          if (completedPercent > 0) {
+            colorClass = 'bg-green-50 border-green-200';
+            statusText = 'Completed ' + completedPercent + '%';
+          } else if (occupancyPercent > 80) {
             colorClass = 'bg-red-50 border-red-200';
             statusText = 'Full - ' + occupancyPercent + '% Booked';
           } else if (occupancyPercent > 50) {

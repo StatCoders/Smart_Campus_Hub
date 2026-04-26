@@ -343,13 +343,19 @@ public class FacilityService {
                 if (booking.getExpectedAttendees() != null && booking.getUser() != null) {
                     totalAttendees += booking.getExpectedAttendees();
                     
-                    // Format times as ISO strings
-                    String startTimeStr = booking.getStartTime() != null 
-                        ? booking.getStartTime().toString() 
-                        : null;
-                    String endTimeStr = booking.getEndTime() != null 
-                        ? booking.getEndTime().toString() 
-                        : null;
+                    // Format times as full ISO datetime strings with booking date
+                    String startTimeStr = null;
+                    String endTimeStr = null;
+                    
+                    if (booking.getStartTime() != null) {
+                        LocalDateTime startDateTime = LocalDateTime.of(date, booking.getStartTime());
+                        startTimeStr = startDateTime.toString();
+                    }
+                    
+                    if (booking.getEndTime() != null) {
+                        LocalDateTime endDateTime = LocalDateTime.of(date, booking.getEndTime());
+                        endTimeStr = endDateTime.toString();
+                    }
                     
                     bookingUsers.add(OccupancyDataDto.BookingUserDto.builder()
                             .userId(booking.getUser().getId())
