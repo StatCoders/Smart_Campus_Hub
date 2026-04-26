@@ -30,10 +30,9 @@ public class FacilityService {
     private final BookingRepository bookingRepository;
     private final ModelMapper modelMapper;
 
-    /**
-     * Initialize/backfill booking status for all facilities on startup
-     * Recalculates booking status based on current status and availability windows
-     */
+    
+    //Recalculates booking status based on current status and availability windows
+    //This is done to initialize the booking status for all facilities on startup 
     public void initializeBookingStatus() {
         List<Facility> allFacilities = facilityRepository.findAll();
         boolean needsUpdate = false;
@@ -112,30 +111,20 @@ public class FacilityService {
         return modelMapper.map(facility, FacilityDto.class);
     }
 
-    /**
-     * Calculate booking status based on facility status and availability windows
-     * Returns 3 states: CAN_BOOK_NOW, AVAILABLE_FOR_FUTURE_BOOKINGS, CANNOT_BOOK_NOW
-     * Logic:
-     * - CANNOT_BOOK_NOW: Only when facility is OUT_OF_SERVICE
-     * - CAN_BOOK_NOW: Facility is ACTIVE + within availability window
-     * - AVAILABLE_FOR_FUTURE_BOOKINGS: Facility is ACTIVE but outside availability window (hasn't started or has passed)
-     * Handles formats like "Mon-Sun : 07:00-20:00"
-     */
+    //This is the logic for calculating the booking status of a facility
+    //It is based on the facility status and availability windows
     private String calculateBookingStatus(Facility facility) {
-        // If facility is out of service, cannot book
         if (facility.getStatus() != null && 
             facility.getStatus().toString().equals("OUT_OF_SERVICE")) {
             return "CANNOT_BOOK_NOW";
         }
 
-        // If no availability windows, always available
         if (facility.getAvailabilityWindows() == null || 
             facility.getAvailabilityWindows().isEmpty()) {
             return "CAN_BOOK_NOW";
         }
 
         // Check if current time is within availability windows
-        // Using IST (Asia/Kolkata) timezone for accurate local time comparison
         LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Kolkata"));
         int currentHour = now.getHour();
         int currentMinute = now.getMinute();
