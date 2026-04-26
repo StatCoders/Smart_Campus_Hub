@@ -128,6 +128,12 @@ export default function CreateTicket({ onSuccess }) {
       if (!formData.category.trim()) {
         throw new Error('Category is required');
       }
+      if (!formData.building.trim()) {
+        throw new Error('Building is required');
+      }
+      if (!formData.roomNumber.trim()) {
+        throw new Error('Room is required');
+      }
       if (!formData.description.trim()) {
         throw new Error('Description is required');
       }
@@ -140,8 +146,8 @@ export default function CreateTicket({ onSuccess }) {
         category: formData.category,
         description: formData.description,
         priority: formData.priority,
-        building: formData.building || null,
-        roomNumber: formData.roomNumber || null,
+        building: formData.building,
+        roomNumber: formData.roomNumber,
         expectedDate: formData.expectedDate || null,
         additionalNotes: formData.additionalNotes || null,
       });
@@ -263,7 +269,7 @@ export default function CreateTicket({ onSuccess }) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-2 block font-semibold text-slate-900">Building</label>
+                  <label className="mb-2 block font-semibold text-slate-900">Building *</label>
                   <input
                     type="text"
                     name="building"
@@ -271,10 +277,11 @@ export default function CreateTicket({ onSuccess }) {
                     value={formData.building}
                     onChange={handleChange}
                     className="w-full rounded-xl border border-sky-100 bg-sky-50/50 px-4 py-3 shadow-sm transition-all focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block font-semibold text-slate-900">Room</label>
+                  <label className="mb-2 block font-semibold text-slate-900">Room *</label>
                   <input
                     type="text"
                     name="roomNumber"
@@ -282,6 +289,7 @@ export default function CreateTicket({ onSuccess }) {
                     value={formData.roomNumber}
                     onChange={handleChange}
                     className="w-full rounded-xl border border-sky-100 bg-sky-50/50 px-4 py-3 shadow-sm transition-all focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
                   />
                 </div>
               </div>

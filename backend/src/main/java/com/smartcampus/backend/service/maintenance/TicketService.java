@@ -568,7 +568,6 @@ public class TicketService {
                 assignedTechnicianName = null;
             }
         }
-
         return TicketDto.builder()
                 .id(ticket.getId())
                 .resourceId(ticket.getResourceId())
@@ -598,6 +597,8 @@ public class TicketService {
                 : null;
         User creator = userService.getUser(ticket.getUserId());
         User feedbackAdmin = ticket.getAdminFeedbackBy() != null ? userService.getUser(ticket.getAdminFeedbackBy()) : null;
+        String resolvedContactEmail = resolveContactEmail(ticket, creator);
+        String resolvedContactPhone = resolveContactPhone(ticket, creator);
 
         Long minutesToFirstResponse = ticket.getFirstResponseAt() != null
                 ? ChronoUnit.MINUTES.between(ticket.getCreatedAt(), ticket.getFirstResponseAt())
@@ -648,8 +649,8 @@ public class TicketService {
                 .resolvedAt(ticket.getResolvedAt())
                 .rejectionReason(shouldRevealDetailRejectionReason(ticket, viewer) ? ticket.getRejectionReason() : null)
                 .rejectedByRole(ticket.getRejectedByRole())
-                .contactEmail(ticket.getContactEmail())
-                .contactPhone(ticket.getContactPhone())
+                .contactEmail(resolvedContactEmail)
+                .contactPhone(resolvedContactPhone)
                 .createdAt(ticket.getCreatedAt())
                 .updatedAt(ticket.getUpdatedAt())
                 .comments(comments)
@@ -663,6 +664,20 @@ public class TicketService {
                 .minutesToFirstResponse(minutesToFirstResponse)
                 .minutesToResolution(minutesToResolution)
                 .build();
+    }
+
+    private String resolveContactEmail(Ticket ticket, User creator) {
+        if (ticket.getContactEmail() != null && !ticket.getContactEmail().trim().isEmpty()) {
+            return ticket.getContactEmail();
+        }
+        return creator.getEmail();
+    }
+
+    private String resolveContactPhone(Ticket ticket, User creator) {
+        if (ticket.getContactPhone() != null && !ticket.getContactPhone().trim().isEmpty()) {
+            return ticket.getContactPhone();
+        }
+        return creator.getPhoneNumber();
     }
 
     private boolean shouldRevealListRejectionReason(Ticket ticket, User viewer) {

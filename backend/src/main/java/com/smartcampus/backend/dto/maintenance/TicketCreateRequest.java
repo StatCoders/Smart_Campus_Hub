@@ -22,8 +22,10 @@ public class TicketCreateRequest {
     @NotBlank(message = "Category is required")
     private String category;
 
+    @NotBlank(message = "Building is required")
     private String building;
 
+    @NotBlank(message = "Room number is required")
     private String roomNumber;
 
     @NotBlank(message = "Description is required")
