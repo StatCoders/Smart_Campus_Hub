@@ -171,7 +171,7 @@ public class FacilityService {
 
         // Check time windows - handles formats like "Mon-Sun : 07:00-20:00" or "08:00-22:00"
         // Pattern matches time ranges with : or . as separators (e.g., 08:00-22:00 or 08.00-22.00)
-        String timeRegex = "\\b([0-1]?\\d|2[0-3])[:.]([0-5]\\d)\\s*-\\s*([0-1]?\\d|2[0-3])[:.]([0-5]\\d)\\b";
+        String timeRegex = "\\b([0-1]?\\d|2[0-3])[:.]([0-5]\\d)\\s*[-:]\\s*([0-1]?\\d|2[0-3])[:.]([0-5]\\d)\\b";
         java.util.regex.Pattern timePattern = java.util.regex.Pattern.compile(timeRegex);
         java.util.regex.Matcher timeMatch = timePattern.matcher(windowStr);
 
