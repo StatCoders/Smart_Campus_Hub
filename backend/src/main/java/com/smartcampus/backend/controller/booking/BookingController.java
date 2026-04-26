@@ -53,7 +53,7 @@ public class BookingController {
     // GET /api/bookings  — all bookings, optional ?status= filter (ADMIN)
     // -------------------------------------------------------------------------
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TECHNICIAN')")
     public ResponseEntity<ApiResponse<List<BookingResponseDto>>> getAllBookings(
             @RequestParam(required = false) String status) {
 
@@ -122,7 +122,7 @@ public class BookingController {
     // The frontend uses this list to colour and disable individual time options.
     // -------------------------------------------------------------------------
     @GetMapping("/availability")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('USER') or hasRole('TECHNICIAN') or hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<AvailabilitySlotDto>>> getAvailability(
             @RequestParam Long resourceId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {

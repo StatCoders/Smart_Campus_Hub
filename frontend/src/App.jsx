@@ -19,6 +19,7 @@ import GoogleAuthSuccess from './pages/GoogleAuthSuccess';
 import BookingsPage from './pages/BookingsPage';
 import AdminBookingsPage from './pages/AdminBookingsPage';
 import StudentBookingsPage from './pages/StudentBookingsPage';
+import TechnicianBookingsPage from './pages/TechnicianBookingsPage';
 import ManageUsersPage from './pages/ManageUsersPage';
 import Profile from './pages/Profile';
 import { useAuth } from './context/useAuth';
@@ -177,6 +178,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/technician-bookings"
+              element={
+                <ProtectedRoute allowedRoles={['TECHNICIAN']}>
+                  <TechnicianBookingsPage />
                 </ProtectedRoute>
               }
             />
