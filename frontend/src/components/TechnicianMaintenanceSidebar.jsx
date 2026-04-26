@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, ChevronLeft, ChevronRight, Wrench, X } from 'lucide-react';
+import { BarChart3, ChevronLeft, ChevronRight, Wrench, X, Calendar } from 'lucide-react';
 import { useSidebar } from '../context/useSidebar';
 import campusLogo from '../assets/campus-logo.png';
 
@@ -12,10 +12,15 @@ export default function TechnicianMaintenanceSidebar({ activeTab, setActiveTab }
   const menuItems = [
     { id: 'maintenance', label: 'Maintenance', Icon: Wrench },
     { id: 'analysis', label: 'Maintenance Analysis', Icon: BarChart3 },
+    { id: 'bookings', label: 'Bookings', Icon: Calendar },
   ];
 
   const handleTabChange = (itemId) => {
-    if (location.pathname !== '/technician-dashboard') {
+    if (itemId === 'bookings') {
+      navigate('/technician-bookings');
+    } else if (location.pathname === '/technician-bookings') {
+      navigate('/technician-dashboard');
+    } else if (location.pathname !== '/technician-dashboard') {
       navigate('/technician-dashboard');
     }
     setActiveTab(itemId);
@@ -63,7 +68,9 @@ export default function TechnicianMaintenanceSidebar({ activeTab, setActiveTab }
         <nav className="flex-1 space-y-2 px-3 py-6">
           {menuItems.map((item) => {
             const { Icon } = item;
-            const isActive = activeTab === item.id;
+            const isActive = item.id === 'bookings' 
+              ? location.pathname === '/technician-bookings' 
+              : (activeTab === item.id && location.pathname !== '/technician-bookings');
 
             return (
               <button

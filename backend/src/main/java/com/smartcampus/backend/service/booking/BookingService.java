@@ -498,4 +498,30 @@ public class BookingService {
 
         return slots;
     }
+
+    // =========================================================================
+    // deleteBooking (admin or owner, REJECTED/CANCELLED only)
+    // =========================================================================
+    @Transactional
+    public void deleteBooking(Long id) {
+        User currentUser = getCurrentUser();
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
+
+        // Check if status is deletable
+        if (booking.getStatus() != BookingStatus.REJECTED && booking.getStatus() != BookingStatus.CANCELLED) {
+            throw new ConflictException("Only REJECTED or CANCELLED bookings can be deleted. Current status: " + booking.getStatus());
+        }
+
+        // Ownership/Role check
+        boolean isAdmin = currentUser.getRole() == Role.ADMIN;
+        boolean isOwner = booking.getUser().getId().equals(currentUser.getId());
+
+        if (!isAdmin && !isOwner) {
+            throw new UnauthorizedException("You are not permitted to delete this booking");
+        }
+
+        bookingRepository.delete(booking);
+        log.info("Booking {} deleted by user {}", id, currentUser.getId());
+    }
 }

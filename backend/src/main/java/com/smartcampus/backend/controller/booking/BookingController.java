@@ -53,7 +53,7 @@ public class BookingController {
     // GET /api/bookings  — all bookings, optional ?status= filter (ADMIN)
     // -------------------------------------------------------------------------
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TECHNICIAN')")
     public ResponseEntity<ApiResponse<List<BookingResponseDto>>> getAllBookings(
             @RequestParam(required = false) String status) {
 
@@ -122,7 +122,7 @@ public class BookingController {
     // The frontend uses this list to colour and disable individual time options.
     // -------------------------------------------------------------------------
     @GetMapping("/availability")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('USER') or hasRole('TECHNICIAN') or hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<AvailabilitySlotDto>>> getAvailability(
             @RequestParam Long resourceId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
@@ -130,5 +130,15 @@ public class BookingController {
         List<AvailabilitySlotDto> slots = bookingService.getAvailability(resourceId, date);
         return ResponseEntity.ok(new ApiResponse<>(true, HttpStatus.OK.value(),
                 "Availability retrieved successfully", slots));
+    }
+    // -------------------------------------------------------------------------
+    // DELETE /api/bookings/{id}  (ADMIN or owner)
+    // -------------------------------------------------------------------------
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deleteBooking(@PathVariable Long id) {
+        bookingService.deleteBooking(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, HttpStatus.OK.value(),
+                "Booking deleted successfully", null));
     }
 }
