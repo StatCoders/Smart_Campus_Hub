@@ -45,7 +45,8 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
   const formatAvailabilityWindow = (selection) => {
     const [startHour = '08', startMinute = '00'] = (selection.startTime || '08:00').split(':');
     const [endHour = '19', endMinute = '00'] = (selection.endTime || '19:00').split(':');
-    return `${selection.startDay.toLowerCase()}-${selection.endDay} ${startHour}.${startMinute}:${endHour}:${endMinute}`;
+    // Format: "Mon-Fri: 08:00-19:00" — 24-hour, colon-separated, stored in DB
+    return `${selection.startDay}-${selection.endDay}: ${startHour.padStart(2, '0')}:${startMinute}-${endHour.padStart(2, '0')}:${endMinute}`;
   };
 
   const parseAvailabilityWindow = (windowValue) => {
@@ -168,10 +169,10 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
     if (!value.trim()) {
       return '';
     }
-    // Format: Mon-Fri 08.00:19:00
-    const pattern = /^(mon|tue|wed|thu|fri|sat|sun)\s*-\s*(mon|tue|wed|thu|fri|sat|sun)\s*:?\s*([01]?\d|2[0-3])[.:][0-5]\d\s*[-:]\s*([01]?\d|2[0-3])[.:][0-5]\d$/i;
+    // Format: Mon-Fri: 08:00-19:00 (24-hr)
+    const pattern = /^(mon|tue|wed|thu|fri|sat|sun)\s*-\s*(mon|tue|wed|thu|fri|sat|sun)\s*:?\s*([01]?\d|2[0-3]):[0-5]\d\s*-\s*([01]?\d|2[0-3]):[0-5]\d$/i;
     if (!pattern.test(value)) {
-      return 'Format must be like: Mon-Fri 08.00:19:00';
+      return 'Format must be like: Mon-Fri: 08:00-19:00 (24-hour)';
     }
     return '';
   };
@@ -815,27 +816,36 @@ export default function AddFacilityModal({ isOpen, onClose, facilityToEdit, onSu
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Start Time</label>
-                  <input
-                    type="time"
+                  <select
                     value={availabilitySelection.startTime}
                     onChange={(e) => setAvailabilitySelection(prev => ({ ...prev, startTime: e.target.value }))}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
-                  />
+                  >
+                    {Array.from({ length: 13 }, (_, i) => i + 8).map(h => {
+                      const val = `${String(h).padStart(2, '0')}:00`;
+                      return <option key={val} value={val}>{val}</option>;
+                    })}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">End Time</label>
-                  <input
-                    type="time"
+                  <select
                     value={availabilitySelection.endTime}
                     onChange={(e) => setAvailabilitySelection(prev => ({ ...prev, endTime: e.target.value }))}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
-                  />
+                  >
+                    {Array.from({ length: 12 }, (_, i) => i + 9).map(h => {
+                      const val = `${String(h).padStart(2, '0')}:00`;
+                      return <option key={val} value={val}>{val}</option>;
+                    })}
+                  </select>
                 </div>
               </div>
             )}
             {formData.availabilityWindows && (
               <p className="mt-2 text-sm text-gray-600">
-                Stored format: <span className="font-semibold">{formData.availabilityWindows}</span>
+                Stored as: <span className="font-semibold font-mono text-indigo-700">{formData.availabilityWindows}</span>
+                <span className="ml-2 text-xs text-gray-400">(24-hr format)</span>
               </p>
             )}
             {fieldErrors.availabilityWindows && (
